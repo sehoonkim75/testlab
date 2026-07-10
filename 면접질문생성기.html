@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자기소개서 기반 면접질문 생성기</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --ink:#16273B; --ink-soft:#3D5068; --muted:#7A8AA0;
+  --brand:#185FA5; --brand-dark:#0F4A85; --brand-bg:#EAF2FA;
+  --bg:#F4F6F9; --card:#FFFFFF; --line:#DDE4EC;
+  --ok:#1E7F4F; --ok-bg:#E7F5EE; --warn:#B25E09; --warn-bg:#FDF3E4;
+  --err:#B3352E; --err-bg:#FBEBEA;
+  --radius:10px;
+  --mono:'DM Mono','Consolas','Courier New',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Pretendard','Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 80px}
+
+/* ── header ── */
+header{background:var(--ink);color:#fff;padding:22px 0;margin-bottom:24px}
+header .wrap{padding-bottom:0;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+header h1{font-size:19px;font-weight:700;letter-spacing:-0.3px}
+header .sub{font-size:12.5px;color:#9FB2C8}
+
+/* ── cards / sections ── */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;margin-bottom:18px}
+.card h2{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h2 .step{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:var(--brand);color:#fff;font-size:12px;font-weight:700;flex:none}
+label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:5px}
+input[type=text],input[type=password],select,textarea{
+  width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 12px;
+  font-size:13.5px;font-family:inherit;color:var(--ink);background:#fff;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(24,95,165,.12)}
+textarea{resize:vertical}
+.row{display:flex;gap:14px;flex-wrap:wrap}
+.row>div{flex:1;min-width:200px}
+.hint{font-size:12px;color:var(--muted);margin-top:5px}
+
+/* ── buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;padding:10px 18px;
+  font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:var(--brand-dark)}
+.btn-primary:disabled{background:#A9BFD4;cursor:not-allowed}
+.btn-ghost{background:#fff;color:var(--ink-soft);border:1px solid var(--line)}
+.btn-ghost:hover{background:var(--bg)}
+.btn-sm{padding:6px 12px;font-size:12.5px}
+.btn-danger{background:var(--err-bg);color:var(--err);border:1px solid #EDC9C7}
+
+/* ── tabs ── */
+.tabs{display:flex;gap:6px;margin-bottom:18px}
+.tab{padding:10px 20px;border-radius:8px 8px 0 0;background:transparent;border:1px solid transparent;
+  border-bottom:none;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit}
+.tab.active{background:var(--card);border-color:var(--line);color:var(--brand)}
+.tab-line{border-bottom:1px solid var(--line);margin-top:-19px;margin-bottom:18px}
+
+/* ── prompt panel ── */
+details.prompt-box{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);margin-bottom:18px}
+details.prompt-box summary{padding:14px 22px;font-weight:700;font-size:14px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}
+details.prompt-box summary::before{content:'▸';color:var(--brand);transition:transform .15s}
+details.prompt-box[open] summary::before{transform:rotate(90deg)}
+details.prompt-box .inner{padding:0 22px 18px}
+.prompt-box textarea{font-family:var(--mono);font-size:12.5px;line-height:1.55;background:#FBFCFE}
+
+/* ── QA rows (단건) ── */
+.qa-item{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px;background:#FBFCFE;position:relative}
+.qa-item .del{position:absolute;top:10px;right:10px}
+.qa-item label{margin-top:8px}
+.qa-item label:first-child{margin-top:0}
+
+/* ── batch table ── */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{background:var(--bg);font-size:12px;color:var(--ink-soft);font-weight:700}
+td.mono{font-family:var(--mono);font-size:12.5px}
+.table-scroll{max-height:380px;overflow-y:auto;border:1px solid var(--line);border-radius:8px}
+.status{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11.5px;font-weight:700}
+.st-wait{background:#EEF1F5;color:var(--muted)}
+.st-run{background:var(--brand-bg);color:var(--brand)}
+.st-done{background:var(--ok-bg);color:var(--ok)}
+.st-fail{background:var(--err-bg);color:var(--err)}
+.link{color:var(--brand);cursor:pointer;text-decoration:underline;font-weight:600}
+
+/* ── progress ── */
+.progress-outer{height:10px;background:#E4E9F0;border-radius:99px;overflow:hidden;margin:10px 0 6px}
+.progress-inner{height:100%;background:var(--brand);width:0%;transition:width .3s;border-radius:99px}
+.progress-label{font-size:12.5px;color:var(--ink-soft)}
+
+/* ── result / report ── */
+.report{border-top:4px solid var(--brand)}
+.report .r-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;
+  border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px}
+.report .r-title{font-size:16px;font-weight:800}
+.report .r-meta{font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+.q-card{border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px;background:#fff}
+.q-card .q-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.q-num{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.q-factor{background:var(--brand-bg);color:var(--brand);font-size:11.5px;font-weight:800;padding:2px 10px;border-radius:99px}
+.q-main{font-size:14.5px;font-weight:700;line-height:1.55}
+.q-quote{border-left:3px solid var(--brand);background:var(--brand-bg);padding:9px 12px;margin:10px 0;
+  font-size:13px;color:var(--ink-soft);border-radius:0 6px 6px 0}
+.q-quote b{color:var(--brand);font-size:11.5px;display:block;margin-bottom:2px}
+.q-reason{font-size:13px;color:var(--ink-soft);margin:8px 0}
+.q-reason b{font-size:11.5px;color:var(--muted);display:block}
+.q-subs{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.q-subs b{font-size:11.5px;color:var(--muted)}
+.q-subs ol{margin:6px 0 0 20px;font-size:13.5px}
+.q-subs li{margin-bottom:4px}
+.raw-json{font-family:var(--mono);font-size:12px;background:#0F1B2A;color:#C8D8EC;border-radius:8px;
+  padding:14px;white-space:pre-wrap;word-break:break-all;max-height:340px;overflow:auto;margin-top:12px}
+.essay-box{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px;background:#FBFCFE}
+.essay-box .eq{font-weight:700;font-size:13px;margin-bottom:6px}
+.essay-box .ea{font-size:13px;color:var(--ink-soft);white-space:pre-wrap}
+.notice{border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px}
+.notice.err{background:var(--err-bg);color:var(--err)}
+.notice.ok{background:var(--ok-bg);color:var(--ok)}
+.hidden{display:none}
+
+/* ── 상태 배지 ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 11px;border-radius:99px;font-size:12px;font-weight:700}
+.badge-ok{background:var(--ok-bg);color:var(--ok)}
+.badge-warn{background:var(--warn-bg);color:var(--warn)}
+.badge-off{background:#EEF1F5;color:var(--muted)}
+input[readonly]{background:#F3F6FA;color:var(--muted)}
+
+/* ── 이용 전 안내 게이트 ── */
+#gate{position:fixed;inset:0;background:rgba(17,28,43,.72);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.gate-card{background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:92vh;overflow-y:auto;padding:30px 34px}
+.gate-card h1{font-size:19px;font-weight:800;margin-bottom:4px}
+.gate-card .g-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+.g-section{margin-bottom:16px}
+.g-section h3{font-size:13.5px;font-weight:800;color:var(--brand);margin-bottom:6px}
+.g-section p, .g-section li{font-size:13px;color:var(--ink-soft)}
+.g-section ol, .g-section ul{margin-left:18px}
+.g-section li{margin-bottom:3px}
+.g-warn{border:1px solid #F0D9B8;background:var(--warn-bg);border-radius:8px;padding:12px 14px;margin-bottom:16px}
+.g-warn h3{color:var(--warn)}
+.gate-agree{display:flex;align-items:flex-start;gap:9px;padding:13px 14px;border:1px solid var(--line);border-radius:8px;background:var(--bg);margin:18px 0 14px;cursor:pointer}
+.gate-agree input{margin-top:3px;width:16px;height:16px;flex:none}
+.gate-agree span{font-size:13.5px;font-weight:600}
+
+/* ── print (개별 리포트 인쇄) ── */
+@media print{
+  body{background:#fff}
+  header,.tabs,.tab-line,.no-print,.card:not(.print-target){display:none !important}
+  .card.print-target{border:none;padding:0}
+  .wrap{max-width:100%;padding:0}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ 이용 전 안내 게이트 ══ -->
+<div id="gate">
+  <div class="gate-card">
+    <h1>이용 안내 및 유의사항</h1>
+    <div class="g-sub">자기소개서 기반 면접질문 생성기를 사용하기 전에 아래 내용을 확인해주세요.</div>
+
+    <div class="g-section">
+      <h3>서비스 개요</h3>
+      <p>지원자의 자기소개서와 모집분야 직무수행내용을 OpenAI API로 분석하여, 평가요소별 맞춤형 면접질문(주질문·근거구절·질문이유·보조질문)을 생성하는 도구입니다. 별도 서버 없이 브라우저에서만 동작합니다.</p>
+    </div>
+
+    <div class="g-section">
+      <h3>이용 순서</h3>
+      <ol>
+        <li>OpenAI API 키를 입력하고 <b>등록</b> 버튼으로 확정합니다.</li>
+        <li>필요 시 시스템 프롬프트를 편집한 뒤 <b>프롬프트 적용</b>으로 확정합니다.</li>
+        <li><b>단건 테스트</b> 탭에서 자소서를 직접 붙여넣어 프롬프트를 튜닝합니다.</li>
+        <li>튜닝이 끝나면 <b>엑셀 일괄 처리</b> 탭에서 대량 생성 후 결과 엑셀을 다운로드합니다.</li>
+      </ol>
+    </div>
+
+    <div class="g-warn g-section">
+      <h3>유의사항</h3>
+      <ul>
+        <li><b>API 키 보안</b> — 키는 이 브라우저 탭에만 유지되며 탭을 닫으면 삭제됩니다. 공용 PC에서는 사용 후 반드시 탭을 닫으세요.</li>
+        <li><b>비용 발생</b> — 생성 1건마다 OpenAI API 사용 요금이 부과됩니다. 대량 처리 전 단건 테스트로 결과 품질과 비용을 먼저 확인하세요.</li>
+        <li><b>개인정보 취급</b> — 자기소개서 내용이 OpenAI 서버로 전송됩니다. 기관의 개인정보 처리 방침과 외부 API 이용 규정을 준수하는 범위에서 사용하세요.</li>
+        <li><b>AI 생성물 검토</b> — 생성된 질문은 초안입니다. 실제 면접 활용 전 반드시 담당자가 내용의 적절성을 검토·수정해야 합니다.</li>
+        <li><b>처리 중 유지</b> — 일괄 처리 중 탭을 닫거나 새로고침하면 진행 중인 결과가 사라집니다. 완료 후 결과 엑셀을 즉시 저장하세요.</li>
+      </ul>
+    </div>
+
+    <label class="gate-agree">
+      <input type="checkbox" id="gateCheck" onchange="document.getElementById('gateBtn').disabled=!this.checked">
+      <span>위 이용 안내와 유의사항을 모두 확인하였으며, 이에 동의하고 서비스를 이용합니다.</span>
+    </label>
+    <button class="btn btn-primary" id="gateBtn" style="width:100%;justify-content:center" disabled onclick="enterService()">서비스 시작하기</button>
+  </div>
+</div>
+
+<header>
+  <div class="wrap">
+    <h1>자기소개서 기반 면접질문 생성기</h1>
+    <span class="sub">단건 테스트로 프롬프트를 튜닝한 뒤, 엑셀 업로드로 일괄 처리하세요 · OpenAI API</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ══ 공통 설정 ══ -->
+  <div class="card no-print">
+    <h2><span class="step">1</span>API 설정</h2>
+    <div class="row">
+      <div style="flex:2">
+        <label>OpenAI API 키</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" style="flex:1">
+          <button class="btn btn-primary btn-sm" id="btnKey" onclick="toggleKey()" style="flex:none">등록</button>
+        </div>
+        <div style="margin-top:7px;display:flex;align-items:center;gap:8px">
+          <span class="badge badge-off" id="keyBadge">키 미등록</span>
+          <span class="hint" style="margin:0">등록된 키는 이 탭을 닫기 전까지 유지됩니다. 변경하려면 [수정]을 누르세요.</span>
+        </div>
+      </div>
+      <div>
+        <label>모델</label>
+        <select id="model">
+          <option value="gpt-4.1">gpt-4.1</option>
+          <option value="gpt-4.1-mini" selected>gpt-4.1-mini</option>
+          <option value="gpt-4o">gpt-4o</option>
+          <option value="gpt-4o-mini">gpt-4o-mini</option>
+        </select>
+      </div>
+      <div style="max-width:130px">
+        <label>Temperature</label>
+        <input type="text" id="temperature" value="0.4">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 시스템 프롬프트 ══ -->
+  <details class="prompt-box no-print" open>
+    <summary>시스템 프롬프트 편집 (단건·일괄 공통 적용)</summary>
+    <div class="inner">
+      <textarea id="systemPrompt" rows="16"></textarea>
+      <div class="hint" style="margin:8px 0 10px">
+        응답은 반드시 JSON이어야 화면 렌더링과 엑셀 저장이 동작합니다. 평가요소 구성이나 질문 수를 바꾸려면
+        프롬프트의 지침과 JSON 예시를 함께 수정하세요. (main_questions 배열 구조는 유지 필요)<br>
+        편집한 내용은 <b>[프롬프트 적용]</b>을 눌러야 실제 생성에 반영됩니다.
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="applyPrompt()">프롬프트 적용</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetPrompt()">기본 프롬프트로 복원</button>
+        <span class="badge badge-ok" id="promptBadge">✓ 적용됨 (기본 프롬프트)</span>
+      </div>
+    </div>
+  </details>
+
+  <!-- ══ 탭 ══ -->
+  <div class="tabs no-print">
+    <button class="tab active" id="tabSingle" onclick="switchTab('single')">단건 테스트 · 프롬프트 튜닝</button>
+    <button class="tab" id="tabBatch" onclick="switchTab('batch')">엑셀 일괄 처리</button>
+  </div>
+  <div class="tab-line no-print"></div>
+
+  <!-- ════════ 단건 모드 ════════ -->
+  <div id="paneSingle">
+    <div class="card no-print">
+      <h2><span class="step">2</span>지원자 정보 직접 입력</h2>
+      <div class="row" style="margin-bottom:12px">
+        <div>
+          <label>모집분야</label>
+          <input type="text" id="sField" placeholder="예: 경영지원(일반행정)">
+        </div>
+      </div>
+      <label>직무수행내용 (직무기술서)</label>
+      <textarea id="sJob" rows="4" placeholder="해당 모집분야의 주요 직무수행내용을 붙여넣으세요."></textarea>
+
+      <div style="margin-top:16px">
+        <label style="margin-bottom:8px">자기소개서 문항 · 답변</label>
+        <div id="qaList"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addQA()">+ 문항 추가</button>
+      </div>
+
+      <div style="margin-top:18px;display:flex;gap:10px;align-items:center">
+        <button class="btn btn-primary" id="btnSingle" onclick="runSingle()">면접질문 생성</button>
+        <span class="progress-label" id="singleStatus"></span>
+      </div>
+    </div>
+
+    <div id="singleResult"></div>
+  </div>
+
+  <!-- ════════ 일괄 모드 ════════ -->
+  <div id="paneBatch" class="hidden">
+    <div class="card no-print">
+      <h2><span class="step">2</span>엑셀 업로드</h2>
+      <input type="file" id="excelFile" accept=".xlsx,.xls" onchange="loadExcel(this.files[0])">
+      <div class="hint">
+        시트 <b>"자기소개서"</b>: 수험번호 / 이름 / 모집분야 / 전형단계 / 질문 / 답변 (지원자당 여러 행)<br>
+        시트 <b>"직무내용"</b>: 모집분야 / 직무수행내용 (직무내용 시트가 없으면 직무기술서 없이 생성됩니다)
+      </div>
+      <div id="excelInfo"></div>
+    </div>
+
+    <div class="card no-print hidden" id="candCard">
+      <h2><span class="step">3</span>지원자 선택 및 실행</h2>
+      <div class="table-scroll">
+        <table id="candTable">
+          <thead><tr>
+            <th style="width:36px"><input type="checkbox" id="checkAll" checked onchange="toggleAll(this.checked)"></th>
+            <th>수험번호</th><th>이름</th><th>모집분야</th><th>문항수</th><th>상태</th><th>결과</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="btnBatch" onclick="runBatch(false)">선택 지원자 일괄 생성</button>
+        <button class="btn btn-ghost" id="btnRetry" onclick="runBatch(true)" disabled>실패 건만 재시도</button>
+        <button class="btn btn-ghost" id="btnStop" onclick="stopFlag=true" disabled>중지</button>
+        <button class="btn btn-ghost" id="btnExcel" onclick="downloadExcel()" disabled>결과 엑셀 다운로드</button>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="progBar"></div></div>
+      <div class="progress-label" id="progLabel">대기 중</div>
+    </div>
+
+    <div id="batchResult"></div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════ 기본 프롬프트 ═══════════════════ */
+const DEFAULT_PROMPT = `당신은 공공기관 채용 면접 설계 전문가입니다.
+지원자의 자기소개서와 모집분야의 직무수행내용을 분석하여, 지원자 개인에게 맞춤화된 구조화 면접질문을 생성합니다.
+
+[평가요소] 아래 5개 평가요소별로 주질문을 1개씩, 총 5개 생성합니다.
+1. 정신자세  2. 전문지식  3. 발표력  4. 품행  5. 발전가능성
+
+[생성 규칙]
+- 주질문은 자기소개서의 구체적 경험·표현에 근거해야 하며, 일반적인 질문은 지양합니다.
+- 근거구절: 해당 질문의 근거가 된 자기소개서 문장을 원문 그대로 인용합니다.
+- 질문이유: 이 질문으로 무엇을 검증하려는지 1~2문장으로 설명합니다.
+- 보조질문: 주질문에 대한 답변을 심층 검증(STAR 후속 탐침)하는 질문 3개를 생성합니다.
+- 직무수행내용이 제공된 경우, 전문지식·발전가능성 질문은 직무 연관성을 반영합니다.
+
+[출력 형식] 반드시 아래 JSON 형식으로만 응답하세요. JSON 외의 텍스트, 마크다운, 코드블록 기호를 포함하지 마세요.
+{
+  "main_questions": [
+    {
+      "번호": 1,
+      "평가요소": "정신자세",
+      "주질문": "...",
+      "근거구절": "...",
+      "질문이유": "...",
+      "보조질문": ["...", "...", "..."]
+    }
+  ]
+}`;
+
+const $ = id => document.getElementById(id);
+$('systemPrompt').value = DEFAULT_PROMPT;
+
+/* 저장소 래퍼 (환경에 따라 미지원일 수 있어 try/catch) */
+const store = {  // localStorage: 브라우저를 닫아도 유지 (프롬프트 편집본)
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+};
+const session = {  // sessionStorage: 탭을 닫으면 삭제 (API 키, 안내 확인 여부)
+  get(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ sessionStorage.setItem(k,v); }catch(e){} },
+  del(k){ try{ sessionStorage.removeItem(k); }catch(e){} }
+};
+
+/* ═══════════ 이용 전 안내 게이트 ═══════════ */
+function enterService(){
+  $('gate').style.display = 'none';
+  session.set('iq_gate_ok','1');
+}
+if(session.get('iq_gate_ok') === '1') $('gate').style.display = 'none';
+
+/* ═══════════ API 키 등록 / 수정 ═══════════ */
+let keyLocked = false;
+
+function lockKey(){
+  keyLocked = true;
+  $('apiKey').readOnly = true;
+  $('btnKey').textContent = '수정';
+  $('btnKey').classList.remove('btn-primary'); $('btnKey').classList.add('btn-ghost');
+  $('keyBadge').className = 'badge badge-ok';
+  $('keyBadge').textContent = '✓ API 키 등록됨 (' + maskKey($('apiKey').value) + ')';
+}
+function unlockKey(){
+  keyLocked = false;
+  $('apiKey').readOnly = false;
+  $('btnKey').textContent = '등록';
+  $('btnKey').classList.add('btn-primary'); $('btnKey').classList.remove('btn-ghost');
+  $('keyBadge').className = 'badge badge-warn';
+  $('keyBadge').textContent = '수정 중 — 변경 후 [등록]을 눌러 확정하세요';
+  $('apiKey').focus();
+}
+function toggleKey(){
+  if(keyLocked){ unlockKey(); return; }
+  const v = $('apiKey').value.trim();
+  if(!v){ alert('API 키를 입력하세요.'); return; }
+  if(!v.startsWith('sk-') && !confirm('입력한 키가 일반적인 OpenAI 키 형식(sk-...)이 아닙니다. 그래도 등록할까요?')) return;
+  session.set('iq_key', v);   // 탭을 닫으면 자동 삭제
+  lockKey();
+}
+function maskKey(k){
+  return k.length <= 10 ? '****' : k.slice(0,5) + '****' + k.slice(-4);
+}
+/* 같은 탭에서 새로고침 시 키 복원 */
+const savedKey = session.get('iq_key');
+if(savedKey){ $('apiKey').value = savedKey; lockKey(); }
+/* Enter 키로도 등록 */
+$('apiKey').addEventListener('keydown', e => { if(e.key==='Enter' && !keyLocked) toggleKey(); });
+
+/* ═══════════ 프롬프트 적용 확정 ═══════════ */
+let appliedPrompt = DEFAULT_PROMPT;
+
+const savedPrompt = store.get('iq_prompt');
+if(savedPrompt){
+  $('systemPrompt').value = savedPrompt;
+  appliedPrompt = savedPrompt;
+  setPromptBadge(true, '✓ 적용됨 (저장된 편집본)');
+}
+$('systemPrompt').addEventListener('input', () => {
+  if($('systemPrompt').value !== appliedPrompt)
+    setPromptBadge(false, '변경사항 미적용 — [프롬프트 적용]을 눌러 확정하세요');
+  else
+    setPromptBadge(true, '✓ 적용됨');
+});
+
+function setPromptBadge(ok, text){
+  const b = $('promptBadge');
+  b.className = 'badge ' + (ok ? 'badge-ok' : 'badge-warn');
+  b.textContent = text;
+}
+function applyPrompt(){
+  appliedPrompt = $('systemPrompt').value;
+  store.set('iq_prompt', appliedPrompt);
+  const t = new Date();
+  setPromptBadge(true, `✓ 적용됨 (${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')} 확정)`);
+}
+function resetPrompt(){
+  if(confirm('편집한 내용을 버리고 기본 프롬프트로 복원할까요?')){
+    $('systemPrompt').value = DEFAULT_PROMPT;
+    applyPrompt();
+    setPromptBadge(true, '✓ 적용됨 (기본 프롬프트)');
+  }
+}
+/* 생성 직전 상태 점검: 키 등록 여부 + 프롬프트 미적용 변경 확인 */
+function preflight(){
+  if(!keyLocked || !$('apiKey').value.trim()){
+    alert('API 키를 입력하고 [등록] 버튼으로 확정해주세요.');
+    return false;
+  }
+  if($('systemPrompt').value !== appliedPrompt){
+    return confirm('프롬프트에 적용되지 않은 변경사항이 있습니다.\n마지막으로 [적용]한 프롬프트로 생성을 진행할까요?\n\n(취소를 누르면 생성이 중단됩니다. [프롬프트 적용] 후 다시 실행하세요.)');
+  }
+  return true;
+}
+
+/* ═══════════════════ 탭 ═══════════════════ */
+function switchTab(t){
+  $('paneSingle').classList.toggle('hidden', t!=='single');
+  $('paneBatch').classList.toggle('hidden', t!=='batch');
+  $('tabSingle').classList.toggle('active', t==='single');
+  $('tabBatch').classList.toggle('active', t==='batch');
+}
+
+/* ═══════════════════ OpenAI 호출 ═══════════════════ */
+async function callOpenAI(userPrompt){
+  const key = $('apiKey').value.trim();
+  if(!key) throw new Error('API 키를 입력하세요.');
+  const temp = parseFloat($('temperature').value);
+  const body = {
+    model: $('model').value,
+    temperature: isNaN(temp) ? 0.4 : temp,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role:'system', content: appliedPrompt },
+      { role:'user',   content: userPrompt }
+    ]
+  };
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+key },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){
+    let msg = 'HTTP '+res.status;
+    try{ const e = await res.json(); msg = e.error?.message || msg; }catch(_){}
+    throw new Error(msg);
+  }
+  const data = await res.json();
+  let text = data.choices?.[0]?.message?.content || '';
+  text = text.replace(/```json|```/g,'').trim();
+  const parsed = JSON.parse(text);
+  if(!Array.isArray(parsed.main_questions)) throw new Error('응답 JSON에 main_questions 배열이 없습니다.');
+  return parsed;
+}
+
+function buildUserPrompt(field, jobDesc, qaArr){
+  let p = `[모집분야] ${field || '(미지정)'}\n\n`;
+  p += `[직무수행내용]\n${jobDesc && jobDesc.trim() ? jobDesc.trim() : '(제공되지 않음)'}\n\n`;
+  p += `[자기소개서]\n`;
+  qaArr.forEach((qa,i)=>{
+    p += `\n(문항 ${i+1}) ${qa.question}\n(답변 ${i+1}) ${qa.answer}\n`;
+  });
+  p += `\n위 자기소개서를 바탕으로 시스템 지침에 따라 맞춤형 면접질문을 JSON으로 생성하세요.`;
+  return p;
+}
+
+/* ═══════════════════ 단건 모드 ═══════════════════ */
+function addQA(q='', a=''){
+  const div = document.createElement('div');
+  div.className = 'qa-item';
+  div.innerHTML = `
+    <button class="btn btn-danger btn-sm del" onclick="this.parentElement.remove()">삭제</button>
+    <label>문항</label>
+    <input type="text" class="qa-q" placeholder="자기소개서 문항" value="">
+    <label>답변</label>
+    <textarea class="qa-a" rows="5" placeholder="지원자의 답변 내용을 붙여넣으세요."></textarea>`;
+  div.querySelector('.qa-q').value = q;
+  div.querySelector('.qa-a').value = a;
+  $('qaList').appendChild(div);
+}
+addQA(); // 기본 1개
+
+function collectQA(){
+  return [...document.querySelectorAll('#qaList .qa-item')].map(el => ({
+    question: el.querySelector('.qa-q').value.trim(),
+    answer:   el.querySelector('.qa-a').value.trim()
+  })).filter(qa => qa.answer);
+}
+
+async function runSingle(){
+  if(!preflight()) return;
+  const qa = collectQA();
+  if(!qa.length){ alert('자기소개서 답변을 1개 이상 입력하세요.'); return; }
+  $('btnSingle').disabled = true;
+  $('singleStatus').textContent = '생성 중... (10~30초 소요)';
+  $('singleResult').innerHTML = '';
+  try{
+    const t0 = Date.now();
+    const result = await callOpenAI(buildUserPrompt($('sField').value, $('sJob').value, qa));
+    const sec = ((Date.now()-t0)/1000).toFixed(1);
+    $('singleStatus').textContent = `완료 (${sec}초)`;
+    $('singleResult').innerHTML = renderReport({
+      exam:'테스트', name:'단건 입력', field: $('sField').value || '-', qa
+    }, result, true);
+  }catch(e){
+    $('singleStatus').textContent = '';
+    $('singleResult').innerHTML = `<div class="notice err">생성 실패: ${escapeHtml(e.message)}</div>`;
+  }finally{
+    $('btnSingle').disabled = false;
+  }
+}
+
+/* ═══════════════════ 엑셀 파싱 ═══════════════════ */
+let candidates = [];   // {exam, name, field, status, qa:[{question,answer}], result, error}
+let jobInfo = {};      // field -> desc
+
+function loadExcel(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      // ── 자기소개서 시트 ──
+      const wsName = wb.SheetNames.find(n => n.includes('자기소개서')) || wb.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wsName], {header:1, defval:''});
+      const map = new Map();
+      for(let i=1;i<rows.length;i++){
+        const [exam,name,field,status,question,answer] = rows[i];
+        if(exam===''||exam==null) continue;
+        const key = String(exam);
+        if(!map.has(key)) map.set(key,{exam:key, name:String(name||''), field:String(field||''), status:String(status||''), qa:[], result:null, error:null});
+        map.get(key).qa.push({question:String(question||''), answer:String(answer||'')});
+      }
+      candidates = [...map.values()];
+      // ── 직무내용 시트 ──
+      jobInfo = {};
+      const jobSheet = wb.SheetNames.find(n => n.includes('직무'));
+      if(jobSheet){
+        const jrows = XLSX.utils.sheet_to_json(wb.Sheets[jobSheet], {header:1, defval:''});
+        for(let i=1;i<jrows.length;i++){
+          const f = String(jrows[i][0]||'').trim();
+          if(!f) continue;
+          const desc = jrows[i].slice(1).map(String).filter(s=>s.trim()).join('\n');
+          jobInfo[f] = (jobInfo[f] ? jobInfo[f]+'\n' : '') + desc;
+        }
+      }
+      $('excelInfo').innerHTML = `<div class="notice ok" style="margin-top:12px">
+        지원자 ${candidates.length}명 로드 완료 (시트: ${escapeHtml(wsName)})
+        ${jobSheet ? ` · 직무내용 ${Object.keys(jobInfo).length}개 분야 로드` : ' · 직무내용 시트 없음'}</div>`;
+      renderCandTable();
+      $('candCard').classList.remove('hidden');
+      $('btnExcel').disabled = true;
+      $('btnRetry').disabled = true;
+    }catch(err){
+      $('excelInfo').innerHTML = `<div class="notice err" style="margin-top:12px">엑셀 파싱 실패: ${escapeHtml(err.message)}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderCandTable(){
+  const tb = $('candTable').querySelector('tbody');
+  tb.innerHTML = candidates.map((c,i)=>`
+    <tr>
+      <td><input type="checkbox" class="cand-check" data-i="${i}" checked></td>
+      <td class="mono">${escapeHtml(c.exam)}</td>
+      <td>${escapeHtml(blindName(c.name))}</td>
+      <td>${escapeHtml(c.field)}</td>
+      <td>${c.qa.length}</td>
+      <td id="st-${i}"><span class="status st-wait">대기</span></td>
+      <td id="rs-${i}">-</td>
+    </tr>`).join('');
+}
+function blindName(n){ return n ? n[0] + '○'.repeat(Math.max(n.length-1,1)) : ''; }
+function toggleAll(v){ document.querySelectorAll('.cand-check').forEach(c=>c.checked=v); }
+function setStatus(i, cls, text){ $('st-'+i).innerHTML = `<span class="status ${cls}">${text}</span>`; }
+
+/* ═══════════════════ 일괄 실행 ═══════════════════ */
+let stopFlag = false;
+
+async function runBatch(retryOnly){
+  const targets = [];
+  document.querySelectorAll('.cand-check').forEach(ch=>{
+    const i = +ch.dataset.i;
+    if(!ch.checked) return;
+    if(retryOnly && !candidates[i].error) return;
+    if(!retryOnly && candidates[i].result) return; // 이미 성공한 건 건너뜀
+    targets.push(i);
+  });
+  if(!targets.length){ alert(retryOnly ? '재시도할 실패 건이 없습니다.' : '처리할 지원자가 없습니다. (이미 완료된 건은 제외됩니다)'); return; }
+  if(!preflight()) return;
+
+  stopFlag = false;
+  $('btnBatch').disabled = true; $('btnRetry').disabled = true; $('btnStop').disabled = false;
+
+  let done = 0;
+  for(const i of targets){
+    if(stopFlag) break;
+    const c = candidates[i];
+    setStatus(i,'st-run','생성 중');
+    $('progLabel').textContent = `${done}/${targets.length} 완료 · 현재: ${c.exam}`;
+    try{
+      const jobDesc = jobInfo[c.field] || '';
+      c.result = await callOpenAI(buildUserPrompt(c.field, jobDesc, c.qa));
+      c.error = null;
+      setStatus(i,'st-done','완료');
+      $('rs-'+i).innerHTML = `<span class="link" onclick="showReport(${i})">보기</span>`;
+    }catch(e){
+      c.error = e.message;
+      setStatus(i,'st-fail','실패');
+      $('rs-'+i).innerHTML = `<span title="${escapeHtml(e.message)}" style="color:var(--err);font-size:12px">${escapeHtml(e.message.slice(0,30))}</span>`;
+    }
+    done++;
+    $('progBar').style.width = (done/targets.length*100)+'%';
+    await new Promise(r=>setTimeout(r, 800)); // rate-limit 여유
+  }
+  $('progLabel').textContent = stopFlag
+    ? `중지됨 (${done}/${targets.length} 처리)`
+    : `완료: ${done}/${targets.length}`;
+  $('btnBatch').disabled = false;
+  $('btnStop').disabled = true;
+  $('btnRetry').disabled = !candidates.some(c=>c.error);
+  $('btnExcel').disabled = !candidates.some(c=>c.result);
+}
+
+/* ═══════════════════ 리포트 렌더링 ═══════════════════ */
+function renderReport(meta, result, showRaw){
+  const qs = result.main_questions.map((q,idx)=>`
+    <div class="q-card">
+      <div class="q-top">
+        <span class="q-num">Q${q.번호 ?? idx+1}</span>
+        ${q.평가요소 ? `<span class="q-factor">${escapeHtml(q.평가요소)}</span>` : ''}
+      </div>
+      <div class="q-main">${escapeHtml(q.주질문||'')}</div>
+      ${q.근거구절 ? `<div class="q-quote"><b>자기소개서 근거구절</b>“${escapeHtml(q.근거구절)}”</div>` : ''}
+      ${q.질문이유 ? `<div class="q-reason"><b>질문 의도</b>${escapeHtml(q.질문이유)}</div>` : ''}
+      ${Array.isArray(q.보조질문) && q.보조질문.length ? `
+        <div class="q-subs"><b>보조질문</b>
+          <ol>${q.보조질문.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ol>
+        </div>` : ''}
+    </div>`).join('');
+
+  const essays = meta.qa && meta.qa.length ? `
+    <h2 style="margin-top:22px">자기소개서 원문</h2>
+    ${meta.qa.map((qa,i)=>`
+      <div class="essay-box">
+        <div class="eq">문항 ${i+1}. ${escapeHtml(qa.question)}</div>
+        <div class="ea">${escapeHtml(qa.answer)}</div>
+      </div>`).join('')}` : '';
+
+  return `
+  <div class="card report print-target">
+    <div class="r-head">
+      <span class="r-title">개별 면접질문 리포트</span>
+      <span class="r-meta">수험번호 ${escapeHtml(meta.exam)} · ${escapeHtml(blindName(meta.name))} · ${escapeHtml(meta.field)}</span>
+    </div>
+    <div class="no-print" style="margin-bottom:14px;display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="window.print()">인쇄 / PDF 저장</button>
+      ${showRaw ? `<button class="btn btn-ghost btn-sm" onclick="this.closest('.card').querySelector('.raw-json').classList.toggle('hidden')">JSON 원문 보기</button>` : ''}
+    </div>
+    ${qs}
+    ${essays}
+    ${showRaw ? `<div class="raw-json hidden">${escapeHtml(JSON.stringify(result,null,2))}</div>` : ''}
+  </div>`;
+}
+
+function showReport(i){
+  const c = candidates[i];
+  if(!c.result) return;
+  $('batchResult').innerHTML = renderReport(c, c.result, true);
+  $('batchResult').scrollIntoView({behavior:'smooth'});
+}
+
+/* ═══════════════════ 결과 엑셀 다운로드 ═══════════════════ */
+function downloadExcel(){
+  const rows = [['수험번호','이름','모집분야','평가요소','주질문','근거구절','질문이유','보조질문']];
+  candidates.forEach(c=>{
+    if(!c.result) return;
+    c.result.main_questions.forEach(q=>{
+      rows.push([
+        c.exam, c.name, c.field,
+        q.평가요소||'', q.주질문||'', q.근거구절||'', q.질문이유||'',
+        Array.isArray(q.보조질문) ? q.보조질문.map((s,i)=>`${i+1}. ${s}`).join('\n') : ''
+      ]);
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:12},{wch:8},{wch:16},{wch:10},{wch:50},{wch:40},{wch:35},{wch:55}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '면접질문');
+  XLSX.writeFile(wb, '면접질문_생성결과.xlsx');
+}
+
+/* ═══════════════════ util ═══════════════════ */
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+</script>
+</body>
+</html>
