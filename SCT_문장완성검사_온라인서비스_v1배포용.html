@@ -194,8 +194,35 @@
   .settings-panel select{width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:var(--radius-sm);font-size:12.5px;background:var(--sheet);margin-bottom:10px;}
   .settings-panel .note{font-size:11px;color:var(--ink-faint);line-height:1.6;}
 
+  /* ── 검사 모드 선택 ── */
+  .mode-intro{font-size:13px;color:var(--ink-soft);margin-bottom:16px;line-height:1.7;}
+  .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:560px){.mode-grid{grid-template-columns:1fr;}}
+  .mode-card{border:1px solid var(--rule);border-radius:var(--radius);padding:20px;background:var(--sheet-raised);text-align:left;transition:border-color .15s,transform .15s;width:100%;}
+  .mode-card:hover{border-color:var(--accent);transform:translateY(-1px);}
+  .mode-card .mode-eyebrow{font-size:10.5px;letter-spacing:.09em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:9px;}
+  .mode-card h3{font-family:var(--serif);font-size:16.5px;font-weight:700;color:var(--ink);margin-bottom:7px;}
+  .mode-card p{font-size:12.5px;color:var(--ink-soft);line-height:1.65;}
+  .mode-switch{font-size:11.5px;color:var(--ink-faint);background:none;border:none;text-decoration:underline;text-underline-offset:3px;padding:0;margin-bottom:16px;}
+  .mode-switch:hover{color:var(--accent);}
+
+  /* ── 검사대상자: 1문항 1화면 ── */
+  .subject-stage{padding:38px 4px 6px;text-align:center;}
+  .subject-domain{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.03em;padding:4px 13px;border-radius:20px;background:var(--dbg);color:var(--dc);margin-bottom:24px;}
+  .subject-stem{font-family:var(--serif);font-size:22px;line-height:1.55;color:var(--ink);margin-bottom:24px;text-wrap:balance;}
+  .subject-input-wrap{max-width:440px;margin:0 auto 32px;}
+  .subject-input{width:100%;text-align:center;padding:10px 4px;border:none;border-bottom:2px solid var(--rule);background:transparent;font-size:16px;color:var(--accent-ink);outline:none;font-family:var(--sans);resize:none;overflow:hidden;line-height:1.5;transition:border-color .15s;}
+  .subject-input:focus{border-color:var(--accent);}
+  .subject-nav{display:flex;justify-content:center;gap:10px;}
+
+  /* ── 응답 시간 요약 ── */
+  .timing-row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--rule-soft);font-size:13px;}
+  .timing-row:last-child{border-bottom:none;}
+  .timing-row .t-label{color:var(--ink-soft);}
+  .timing-row .t-val{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);}
+
   @media print{
-    .masthead,.index,.btn-row,.gear-btn,#settingsPanel,.no-print{display:none !important;}
+    .masthead,.index,.btn-row,.gear-btn,#settingsPanel,.mode-switch,.subject-nav,.no-print{display:none !important;}
     body{background:#fff;}
     .layout{padding:0;max-width:100%;}
     .card{box-shadow:none;border:none;}
@@ -318,6 +345,7 @@ const DEFAULT_ITEMS = [
 const LS = {
   items:'sct_items_v1', responses:'sct_responses_v1',
   respondent:'sct_respondent_v1', report:'sct_report_v1', model:'sct_model_v1',
+  timings:'sct_timings_v1', mode:'sct_mode_v1',
 };
 
 function loadJSON(key, fallback){
@@ -327,8 +355,13 @@ function saveJSON(key, val){ try{ localStorage.setItem(key, JSON.stringify(val))
 
 let items = loadJSON(LS.items, null) || DEFAULT_ITEMS.map(x=>({...x}));
 let responses = loadJSON(LS.responses, {});
+let itemTimings = loadJSON(LS.timings, {});      // { itemId: 응답까지 걸린 ms } — 검사대상자 모드에서만 기록
 let respondent = loadJSON(LS.respondent, { name:'', memo:'' });
 let lastReport = loadJSON(LS.report, null);
+let testMode = loadJSON(LS.mode, null);          // 'clinician' | 'subject' | null(선택 전)
+let subjectIdx = 0;         // 검사대상자 모드: 현재 문항 위치 (세션 내에서만 유지)
+let subjectShownAt = null;  // 검사대상자 모드: 현재 문항이 화면에 표시된 시각(ms)
+let subjectStarted = false; // 검사대상자 모드: 시작 화면을 지나 실제 문항 진행 중인지
 let activeTab = 'test';
 
 function domainOf(id){ return DOMAINS.find(d=>d.id===id) || DOMAINS[0]; }
@@ -358,6 +391,11 @@ const ES_ICONS = {
   doc: '<svg viewBox="0 0 24 24"><path d="M6 2.5h9l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z"/><path d="M14 2.5V7h4M8.5 12h7M8.5 15.5h7M8.5 8.5h3"/></svg>',
 };
 function esIcon(name){ return `<div class="es-icon">${ES_ICONS[name]||''}</div>`; }
+function formatMs(ms){
+  if(ms==null) return '—';
+  const s = ms/1000;
+  return s<60 ? `${s.toFixed(1)}초` : `${Math.floor(s/60)}분 ${Math.round(s%60)}초`;
+}
 
 /* ──────────────────────────────────────────
    탭 전환 & 렌더 라우터
@@ -373,7 +411,11 @@ function render(){
   if(activeTab==='test') el.innerHTML = renderTestTab();
   else if(activeTab==='manage') el.innerHTML = renderManageTab();
   else el.innerHTML = renderReportTab();
-  if(activeTab==='test') el.querySelectorAll('.item-input').forEach(autoGrow);
+  if(activeTab==='test'){
+    el.querySelectorAll('.item-input').forEach(autoGrow);
+    const subj = document.getElementById('subjectAnswerInput');
+    if(subj){ autoGrow(subj); subj.focus(); const v=subj.value; subj.value=''; subj.value=v; }
+  }
 }
 
 /* ──────────────────────────────────────────
@@ -382,7 +424,164 @@ function render(){
 function answeredCount(){
   return items.filter(it => (responses[it.id]||'').trim().length>0).length;
 }
+function respondentFields(){
+  return `
+    <div class="form-row">
+      <div class="form-field">
+        <label>이름 / 닉네임</label>
+        <input type="text" value="${escapeHtml(respondent.name)}" placeholder="예: 홍길동"
+          oninput="respondent.name=this.value; saveJSON(LS.respondent, respondent);">
+      </div>
+      <div class="form-field">
+        <label>메모 (선택)</label>
+        <input type="text" value="${escapeHtml(respondent.memo)}" placeholder="예: 1차 검사"
+          oninput="respondent.memo=this.value; saveJSON(LS.respondent, respondent);">
+      </div>
+    </div>`;
+}
+
+/* 검사 시작 시 진행 방식(임상심리사용 / 검사대상자용)을 먼저 고른다 */
 function renderTestTab(){
+  if(!testMode) return renderModeSelect();
+  if(testMode==='clinician') return renderClinicianTest();
+  return subjectStarted ? renderSubjectRunning() : renderSubjectIntro();
+}
+
+function chooseMode(mode){
+  testMode = mode;
+  subjectStarted = false;
+  saveJSON(LS.mode, mode);
+  render();
+}
+function backToModeSelect(){
+  testMode = null;
+  subjectStarted = false;
+  saveJSON(LS.mode, null);
+  render();
+}
+
+function renderModeSelect(){
+  return `
+    <div class="card">
+      <div class="card-header">
+        <h2>응답자 정보</h2>
+        <span class="badge">${escapeHtml(new Date().toLocaleDateString('ko-KR'))}</span>
+      </div>
+      <div class="card-body">${respondentFields()}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2>검사 진행 방식 선택</h2></div>
+      <div class="card-body">
+        <p class="mode-intro">검사를 어떤 환경에서 진행할지 선택해 주세요. 언제든 다시 바꿀 수 있습니다.</p>
+        <div class="mode-grid">
+          <button class="mode-card" onclick="chooseMode('clinician')">
+            <div class="mode-eyebrow">방식 1</div>
+            <h3>임상심리사용</h3>
+            <p>50문항이 한 화면에 모두 표시됩니다. 검사자가 구두 응답을 직접 받아 적거나, 응답을 검토·수정할 때 적합합니다.</p>
+          </button>
+          <button class="mode-card" onclick="chooseMode('subject')">
+            <div class="mode-eyebrow">방식 2</div>
+            <h3>검사대상자용</h3>
+            <p>한 화면에 한 문장씩 제시됩니다. 문항마다 응답까지 걸린 시간이 자동으로 기록되어 결과 리포트에 함께 표시됩니다.</p>
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderSubjectIntro(){
+  const total = items.length, done = answeredCount();
+  return `
+    <div class="card">
+      <div class="card-header">
+        <h2>응답자 정보</h2>
+        <span class="badge">${escapeHtml(new Date().toLocaleDateString('ko-KR'))}</span>
+      </div>
+      <div class="card-body">${respondentFields()}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="text-align:center;padding:44px 24px;">
+        <button class="mode-switch" onclick="backToModeSelect()">◀ 진행 방식 다시 선택</button>
+        <h2 style="margin-bottom:10px;">검사대상자 모드</h2>
+        <p class="mode-intro" style="max-width:420px;margin:0 auto 26px;">
+          총 ${total}문항이 한 번에 한 문장씩 제시됩니다. 화면에 나온 문장을 이어서 완성해 주세요.
+          문항마다 응답까지 걸린 시간이 자동으로 기록되어 리포트에서 함께 확인할 수 있습니다.
+          ${done>0 ? `<br><br>이미 응답한 ${done}개 문항이 있어 이어서 진행합니다.` : ''}
+        </p>
+        <button class="btn btn-primary" onclick="beginSubjectTest()">검사 시작</button>
+      </div>
+    </div>`;
+}
+
+function firstUnansweredIndex(){
+  const i = items.findIndex(it => !(responses[it.id]||'').trim());
+  return i===-1 ? 0 : i;
+}
+function startSubjectItem(){ subjectShownAt = Date.now(); }
+function beginSubjectTest(){
+  subjectIdx = firstUnansweredIndex();
+  subjectStarted = true;
+  startSubjectItem();
+  render();
+}
+function recordCurrentSubjectAnswer(){
+  const it = items[subjectIdx]; if(!it) return;
+  const el = document.getElementById('subjectAnswerInput');
+  if(el){ responses[it.id] = el.value; saveJSON(LS.responses, responses); }
+  if(subjectShownAt!=null && itemTimings[it.id]==null){
+    itemTimings[it.id] = Date.now() - subjectShownAt;
+    saveJSON(LS.timings, itemTimings);
+  }
+}
+function subjectNext(){
+  recordCurrentSubjectAnswer();
+  if(subjectIdx < items.length-1){ subjectIdx++; startSubjectItem(); render(); }
+}
+function subjectPrev(){
+  recordCurrentSubjectAnswer();
+  if(subjectIdx>0){ subjectIdx--; startSubjectItem(); render(); }
+}
+function subjectFinish(){
+  recordCurrentSubjectAnswer();
+  subjectStarted = false;
+  submitTest();
+}
+
+function renderSubjectRunning(){
+  const total = items.length;
+  const it = items[subjectIdx];
+  if(!it) return renderSubjectIntro();
+  const d = domainOf(it.domain);
+  const pct = total ? Math.round((subjectIdx/total)*100) : 0;
+  const val = escapeHtml(responses[it.id]||'');
+  const isLast = subjectIdx === total-1;
+  return `
+    <div class="card">
+      <div class="card-body">
+        <button class="mode-switch" onclick="backToModeSelect()">◀ 진행 방식 다시 선택</button>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="progress-num">${subjectIdx+1}/${total}</div>
+        </div>
+        <div class="subject-stage" data-domain="${d.id}">
+          <span class="subject-domain">${escapeHtml(d.name)}</span>
+          <div class="subject-stem">${escapeHtml(it.stem)}</div>
+          <div class="subject-input-wrap">
+            <textarea id="subjectAnswerInput" class="subject-input" rows="1" placeholder="( 문장을 이어서 완성해 주세요 )"
+              oninput="autoGrow(this)" onfocus="autoGrow(this)">${val}</textarea>
+          </div>
+          <div class="subject-nav no-print">
+            <button class="btn" onclick="subjectPrev()" ${subjectIdx===0?'disabled':''}>← 이전</button>
+            <button class="btn btn-primary" onclick="${isLast ? 'subjectFinish()' : 'subjectNext()'}">${isLast ? '제출하고 결과 보기' : '다음 →'}</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderClinicianTest(){
   const total = items.length;
   const done = answeredCount();
   const pct = total ? Math.round(done/total*100) : 0;
@@ -418,25 +617,14 @@ function renderTestTab(){
   }
 
   return `
+    <button class="mode-switch" onclick="backToModeSelect()">◀ 진행 방식 다시 선택</button>
+
     <div class="card">
       <div class="card-header">
         <h2>응답자 정보</h2>
         <span class="badge">${escapeHtml(new Date().toLocaleDateString('ko-KR'))}</span>
       </div>
-      <div class="card-body">
-        <div class="form-row">
-          <div class="form-field">
-            <label>이름 / 닉네임</label>
-            <input type="text" value="${escapeHtml(respondent.name)}" placeholder="예: 홍길동"
-              oninput="respondent.name=this.value; saveJSON(LS.respondent, respondent);">
-          </div>
-          <div class="form-field">
-            <label>메모 (선택)</label>
-            <input type="text" value="${escapeHtml(respondent.memo)}" placeholder="예: 1차 검사"
-              oninput="respondent.memo=this.value; saveJSON(LS.respondent, respondent);">
-          </div>
-        </div>
-      </div>
+      <div class="card-body">${respondentFields()}</div>
     </div>
 
     <div class="card">
@@ -470,9 +658,11 @@ function onAnswerInput(id, val){
 }
 
 function clearResponses(){
-  if(!confirm('작성한 모든 응답을 삭제할까요?')) return;
+  if(!confirm('작성한 모든 응답을 삭제할까요? 기록된 응답 시간도 함께 초기화됩니다.')) return;
   responses = {};
+  itemTimings = {};
   saveJSON(LS.responses, responses);
+  saveJSON(LS.timings, itemTimings);
   render();
 }
 
@@ -640,6 +830,8 @@ function renderReportTab(){
       <div class="card-body">${domainCards}</div>
     </div>
 
+    ${renderTimingCard(meta, lastReport.answers)}
+
     <div class="card">
       <div class="card-body">
         <div class="btn-row">
@@ -655,6 +847,33 @@ function renderReportTab(){
     </div>`;
 }
 
+function renderTimingCard(meta, answers){
+  if(meta.testMode!=='subject' || meta.totalTimeMs==null) return '';
+  const timed = answers.items.filter(x=>x.response_time_ms!=null);
+  if(!timed.length) return '';
+  const byDomain = {};
+  timed.forEach(x=>{ (byDomain[x.domain_id] ||= []).push(x.response_time_ms); });
+  const domainRows = DOMAINS.filter(d=>byDomain[d.id]).map(d=>{
+    const arr = byDomain[d.id];
+    const avg = arr.reduce((a,b)=>a+b,0)/arr.length;
+    return `<div class="timing-row"><span class="t-label">${escapeHtml(d.name)}</span><span class="t-val">평균 ${formatMs(avg)}</span></div>`;
+  }).join('');
+  const slowest = timed.reduce((a,b)=>b.response_time_ms>a.response_time_ms?b:a);
+  const fastest = timed.reduce((a,b)=>b.response_time_ms<a.response_time_ms?b:a);
+  return `
+    <div class="card">
+      <div class="card-header">
+        <h2>응답 시간</h2>
+        <span class="badge">검사대상자 모드 · 총 ${formatMs(meta.totalTimeMs)}</span>
+      </div>
+      <div class="card-body">
+        ${domainRows}
+        <div class="timing-row"><span class="t-label">가장 오래 걸린 문항</span><span class="t-val">"${escapeHtml(slowest.stem)}" · ${formatMs(slowest.response_time_ms)}</span></div>
+        <div class="timing-row"><span class="t-label">가장 빨리 응답한 문항</span><span class="t-val">"${escapeHtml(fastest.stem)}" · ${formatMs(fastest.response_time_ms)}</span></div>
+      </div>
+    </div>`;
+}
+
 function downloadReportJson(){
   if(!lastReport) return;
   const blob = new Blob([JSON.stringify(lastReport, null, 2)], {type:'application/json'});
@@ -664,9 +883,12 @@ function downloadReportJson(){
   URL.revokeObjectURL(url);
 }
 function startNewTest(){
-  if(!confirm('새 검사를 시작할까요? 현재 작성된 응답이 초기화됩니다 (리포트는 유지됩니다).')) return;
+  if(!confirm('새 검사를 시작할까요? 현재 작성된 응답과 응답 시간이 초기화됩니다 (리포트는 유지됩니다).')) return;
   responses = {};
+  itemTimings = {};
+  subjectStarted = false;
   saveJSON(LS.responses, responses);
+  saveJSON(LS.timings, itemTimings);
   switchTab('test');
 }
 
@@ -717,7 +939,8 @@ const SYSTEM_PROMPT = `당신은 임상심리 보조 도구로서 문장완성�
 5. 이 분석은 임상적 진단이 아니라 참고 자료임을 전제로 하며, 자해·자살·타해 등 위기 신호로 해석될 수 있는 표현이 있으면 watch_points와 recommendation에 반드시 명시하고 전문기관 상담을 권고하세요.
 6. 무응답 문항은 해석에서 제외하되, 무응답이 많은 영역은 특이사항으로 언급할 수 있습니다.
 7. 응답자가 실제로 작성한 표현을 왜곡하거나 과장하지 말고, 특정 정신질환명을 단정적으로 진단하지 마세요.
-8. 모든 출력은 한국어로 작성하세요.`;
+8. 모든 출력은 한국어로 작성하세요.
+9. 일부 문항에는 response_time_ms(해당 문항을 완성하는 데 걸린 시간, 밀리초)가 함께 제공될 수 있습니다. 유난히 짧거나(즉각 반응) 긴(주저·회피 가능성) 응답 시간이 관찰되면 참고 정보로 언급할 수 있으나, 이것만으로 단정적인 결론을 내리지는 마세요.`;
 
 async function callOpenAI(apiKey, model, payload){
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -793,8 +1016,11 @@ async function submitTest(){
       domain_name: domainOf(it.domain).name,
       stem: it.stem,
       answer: (responses[it.id]||'').trim(),
+      response_time_ms: itemTimings[it.id] ?? null,
     })),
   };
+  const timedItems = payload.items.filter(x=>x.response_time_ms!=null);
+  const totalTimeMs = timedItems.reduce((sum,x)=>sum+x.response_time_ms, 0);
 
   const overlay = document.getElementById('loadingOverlay');
   overlay.classList.add('show');
@@ -825,6 +1051,8 @@ async function submitTest(){
         respondentName: respondent.name || '익명',
         generatedAt: new Date().toLocaleString('ko-KR'),
         mode, model,
+        testMode,
+        totalTimeMs: timedItems.length ? totalTimeMs : null,
       },
     };
     saveJSON(LS.report, lastReport);
