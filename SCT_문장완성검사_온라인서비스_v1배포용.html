@@ -277,6 +277,7 @@
     <button class="index-item" data-tab="test" onclick="switchTab('test')"><span class="index-no">Ⅰ</span>검사 실시</button>
     <button class="index-item" data-tab="manage" onclick="switchTab('manage')"><span class="index-no">Ⅱ</span>문항 관리</button>
     <button class="index-item" data-tab="report" onclick="switchTab('report')"><span class="index-no">Ⅲ</span>결과 리포트</button>
+    <button class="index-item" data-tab="batch" onclick="switchTab('batch')"><span class="index-no">Ⅳ</span>일괄 처리</button>
   </nav>
 
   <div id="tabContent"></div>
@@ -423,6 +424,7 @@ function render(){
   const el = document.getElementById('tabContent');
   if(activeTab==='test') el.innerHTML = renderTestTab();
   else if(activeTab==='manage') el.innerHTML = renderManageTab();
+  else if(activeTab==='batch') el.innerHTML = renderBatchTab();
   else el.innerHTML = renderReportTab();
   if(activeTab==='test'){
     el.querySelectorAll('.item-input').forEach(autoGrow);
@@ -801,9 +803,24 @@ function renderReportTab(){
   const r = lastReport.result;
   const meta = lastReport.meta;
 
+  return `
+    ${buildReportSections(r, meta, lastReport.answers)}
+    <div class="card">
+      <div class="card-body">
+        <div class="btn-row">
+          <button class="btn" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+          <button class="btn" onclick="downloadReportJson()">⭳ 리포트 JSON 다운로드</button>
+          <button class="btn btn-danger" onclick="startNewTest()">🔄 새 검사 시작하기</button>
+        </div>
+        ${buildDisclaimer(meta)}
+      </div>
+    </div>`;
+}
+
+/* 리포트 카드 마크업 — 화면 표시용/일괄 처리 ZIP의 개별 HTML 문서 양쪽에서 재사용 */
+function buildReportSections(r, meta, answers){
   const strengths = (r.strengths||[]).map(s=>`<span class="chip chip-pos">${escapeHtml(s)}</span>`).join('') || '<span class="muted">해당 없음</span>';
   const watch = (r.watch_points||[]).map(s=>`<span class="chip chip-warn">${escapeHtml(s)}</span>`).join('') || '<span class="muted">특이사항 없음</span>';
-
   const domainCards = (r.domains||[]).map(d=>{
     const themes = (d.key_themes||[]).map(t=>`<span class="chip">${escapeHtml(t)}</span>`).join('');
     return `
@@ -845,22 +862,16 @@ function renderReportTab(){
       <div class="card-body">${domainCards}</div>
     </div>
 
-    ${renderTimingCard(meta, lastReport.answers)}
+    ${renderTimingCard(meta, answers)}
 
-    ${renderAnswerLog(lastReport.answers)}
+    ${renderAnswerLog(answers)}`;
+}
 
-    <div class="card">
-      <div class="card-body">
-        <div class="btn-row">
-          <button class="btn" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
-          <button class="btn" onclick="downloadReportJson()">⭳ 리포트 JSON 다운로드</button>
-          <button class="btn btn-danger" onclick="startNewTest()">🔄 새 검사 시작하기</button>
-        </div>
-        <div class="disclaimer">
-          응답자: ${escapeHtml(meta.respondentName || '익명')} · 생성 시각: ${escapeHtml(meta.generatedAt)} · 분석 방식: ${meta.mode==='ai' ? 'OpenAI API ('+escapeHtml(meta.model)+')' : '규칙 기반 간이 요약 (AI 키 미설정)'}<br><br>
-          ※ 본 리포트는 문장완성검사(SCT) 응답에 대한 자동 요약으로, 전문가의 임상적 진단이나 심리 평가를 대체하지 않습니다. 결과는 상담 및 참고 목적으로만 활용하시고, 위기 신호가 포함된 경우 반드시 전문 상담기관·의료기관과 상의하시기 바랍니다.
-        </div>
-      </div>
+function buildDisclaimer(meta){
+  return `
+    <div class="disclaimer">
+      응답자: ${escapeHtml(meta.respondentName || '익명')} · 생성 시각: ${escapeHtml(meta.generatedAt)} · 분석 방식: ${meta.mode==='ai' ? 'OpenAI API ('+escapeHtml(meta.model)+')' : '규칙 기반 간이 요약 (AI 키 미설정)'}<br><br>
+      ※ 본 리포트는 문장완성검사(SCT) 응답에 대한 자동 요약으로, 전문가의 임상적 진단이나 심리 평가를 대체하지 않습니다. 결과는 상담 및 참고 목적으로만 활용하시고, 위기 신호가 포함된 경우 반드시 전문 상담기관·의료기관과 상의하시기 바랍니다.
     </div>`;
 }
 
@@ -941,6 +952,315 @@ function startNewTest(){
   saveJSON(LS.responses, responses);
   saveJSON(LS.timings, itemTimings);
   switchTab('test');
+}
+
+/* ──────────────────────────────────────────
+   ④ 일괄 처리 탭 — 샘플 양식 다운로드 · 업로드 · 개인별 리포트 ZIP 생성
+   ────────────────────────────────────────── */
+function csvEscape(v){
+  const s = String(v ?? '');
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+function toCsv(rows){
+  return rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');
+}
+function parseCsv(text){
+  const rows = []; let row = []; let field = ''; let inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c==='"'){ if(text[i+1]==='"'){ field+='"'; i++; } else inQuotes=false; }
+      else field += c;
+    }else{
+      if(c==='"') inQuotes = true;
+      else if(c===','){ row.push(field); field=''; }
+      else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c==='\r'){ /* \n 처리 시 함께 반영됨 */ }
+      else field += c;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(r=>r.some(x=>x.trim()!==''));
+}
+function sanitizeFileName(s){
+  return String(s).replace(/[\\/:*?"<>|]/g,'_').trim() || '무명';
+}
+function hasEmbeddedKey(){
+  const k = EMBEDDED_API_KEY.trim();
+  return !!(k && k.startsWith('sk-') && !k.includes('여기에'));
+}
+
+function renderBatchTab(){
+  return `
+    <div class="card">
+      <div class="card-header"><h2>일괄 처리</h2></div>
+      <div class="card-body">
+        <p class="mode-intro">
+          여러 응답자의 답안을 한 번에 업로드해서, 사람별 결과 리포트를 ZIP 파일(개별 HTML 묶음)로 받을 수 있습니다.
+          검사장에서 종이로 걷은 응답을 나중에 한꺼번에 처리하거나, 대량 응답자를 다룰 때 유용합니다.
+        </p>
+        <div class="btn-row" style="margin-bottom:16px;">
+          <button class="btn btn-primary" onclick="downloadBatchTemplate()">⭳ 샘플 양식 다운로드 (CSV)</button>
+        </div>
+        <p class="muted" style="margin-bottom:20px;line-height:1.7;">
+          양식에는 현재 문항 구성대로 <b>번호·영역·문항</b>이 이미 채워져 있습니다. <b>이름</b>과 <b>응답</b> 열만 채우면 되고,
+          응답자가 여러 명이면 문항 ${items.length}행 전체를 복사해서 이어 붙인 뒤 이름만 바꿔주세요 (한 파일에 여러 명이 들어가도 됩니다).
+          Excel에서 편집한 뒤 <b>CSV(쉼표로 분리) 형식으로 저장</b>해서 업로드해 주세요.
+        </p>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="document.getElementById('batchFile').click()">⭱ 작성한 양식 업로드 · 일괄 리포트 생성</button>
+          <input type="file" id="batchFile" accept=".csv,text/csv" style="display:none" onchange="handleBatchUpload(event)">
+        </div>
+        <div id="batchStatus" style="margin-top:18px;"></div>
+      </div>
+    </div>`;
+}
+
+function downloadBatchTemplate(){
+  const header = ['번호','영역','문항','이름','응답'];
+  const rows = items.map((it,i)=>[i+1, domainOf(it.domain).name, it.stem, '홍길동', '']);
+  const csv = '﻿' + toCsv([header, ...rows]);
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'sct_batch_template.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function matchItemForRow(row){
+  const idx = parseInt(row['번호'], 10) - 1;
+  const stem = (row['문항']||'').trim();
+  if(idx>=0 && idx<items.length && items[idx].stem.trim()===stem) return items[idx];
+  const byStem = items.find(it=>it.stem.trim()===stem);
+  if(byStem) return byStem;
+  return (idx>=0 && idx<items.length) ? items[idx] : null;
+}
+
+async function handleBatchUpload(evt){
+  const file = evt.target.files[0]; if(!file) return;
+  const statusEl = document.getElementById('batchStatus');
+  let text;
+  try{ text = await file.text(); }
+  catch(e){ alert('파일을 읽지 못했습니다: '+e.message); evt.target.value=''; return; }
+
+  const rows = parseCsv(text);
+  if(rows.length < 2){ alert('업로드한 파일에 데이터가 없습니다.'); evt.target.value=''; return; }
+
+  const header = rows[0].map(h=>h.trim());
+  const iName = header.indexOf('이름'), iNum = header.indexOf('번호'), iStem = header.indexOf('문항'), iAns = header.indexOf('응답');
+  if(iName===-1 || iAns===-1){
+    alert('CSV 헤더에 "이름"과 "응답" 열이 필요합니다. 샘플 양식을 기준으로 작성해 주세요.');
+    evt.target.value=''; return;
+  }
+
+  const byPerson = {};
+  rows.slice(1).forEach(r=>{
+    const name = (r[iName]||'').trim();
+    if(!name) return;
+    (byPerson[name] ||= []).push({
+      '번호': iNum>-1 ? r[iNum] : '',
+      '문항': iStem>-1 ? r[iStem] : '',
+      '응답': iAns>-1 ? r[iAns] : '',
+    });
+  });
+  const names = Object.keys(byPerson);
+  if(!names.length){
+    alert('유효한 응답자 데이터를 찾지 못했습니다. "이름" 열이 비어있지 않은지 확인해 주세요.');
+    evt.target.value=''; return;
+  }
+
+  const model = document.getElementById('modelSelect').value;
+  const keyNote = hasEmbeddedKey() ? `OpenAI API (${model})` : 'AI 키 미설정 → 간이 요약';
+  if(!confirm(`${names.length}명의 응답을 찾았습니다. 지금 일괄로 리포트를 생성할까요?\n분석 방식: ${keyNote}`)){
+    evt.target.value=''; return;
+  }
+
+  const overlay = document.getElementById('loadingOverlay');
+  const overlayText = overlay.querySelector('.muted');
+  overlay.classList.add('show');
+
+  const apiKey = EMBEDDED_API_KEY.trim();
+  const useAi = hasEmbeddedKey();
+  const pageCss = document.querySelector('style').textContent;
+  const zip = new ZipWriter();
+  const results = []; // { name, ok, mode }
+
+  try{
+    for(let n=0; n<names.length; n++){
+      const name = names[n];
+      overlayText.textContent = `${name} 님 리포트를 생성하는 중입니다… (${n+1}/${names.length})`;
+
+      const answerMap = {};
+      byPerson[name].forEach(row=>{
+        const it = matchItemForRow(row);
+        if(it) answerMap[it.id] = (row['응답']||'').trim();
+      });
+      const payload = {
+        respondent: name,
+        items: items.map(it=>({
+          domain_id: it.domain,
+          domain_name: domainOf(it.domain).name,
+          stem: it.stem,
+          answer: answerMap[it.id] || '',
+          response_time_ms: null,
+        })),
+      };
+
+      let result, mode;
+      if(useAi){
+        try{ result = await callOpenAI(apiKey, model, payload); mode = 'ai'; }
+        catch(err){ result = localHeuristicReport(payload); mode = 'local'; }
+      }else{
+        result = localHeuristicReport(payload);
+        mode = 'local';
+      }
+      const meta = {
+        respondentName: name,
+        generatedAt: new Date().toLocaleString('ko-KR'),
+        mode, model,
+        testMode: 'batch',
+        totalTimeMs: null,
+      };
+      zip.addFile(`SCT_리포트_${sanitizeFileName(name)}.html`, buildStandaloneReportDoc(name, result, meta, payload, pageCss));
+      results.push({ name, mode });
+    }
+
+    const zipBlob = zip.build();
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = `sct_batch_reports_${stamp}.zip`; a.click();
+    URL.revokeObjectURL(url);
+
+    statusEl.innerHTML = `
+      <div class="card" style="box-shadow:none;">
+        <div class="card-header"><h2>처리 결과</h2><span class="badge">${results.length}명 완료</span></div>
+        <div class="card-body">
+          ${results.map(r=>`<div class="timing-row"><span class="t-label">${escapeHtml(r.name)}</span><span class="t-val">${r.mode==='ai'?'OpenAI 분석':'간이 요약'} · 완료</span></div>`).join('')}
+        </div>
+      </div>`;
+  } finally {
+    overlay.classList.remove('show');
+    evt.target.value = '';
+  }
+}
+
+function buildStandaloneReportDoc(personName, result, meta, answers, pageCss){
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCT 리포트 · ${escapeHtml(personName)}</title>
+<style>${pageCss}</style>
+</head>
+<body>
+<div class="layout" style="padding-top:28px;">
+  <header class="masthead" style="position:static;border-bottom:1px solid var(--rule);margin:-24px -24px 0;">
+    <div class="mast-row">
+      <div class="mast-mark">SCT</div>
+      <div class="mast-text">
+        <h1>${escapeHtml(personName)} 님 결과 리포트</h1>
+        <p>SENTENCE COMPLETION TEST · 일괄 처리 결과</p>
+      </div>
+    </div>
+  </header>
+  <div style="height:22px;"></div>
+  ${buildReportSections(result, meta, answers)}
+  <div class="card"><div class="card-body">${buildDisclaimer(meta)}</div></div>
+</div>
+</body>
+</html>`;
+}
+
+/* 최소 ZIP(store, 무압축) 작성기 — 외부 라이브러리 없이 개인별 리포트를 하나의 zip으로 묶기 위함 */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for(let n=0;n<256;n++){
+    let c = n;
+    for(let k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes){
+  let crc = 0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ bytes[i]) & 0xFF];
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+class ZipWriter{
+  constructor(){ this.files = []; }
+  addFile(name, content){
+    this.files.push({ name, bytes: new TextEncoder().encode(content) });
+  }
+  build(){
+    const encoder = new TextEncoder();
+    const localParts = [];
+    const centralParts = [];
+    let offset = 0;
+    const dosTime = 0, dosDate = 0x21; // 1980-01-01, 무압축 저장이라 의미 없는 고정값
+
+    for(const f of this.files){
+      const nameBytes = encoder.encode(f.name);
+      const crc = crc32(f.bytes);
+      const size = f.bytes.length;
+
+      const local = new Uint8Array(30 + nameBytes.length);
+      const ldv = new DataView(local.buffer);
+      ldv.setUint32(0, 0x04034b50, true);
+      ldv.setUint16(4, 20, true);
+      ldv.setUint16(6, 0x0800, true); // UTF-8 파일명 플래그
+      ldv.setUint16(8, 0, true);
+      ldv.setUint16(10, dosTime, true);
+      ldv.setUint16(12, dosDate, true);
+      ldv.setUint32(14, crc, true);
+      ldv.setUint32(18, size, true);
+      ldv.setUint32(22, size, true);
+      ldv.setUint16(26, nameBytes.length, true);
+      ldv.setUint16(28, 0, true);
+      local.set(nameBytes, 30);
+      localParts.push(local, f.bytes);
+
+      const central = new Uint8Array(46 + nameBytes.length);
+      const cdv = new DataView(central.buffer);
+      cdv.setUint32(0, 0x02014b50, true);
+      cdv.setUint16(4, 20, true);
+      cdv.setUint16(6, 20, true);
+      cdv.setUint16(8, 0x0800, true); // UTF-8 파일명 플래그
+      cdv.setUint16(10, 0, true);
+      cdv.setUint16(12, dosTime, true);
+      cdv.setUint16(14, dosDate, true);
+      cdv.setUint32(16, crc, true);
+      cdv.setUint32(20, size, true);
+      cdv.setUint32(24, size, true);
+      cdv.setUint16(28, nameBytes.length, true);
+      cdv.setUint16(30, 0, true);
+      cdv.setUint16(32, 0, true);
+      cdv.setUint16(34, 0, true);
+      cdv.setUint16(36, 0, true);
+      cdv.setUint32(38, 0, true);
+      cdv.setUint32(42, offset, true);
+      central.set(nameBytes, 46);
+      centralParts.push(central);
+
+      offset += local.length + f.bytes.length;
+    }
+
+    const centralSize = centralParts.reduce((s,p)=>s+p.length, 0);
+    const centralOffset = offset;
+    const end = new Uint8Array(22);
+    const edv = new DataView(end.buffer);
+    edv.setUint32(0, 0x06054b50, true);
+    edv.setUint16(4, 0, true);
+    edv.setUint16(6, 0, true);
+    edv.setUint16(8, this.files.length, true);
+    edv.setUint16(10, this.files.length, true);
+    edv.setUint32(12, centralSize, true);
+    edv.setUint32(16, centralOffset, true);
+    edv.setUint16(20, 0, true);
+
+    return new Blob([...localParts, ...centralParts, end], { type: 'application/zip' });
+  }
 }
 
 /* ──────────────────────────────────────────
