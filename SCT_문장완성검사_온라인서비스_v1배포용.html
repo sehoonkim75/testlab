@@ -250,9 +250,9 @@
   <h3>분석 설정</h3>
   <label class="muted" style="display:block;margin-bottom:4px;">분석 모델</label>
   <select id="modelSelect" onchange="saveModel()">
-    <option value="gpt-4o">gpt-4o (권장·정확)</option>
-    <option value="gpt-4.1">gpt-4.1 (최신)</option>
-    <option value="gpt-4o-mini">gpt-4o-mini (빠름·저렴)</option>
+    <option value="gpt-4.1">gpt-4.1</option>
+    <option value="gpt-5">gpt-5</option>
+    <option value="gpt-5.6">gpt-5.6</option>
   </select>
   <p class="note">OpenAI API 키는 화면에 입력하지 않습니다. 이 HTML 파일을 텍스트 편집기로 열어 스크립트 상단의 <b>EMBEDDED_API_KEY</b> 값을 채운 뒤 배포하세요. 키가 없으면 AI 해석 대신 규칙 기반의 간이 요약이 제공됩니다.</p>
 </div>
@@ -1527,7 +1527,7 @@ document.addEventListener('click', (e)=>{
    초기화
    ────────────────────────────────────────── */
 (function init(){
-  const savedModel = loadJSON(LS.model, 'gpt-4o');
+  const savedModel = loadJSON(LS.model, 'gpt-4.1');
   document.getElementById('modelSelect').value = savedModel;
   switchTab('test');
 })();
