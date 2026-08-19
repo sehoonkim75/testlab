@@ -9,62 +9,28 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
   :root{
-    /* ── 지면(paper) 팔레트 — 임상 기록지의 따뜻한 종이 톤 ── */
-    --paper:#F5F1E9; --sheet:#FBF9F4; --sheet-raised:#FFFFFF;
-    --ink:#26221C; --ink-soft:#6C6355; --ink-faint:#A39A87;
-    --rule:#E1D9C8; --rule-soft:#EBE4D6;
-    --accent:#2F5D57; --accent-ink:#1E413C; --accent-tint:#E4EDE9;
-    --pos:#4C6B49; --pos-tint:#EAF0E7;
-    --neu:#6C6355; --neu-tint:#EEE9DD;
-    --caution:#8C6620; --caution-tint:#F6EEDC;
-    --warn:#963C34; --warn-tint:#F5E6E2;
+    /* ── 화이트 팔레트 — 밝고 또렷한 임상 기록지 톤 ── */
+    --paper:#F7F7F4; --sheet:#FFFFFF; --sheet-raised:#FFFFFF;
+    --ink:#211F1A; --ink-soft:#68635A; --ink-faint:#9D978A;
+    --rule:#E7E4DC; --rule-soft:#F1EFE9;
+    --accent:#2F5D57; --accent-ink:#1E413C; --accent-tint:#E7F0EE;
+    --pos:#3F6A3B; --pos-tint:#EAF3E8;
+    --neu:#6B6559; --neu-tint:#F1EFE8;
+    --caution:#93650F; --caution-tint:#FBF1DD;
+    --warn:#A23A30; --warn-tint:#FBEAE7;
 
     /* 영역별 색인 색 — 종이 위 색연필 톤 */
-    --fam-c:#4A5C82; --fam-bg:#EAEEF6;
-    --rel-c:#93495A; --rel-bg:#F6E9EC;
-    --soc-c:#4C6B49; --soc-bg:#EAF0E7;
-    --self-c:#6C4770; --self-bg:#F1E8F2;
-    --emo-c:#8C6620; --emo-bg:#F6EEDC;
+    --fam-c:#3E5480; --fam-bg:#EBEFF7;
+    --rel-c:#9C4258; --rel-bg:#F8EAEE;
+    --soc-c:#3F6A3B; --soc-bg:#EAF3E8;
+    --self-c:#69406E; --self-bg:#F2E9F3;
+    --emo-c:#93650F; --emo-bg:#FBF1DD;
 
     --radius:10px; --radius-sm:6px;
-    --shadow:0 1px 2px rgba(38,34,28,.05),0 6px 20px rgba(38,34,28,.06);
+    --shadow:0 1px 2px rgba(33,31,26,.04),0 6px 20px rgba(33,31,26,.05);
     --serif:'Gowun Batang','Noto Serif KR',Georgia,serif;
     --sans:'Noto Sans KR','Pretendard',-apple-system,sans-serif;
     --mono:'JetBrains Mono',ui-monospace,monospace;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --paper:#1C1A16; --sheet:#242219; --sheet-raised:#2A2820;
-      --ink:#EDE8DC; --ink-soft:#B3AA97; --ink-faint:#756C5C;
-      --rule:#3B382C; --rule-soft:#312E24;
-      --accent:#7CBBAE; --accent-ink:#A9D8CD; --accent-tint:#25342F;
-      --pos:#8FB388; --pos-tint:#25301F;
-      --neu:#B3AA97; --neu-tint:#2C2A20;
-      --caution:#D3A85C; --caution-tint:#332A16;
-      --warn:#E0938A; --warn-tint:#3A2620;
-      --fam-c:#93A6D1; --fam-bg:#232A3C;
-      --rel-c:#D693A0; --rel-bg:#372228;
-      --soc-c:#8FB388; --soc-bg:#242D1F;
-      --self-c:#C09BC7; --self-bg:#312436;
-      --emo-c:#D3A85C; --emo-bg:#332A16;
-      --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35);
-    }
-  }
-  :root[data-theme="dark"]{
-    --paper:#1C1A16; --sheet:#242219; --sheet-raised:#2A2820;
-    --ink:#EDE8DC; --ink-soft:#B3AA97; --ink-faint:#756C5C;
-    --rule:#3B382C; --rule-soft:#312E24;
-    --accent:#7CBBAE; --accent-ink:#A9D8CD; --accent-tint:#25342F;
-    --pos:#8FB388; --pos-tint:#25301F;
-    --neu:#B3AA97; --neu-tint:#2C2A20;
-    --caution:#D3A85C; --caution-tint:#332A16;
-    --warn:#E0938A; --warn-tint:#3A2620;
-    --fam-c:#93A6D1; --fam-bg:#232A3C;
-    --rel-c:#D693A0; --rel-bg:#372228;
-    --soc-c:#8FB388; --soc-bg:#242D1F;
-    --self-c:#C09BC7; --self-bg:#312436;
-    --emo-c:#D3A85C; --emo-bg:#332A16;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35);
   }
 
   [data-domain="FAM"]{--dc:var(--fam-c);--dbg:var(--fam-bg);}
@@ -95,14 +61,17 @@
 
   /* ── 색인(탭) ── */
   .index{display:flex;gap:2px;border-bottom:1px solid var(--rule);margin-top:22px;}
-  .index-item{background:none;border:none;padding:13px 4px;margin-right:26px;font-size:13.5px;font-weight:500;color:var(--ink-faint);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;display:flex;align-items:baseline;gap:7px;}
+  .index-item{background:none;border:none;padding:13px 4px;margin-right:26px;font-size:13.5px;font-weight:500;color:var(--ink-faint);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;display:flex;align-items:center;gap:6px;}
+  .index-item .icon{font-size:15px;opacity:.85;}
   .index-item .index-no{font-family:var(--serif);font-size:12px;opacity:.75;}
   .index-item:hover{color:var(--ink-soft);}
   .index-item.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
 
   .card{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
   .card-header{padding:16px 22px;border-bottom:1px solid var(--rule-soft);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
-  .card-header h2{font-size:14.5px;font-weight:700;color:var(--ink);letter-spacing:.01em;}
+  .card-header h2{font-size:14.5px;font-weight:700;color:var(--ink);letter-spacing:.01em;display:flex;align-items:center;gap:7px;}
+  .card-header h2 .icon{color:var(--accent);font-size:1.2em;}
+  .report-domain-head strong{display:flex;align-items:center;gap:6px;}
   .card-body{padding:22px;}
   .muted{color:var(--ink-soft);font-size:12px;}
 
@@ -136,7 +105,7 @@
   .domain-section{margin-bottom:26px;}
   .domain-section:last-child{margin-bottom:0;}
   .domain-title{display:flex;align-items:center;gap:9px;padding-bottom:8px;margin-bottom:4px;border-bottom:1px solid var(--rule-soft);}
-  .domain-title .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--dc);}
+  .domain-title .icon{color:var(--dc);font-size:15px;}
   .domain-title strong{font-family:var(--serif);font-size:14px;font-weight:700;color:var(--dc);}
   .domain-title .cnt{margin-left:auto;font-size:11px;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-faint);}
 
@@ -145,8 +114,8 @@
   .item-row:last-child{border-bottom:none;}
   .item-num{font-size:11.5px;font-weight:600;color:var(--ink-faint);font-family:var(--mono);font-variant-numeric:tabular-nums;flex-shrink:0;}
   .item-stem{font-size:14px;color:var(--ink);flex-shrink:0;}
-  .item-input{flex:1;min-width:140px;padding:2px 3px 4px;border:none;border-bottom:1.5px solid var(--rule);background:transparent;font-size:14px;color:var(--accent-ink);resize:none;overflow:hidden;outline:none;line-height:1.5;transition:border-color .15s;font-family:var(--sans);}
-  .item-input::placeholder{color:var(--ink-faint);font-style:italic;}
+  .item-input{flex:1;min-width:140px;padding:1px 4px 2px;border:none;border-bottom:1.5px solid var(--rule);background:transparent;background-image:repeating-linear-gradient(to bottom, transparent 0, transparent 24px, var(--rule-soft) 24px, var(--rule-soft) 25px);background-position:0 -1px;font-size:15px;color:var(--accent-ink);resize:none;overflow:hidden;outline:none;line-height:25px;letter-spacing:.005em;transition:border-color .15s;font-family:var(--serif);}
+  .item-input::placeholder{color:var(--ink-faint);font-style:italic;font-family:var(--sans);}
   .item-input:focus{border-color:var(--accent);}
   @media (max-width:560px){.item-row{gap:4px 0;}.item-input{width:100%;flex-basis:100%;margin-left:0;}}
 
@@ -161,7 +130,8 @@
   .icon-btn:hover{background:var(--warn-tint);border-color:var(--warn);color:var(--warn);}
 
   /* ── 톤 배지 ── */
-  .tone{font-size:11px;font-weight:700;padding:3px 11px;border-radius:20px;display:inline-block;letter-spacing:.02em;}
+  .tone{font-size:11px;font-weight:700;padding:3px 11px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;letter-spacing:.02em;}
+  .tone .icon{font-size:1.15em;}
   .tone-pos{background:var(--pos-tint);color:var(--pos);}
   .tone-neu{background:var(--neu-tint);color:var(--neu);}
   .tone-caution{background:var(--caution-tint);color:var(--caution);}
@@ -183,6 +153,9 @@
   .empty-state .es-icon{width:34px;height:34px;margin:0 auto 14px;opacity:.5;}
   .empty-state .es-icon svg{width:100%;height:100%;stroke:var(--ink-soft);fill:none;stroke-width:1.3;}
 
+  /* ── 라인 아이콘 ── */
+  .icon{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:-0.16em;flex-shrink:0;}
+
   .loading-overlay{position:fixed;inset:0;background:color-mix(in srgb, var(--paper) 88%, transparent);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;z-index:1000;}
   .loading-overlay.show{display:flex;}
   .spinner{width:30px;height:30px;border:2.5px solid var(--accent-tint);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
@@ -194,12 +167,27 @@
   .settings-panel select{width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:var(--radius-sm);font-size:12.5px;background:var(--sheet);margin-bottom:10px;}
   .settings-panel .note{font-size:11px;color:var(--ink-faint);line-height:1.6;}
 
+  /* ── 첫 화면 안내(SCT 소개 + 기능 가이드) ── */
+  .intro-card{border-left:3px solid var(--accent);}
+  .intro-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--accent);margin-bottom:8px;}
+  .intro-title{display:flex;align-items:center;gap:8px;font-size:18px;margin-bottom:10px;}
+  .intro-title .icon{color:var(--accent);font-size:1.05em;}
+  .intro-lead{font-size:13.5px;color:var(--ink-soft);line-height:1.75;max-width:62ch;margin-bottom:22px;}
+  .intro-lead b{color:var(--ink);font-weight:600;}
+  .feature-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;}
+  @media (max-width:560px){.feature-grid{grid-template-columns:1fr;}}
+  .feature-item{display:flex;gap:12px;align-items:flex-start;}
+  .feature-icon{width:34px;height:34px;border-radius:9px;background:var(--accent-tint);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
+  .feature-item strong{display:block;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+  .feature-item p{font-size:12.5px;color:var(--ink-soft);line-height:1.6;}
+
   /* ── 검사 모드 선택 ── */
   .mode-intro{font-size:13px;color:var(--ink-soft);margin-bottom:16px;line-height:1.7;}
   .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   @media (max-width:560px){.mode-grid{grid-template-columns:1fr;}}
   .mode-card{border:1px solid var(--rule);border-radius:var(--radius);padding:20px;background:var(--sheet-raised);text-align:left;transition:border-color .15s,transform .15s;width:100%;}
   .mode-card:hover{border-color:var(--accent);transform:translateY(-1px);}
+  .mode-card-icon{width:36px;height:36px;border-radius:10px;background:var(--accent-tint);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px;}
   .mode-card .mode-eyebrow{font-size:10.5px;letter-spacing:.09em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:9px;}
   .mode-card h3{font-family:var(--serif);font-size:16.5px;font-weight:700;color:var(--ink);margin-bottom:7px;}
   .mode-card p{font-size:12.5px;color:var(--ink-soft);line-height:1.65;}
@@ -208,10 +196,12 @@
 
   /* ── 검사대상자: 1문항 1화면 ── */
   .subject-stage{padding:38px 4px 6px;text-align:center;}
-  .subject-domain{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.03em;padding:4px 13px;border-radius:20px;background:var(--dbg);color:var(--dc);margin-bottom:24px;}
+  .subject-domain{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.03em;padding:4px 13px;border-radius:20px;background:var(--dbg);color:var(--dc);margin-bottom:24px;}
+  .subject-domain .icon{font-size:1.2em;}
   .subject-stem{font-family:var(--serif);font-size:22px;line-height:1.55;color:var(--ink);margin-bottom:24px;text-wrap:balance;}
   .subject-input-wrap{max-width:440px;margin:0 auto 32px;}
-  .subject-input{width:100%;text-align:center;padding:10px 4px;border:none;border-bottom:2px solid var(--rule);background:transparent;font-size:16px;color:var(--accent-ink);outline:none;font-family:var(--sans);resize:none;overflow:hidden;line-height:1.5;transition:border-color .15s;}
+  .subject-input{width:100%;text-align:center;padding:10px 4px 8px;border:none;border-bottom:2px solid var(--rule);background:transparent;background-image:repeating-linear-gradient(to bottom, transparent 0, transparent 29px, var(--rule-soft) 29px, var(--rule-soft) 30px);font-size:18px;color:var(--accent-ink);outline:none;font-family:var(--serif);resize:none;overflow:hidden;line-height:30px;letter-spacing:.005em;transition:border-color .15s;}
+  .subject-input::placeholder{font-family:var(--sans);font-size:14px;}
   .subject-input:focus{border-color:var(--accent);}
   .subject-nav{display:flex;justify-content:center;gap:10px;}
 
@@ -274,10 +264,10 @@
 
 <div class="layout">
   <nav class="index no-print">
-    <button class="index-item" data-tab="test" onclick="switchTab('test')"><span class="index-no">Ⅰ</span>검사 실시</button>
-    <button class="index-item" data-tab="manage" onclick="switchTab('manage')"><span class="index-no">Ⅱ</span>문항 관리</button>
-    <button class="index-item" data-tab="report" onclick="switchTab('report')"><span class="index-no">Ⅲ</span>결과 리포트</button>
-    <button class="index-item" data-tab="batch" onclick="switchTab('batch')"><span class="index-no">Ⅳ</span>일괄 처리</button>
+    <button class="index-item" data-tab="test" onclick="switchTab('test')"><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M4.5 20l.7-3.2L15.6 6.4a1.4 1.4 0 0 1 2 0l1 1a1.4 1.4 0 0 1 0 2L8.2 19.8 4.5 20z"/></svg><span class="index-no">Ⅰ</span>검사 실시</button>
+    <button class="index-item" data-tab="manage" onclick="switchTab('manage')"><svg class="icon" viewBox="0 0 24 24"><path d="M4 20l.9-4.2L15.3 5.4a1.5 1.5 0 0 1 2.1 0l1.2 1.2a1.5 1.5 0 0 1 0 2.1L8.2 19.1 4 20z"/><path d="M13.5 7.2l3.3 3.3"/></svg><span class="index-no">Ⅱ</span>문항 관리</button>
+    <button class="index-item" data-tab="report" onclick="switchTab('report')"><svg class="icon" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M8 15v-3M12 15V8M16 15v-5"/></svg><span class="index-no">Ⅲ</span>결과 리포트</button>
+    <button class="index-item" data-tab="batch" onclick="switchTab('batch')"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3.5l8 4.3-8 4.3-8-4.3 8-4.3z"/><path d="M4 12.3l8 4.3 8-4.3M4 16.3l8 4.3 8-4.3"/></svg><span class="index-no">Ⅳ</span>일괄 처리</button>
   </nav>
 
   <div id="tabContent"></div>
@@ -396,6 +386,9 @@ function toneClass(t){
 function toneLabel(t){
   return ({'긍정적':'긍정적','중립적':'중립적','다소_우려':'다소 우려','주의_필요':'주의 필요'})[t] || (t||'중립적');
 }
+function toneBadge(t){
+  return `<span class="tone ${toneClass(t)}">${icon(toneIcon(t))}${toneLabel(t)}</span>`;
+}
 function autoGrow(el){
   el.style.height = 'auto';
   el.style.height = el.scrollHeight + 'px';
@@ -405,6 +398,33 @@ const ES_ICONS = {
   doc: '<svg viewBox="0 0 24 24"><path d="M6 2.5h9l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z"/><path d="M14 2.5V7h4M8.5 12h7M8.5 15.5h7M8.5 8.5h3"/></svg>',
 };
 function esIcon(name){ return `<div class="es-icon">${ES_ICONS[name]||''}</div>`; }
+
+/* ── 라인 아이콘 세트 (24x24, stroke 기반) ── */
+const ICON_PATHS = {
+  pencil:   '<path d="M4 20l.9-4.2L15.3 5.4a1.5 1.5 0 0 1 2.1 0l1.2 1.2a1.5 1.5 0 0 1 0 2.1L8.2 19.1 4 20z"/><path d="M13.5 7.2l3.3 3.3"/>',
+  sliders:  '<path d="M4 6h9M17 6h3M4 12h3M9 12h11M4 18h13M19 18h1"/><circle cx="11.5" cy="6" r="1.7"/><circle cx="6.5" cy="12" r="1.7"/><circle cx="16.5" cy="18" r="1.7"/>',
+  chart:    '<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M8 15v-3M12 15V8M16 15v-5"/>',
+  layers:   '<path d="M12 3.5l8 4.3-8 4.3-8-4.3 8-4.3z"/><path d="M4 12.3l8 4.3 8-4.3M4 16.3l8 4.3 8-4.3"/>',
+  home:     '<path d="M4 11.5L12 4l8 7.5"/><path d="M6 10v9.5a1 1 0 0 0 1 1h3.5v-6h3v6H17a1 1 0 0 0 1-1V10"/>',
+  heart:    '<path d="M12 20s-7.3-4.6-9.5-9A5 5 0 0 1 12 6.3 5 5 0 0 1 21.5 11c-2.2 4.4-9.5 9-9.5 9z"/>',
+  users:    '<circle cx="9" cy="8.5" r="3"/><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5"/><path d="M16 5.5a3 3 0 0 1 0 6"/><path d="M16.5 14c2.8.3 4.7 2.1 4.7 5"/>',
+  userCircle:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="10" r="3"/><path d="M6 19c1.2-2.5 3.4-4 6-4s4.8 1.5 6 4"/>',
+  pulse:    '<circle cx="12" cy="12" r="8.5"/><path d="M7.5 12h2l1.3-3.3L13 15.3l1.3-3.3H16.5"/>',
+  check:    '<circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.6 2.6L16.2 9"/>',
+  alert:    '<path d="M12 4.5l9 15.5H3L12 4.5z"/><path d="M12 10.5v4M12 17.3v.1"/>',
+  minus:    '<circle cx="12" cy="12" r="8.5"/><path d="M8 12h8"/>',
+  clock:    '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/>',
+  clipboard:'<rect x="5.5" y="4.5" width="13" height="16" rx="2"/><rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8.5 11h7M8.5 14.5h7M8.5 17.5h4.5"/>',
+  edit3:    '<path d="M12 20h9"/><path d="M4.5 20l.7-3.2L15.6 6.4a1.4 1.4 0 0 1 2 0l1 1a1.4 1.4 0 0 1 0 2L8.2 19.8 4.5 20z"/>',
+  book:     '<path d="M4 5.5A2 2 0 0 1 6 4h12v14.5H6a2 2 0 0 0-2 1.5"/><path d="M4 5.5v14.5"/><path d="M8.5 8h6M8.5 11h6"/>',
+};
+function icon(name, cls){ return `<svg class="icon ${cls||''}" viewBox="0 0 24 24">${ICON_PATHS[name]||''}</svg>`; }
+const DOMAIN_ICON = { FAM:'home', REL:'heart', SOC:'users', SELF:'userCircle', EMO:'pulse' };
+function toneIcon(t){
+  if(t==='긍정적') return 'check';
+  if(t==='다소_우려' || t==='주의_필요') return 'alert';
+  return 'minus';
+}
 function formatMs(ms){
   if(ms==null) return '—';
   const s = ms/1000;
@@ -477,25 +497,68 @@ function backToModeSelect(){
 
 function renderModeSelect(){
   return `
+    <div class="card intro-card">
+      <div class="card-body">
+        <div class="intro-eyebrow">ABOUT SCT</div>
+        <h2 class="intro-title">${icon('book')} 문장완성검사(SCT)란?</h2>
+        <p class="intro-lead">
+          미완성 문장을 자연스럽게 이어 씀으로써 성격·정서·대인관계에 대한 태도를 살펴보는 대표적인 투사적 심리검사입니다.
+          정답은 없으며, 문장을 보고 처음 떠오르는 생각을 편하게 적으면 됩니다. 총 <b>${items.length}개 문항</b>이 <b>가족·이성·대인관계·자기개념·정서</b> 5개 영역으로 구성되어 있습니다.
+        </p>
+        <div class="feature-grid">
+          <div class="feature-item">
+            <div class="feature-icon">${icon('edit3')}</div>
+            <div>
+              <strong>Ⅰ 검사 실시</strong>
+              <p>임상심리사용·검사대상자용 두 가지 환경 중 골라 검사를 진행합니다.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">${icon('pencil')}</div>
+            <div>
+              <strong>Ⅱ 문항 관리</strong>
+              <p>문항 문구·영역·순서를 자유롭게 편집해 나만의 검사지를 구성합니다.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">${icon('chart')}</div>
+            <div>
+              <strong>Ⅲ 결과 리포트</strong>
+              <p>AI가 전체 프로파일과 영역별 특징을 요약하고, 응답 시간까지 함께 보여줍니다.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">${icon('layers')}</div>
+            <div>
+              <strong>Ⅳ 일괄 처리</strong>
+              <p>여러 명의 응답을 CSV로 한 번에 업로드해 개인별 리포트를 ZIP으로 받습니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header">
-        <h2>응답자 정보</h2>
+        <h2>${icon('userCircle')} 응답자 정보</h2>
         <span class="badge">${escapeHtml(new Date().toLocaleDateString('ko-KR'))}</span>
       </div>
       <div class="card-body">${respondentFields()}</div>
     </div>
 
     <div class="card">
-      <div class="card-header"><h2>검사 진행 방식 선택</h2></div>
+      <div class="card-header"><h2>${icon('sliders')} 검사 진행 방식 선택</h2></div>
       <div class="card-body">
         <p class="mode-intro">검사를 어떤 환경에서 진행할지 선택해 주세요. 언제든 다시 바꿀 수 있습니다.</p>
         <div class="mode-grid">
           <button class="mode-card" onclick="chooseMode('clinician')">
+            <div class="mode-card-icon">${icon('clipboard')}</div>
             <div class="mode-eyebrow">방식 1</div>
             <h3>임상심리사용</h3>
             <p>50문항이 한 화면에 모두 표시됩니다. 검사자가 구두 응답을 직접 받아 적거나, 응답을 검토·수정할 때 적합합니다.</p>
           </button>
           <button class="mode-card" onclick="chooseMode('subject')">
+            <div class="mode-card-icon">${icon('edit3')}</div>
             <div class="mode-eyebrow">방식 2</div>
             <h3>검사대상자용</h3>
             <p>한 화면에 한 문장씩 제시됩니다. 문항마다 응답까지 걸린 시간이 자동으로 기록되어 결과 리포트에 함께 표시됩니다.</p>
@@ -510,7 +573,7 @@ function renderSubjectIntro(){
   return `
     <div class="card">
       <div class="card-header">
-        <h2>응답자 정보</h2>
+        <h2>${icon('userCircle')} 응답자 정보</h2>
         <span class="badge">${escapeHtml(new Date().toLocaleDateString('ko-KR'))}</span>
       </div>
       <div class="card-body">${respondentFields()}</div>
@@ -581,7 +644,7 @@ function renderSubjectRunning(){
           <div class="progress-num">${subjectIdx+1}/${total}</div>
         </div>
         <div class="subject-stage" data-domain="${d.id}">
-          <span class="subject-domain">${escapeHtml(d.name)}</span>
+          <span class="subject-domain">${icon(DOMAIN_ICON[d.id])} ${escapeHtml(d.name)}</span>
           <div class="subject-stem">${escapeHtml(it.stem)}</div>
           <div class="subject-input-wrap">
             <textarea id="subjectAnswerInput" class="subject-input" rows="1" placeholder="( 문장을 이어서 완성하고 Enter를 눌러주세요 )"
@@ -621,7 +684,7 @@ function renderClinicianTest(){
     return `
       <div class="domain-section" data-domain="${d.id}">
         <div class="domain-title">
-          <span class="dot"></span>
+          ${icon(DOMAIN_ICON[d.id])}
           <strong>${escapeHtml(d.name)}</strong>
           <span class="cnt">${dDone}/${list.length}</span>
         </div>
@@ -638,7 +701,7 @@ function renderClinicianTest(){
 
     <div class="card">
       <div class="card-header">
-        <h2>응답자 정보</h2>
+        <h2>${icon('userCircle')} 응답자 정보</h2>
         <span class="badge">${escapeHtml(new Date().toLocaleDateString('ko-KR'))}</span>
       </div>
       <div class="card-body">${respondentFields()}</div>
@@ -646,7 +709,7 @@ function renderClinicianTest(){
 
     <div class="card">
       <div class="card-header">
-        <h2>진행률</h2>
+        <h2>${icon('chart')} 진행률</h2>
         <div class="progress-wrap" style="width:220px;">
           <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
           <div class="progress-num">${done}/${total}</div>
@@ -707,7 +770,7 @@ function renderManageTab(){
   return `
     <div class="card">
       <div class="card-header">
-        <h2>문항 관리</h2>
+        <h2>${icon('pencil')} 문항 관리</h2>
         <span class="badge">${items.length}개 문항</span>
       </div>
       <div class="card-body">
@@ -826,8 +889,8 @@ function buildReportSections(r, meta, answers){
     return `
       <div class="report-domain" data-domain="${escapeHtml(d.domain_id||'')}">
         <div class="report-domain-head">
-          <strong>${escapeHtml(d.domain_name||d.domain_id||'')}</strong>
-          <span class="tone ${toneClass(d.tone)}">${toneLabel(d.tone)}</span>
+          <strong>${icon(DOMAIN_ICON[d.domain_id]||'minus')} ${escapeHtml(d.domain_name||d.domain_id||'')}</strong>
+          ${toneBadge(d.tone)}
         </div>
         <p>${escapeHtml(d.summary||'')}</p>
         ${themes ? `<div style="margin-top:8px;">${themes}</div>` : ''}
@@ -837,8 +900,8 @@ function buildReportSections(r, meta, answers){
   return `
     <div class="card">
       <div class="card-header">
-        <h2>전체 프로파일 요약</h2>
-        <span class="tone ${toneClass(r.overall_tone)}">${toneLabel(r.overall_tone)}</span>
+        <h2>${icon('book')} 전체 프로파일 요약</h2>
+        ${toneBadge(r.overall_tone)}
       </div>
       <div class="card-body">
         <p style="font-size:13.5px;line-height:1.8;white-space:pre-wrap;">${escapeHtml(r.overall_summary||'')}</p>
@@ -858,7 +921,7 @@ function buildReportSections(r, meta, answers){
     </div>
 
     <div class="card">
-      <div class="card-header"><h2>영역별 요약</h2></div>
+      <div class="card-header"><h2>${icon('layers')} 영역별 요약</h2></div>
       <div class="card-body">${domainCards}</div>
     </div>
 
@@ -891,7 +954,7 @@ function renderTimingCard(meta, answers){
   return `
     <div class="card">
       <div class="card-header">
-        <h2>응답 시간</h2>
+        <h2>${icon('clock')} 응답 시간</h2>
         <span class="badge">검사대상자 모드 · 총 ${formatMs(meta.totalTimeMs)}</span>
       </div>
       <div class="card-body">
@@ -920,7 +983,7 @@ function renderAnswerLog(answers){
   return `
     <div class="card">
       <div class="card-header">
-        <h2>문항별 응답 내역</h2>
+        <h2>${icon('clipboard')} 문항별 응답 내역</h2>
         <span class="badge">${answers.items.length}문항${hasTiming ? ' · 응답시간 포함' : ''}</span>
       </div>
       <div class="card-body">
@@ -993,7 +1056,7 @@ function hasEmbeddedKey(){
 function renderBatchTab(){
   return `
     <div class="card">
-      <div class="card-header"><h2>일괄 처리</h2></div>
+      <div class="card-header"><h2>${icon('layers')} 일괄 처리</h2></div>
       <div class="card-body">
         <p class="mode-intro">
           여러 응답자의 답안을 한 번에 업로드해서, 사람별 결과 리포트를 ZIP 파일(개별 HTML 묶음)로 받을 수 있습니다.
