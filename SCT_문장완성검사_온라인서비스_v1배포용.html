@@ -221,6 +221,19 @@
   .timing-row .t-label{color:var(--ink-soft);}
   .timing-row .t-val{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);}
 
+  /* ── 문항별 응답 내역 표 ── */
+  .answer-log-wrap{max-height:560px;overflow:auto;border:1px solid var(--rule);border-radius:var(--radius-sm);}
+  .answer-log{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .answer-log th{position:sticky;top:0;text-align:left;font-size:10.5px;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;padding:9px 12px;border-bottom:1px solid var(--rule);background:var(--sheet-raised);white-space:nowrap;}
+  .answer-log td{padding:9px 12px;border-bottom:1px solid var(--rule-soft);vertical-align:top;color:var(--ink);}
+  .answer-log tr:last-child td{border-bottom:none;}
+  .answer-log .al-num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-faint);}
+  .answer-log .al-domain{font-size:11.5px;font-weight:600;color:var(--dc);white-space:nowrap;}
+  .answer-log .al-stem{color:var(--ink-soft);white-space:nowrap;}
+  .answer-log .al-blank{color:var(--ink-faint);font-style:italic;}
+  .answer-log .al-time{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-soft);white-space:nowrap;text-align:right;}
+  @media print{ .answer-log-wrap{max-height:none;overflow:visible;} .answer-log th{position:static;} }
+
   @media print{
     .masthead,.index,.btn-row,.gear-btn,#settingsPanel,.mode-switch,.subject-nav,.no-print{display:none !important;}
     body{background:#fff;}
@@ -569,13 +582,15 @@ function renderSubjectRunning(){
           <span class="subject-domain">${escapeHtml(d.name)}</span>
           <div class="subject-stem">${escapeHtml(it.stem)}</div>
           <div class="subject-input-wrap">
-            <textarea id="subjectAnswerInput" class="subject-input" rows="1" placeholder="( 문장을 이어서 완성해 주세요 )"
-              oninput="autoGrow(this)" onfocus="autoGrow(this)">${val}</textarea>
+            <textarea id="subjectAnswerInput" class="subject-input" rows="1" placeholder="( 문장을 이어서 완성하고 Enter를 눌러주세요 )"
+              oninput="autoGrow(this)" onfocus="autoGrow(this)"
+              onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); ${isLast ? 'subjectFinish()' : 'subjectNext()'}; }">${val}</textarea>
           </div>
           <div class="subject-nav no-print">
             <button class="btn" onclick="subjectPrev()" ${subjectIdx===0?'disabled':''}>← 이전</button>
             <button class="btn btn-primary" onclick="${isLast ? 'subjectFinish()' : 'subjectNext()'}">${isLast ? '제출하고 결과 보기' : '다음 →'}</button>
           </div>
+          <p class="muted no-print" style="margin-top:12px;">Enter — 다음 문항 · Shift+Enter — 줄바꿈</p>
         </div>
       </div>
     </div>`;
@@ -832,6 +847,8 @@ function renderReportTab(){
 
     ${renderTimingCard(meta, lastReport.answers)}
 
+    ${renderAnswerLog(lastReport.answers)}
+
     <div class="card">
       <div class="card-body">
         <div class="btn-row">
@@ -870,6 +887,40 @@ function renderTimingCard(meta, answers){
         ${domainRows}
         <div class="timing-row"><span class="t-label">가장 오래 걸린 문항</span><span class="t-val">"${escapeHtml(slowest.stem)}" · ${formatMs(slowest.response_time_ms)}</span></div>
         <div class="timing-row"><span class="t-label">가장 빨리 응답한 문항</span><span class="t-val">"${escapeHtml(fastest.stem)}" · ${formatMs(fastest.response_time_ms)}</span></div>
+      </div>
+    </div>`;
+}
+
+function renderAnswerLog(answers){
+  if(!answers || !answers.items || !answers.items.length) return '';
+  const hasTiming = answers.items.some(x=>x.response_time_ms!=null);
+  const rows = answers.items.map((it,i)=>{
+    const ans = it.answer ? escapeHtml(it.answer) : '<span class="al-blank">무응답</span>';
+    const timeCell = hasTiming ? `<td class="al-time">${it.response_time_ms!=null ? formatMs(it.response_time_ms) : '—'}</td>` : '';
+    return `
+      <tr data-domain="${escapeHtml(it.domain_id)}">
+        <td class="al-num">${i+1}</td>
+        <td class="al-domain">${escapeHtml(it.domain_name)}</td>
+        <td class="al-stem">${escapeHtml(it.stem)}</td>
+        <td>${ans}</td>
+        ${timeCell}
+      </tr>`;
+  }).join('');
+  return `
+    <div class="card">
+      <div class="card-header">
+        <h2>문항별 응답 내역</h2>
+        <span class="badge">${answers.items.length}문항${hasTiming ? ' · 응답시간 포함' : ''}</span>
+      </div>
+      <div class="card-body">
+        <div class="answer-log-wrap">
+          <table class="answer-log">
+            <thead><tr>
+              <th>#</th><th>영역</th><th>문항</th><th>응답</th>${hasTiming ? '<th style="text-align:right;">응답시간</th>' : ''}
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
       </div>
     </div>`;
 }
