@@ -221,6 +221,8 @@
   .answer-log .al-domain{font-size:11.5px;font-weight:600;color:var(--dc);white-space:nowrap;}
   .answer-log .al-stem{color:var(--ink-soft);white-space:nowrap;}
   .answer-log .al-blank{color:var(--ink-faint);font-style:italic;}
+  .answer-log .al-flag{font-size:10.5px;padding:2px 8px;margin:0 0 0 6px;white-space:nowrap;}
+  .answer-log .al-flag .icon{font-size:1.1em;}
   .answer-log .al-time{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-soft);white-space:nowrap;text-align:right;}
   @media print{ .answer-log-wrap{max-height:none;overflow:visible;} .answer-log th{position:static;} }
 
@@ -429,6 +431,18 @@ function formatMs(ms){
   if(ms==null) return '—';
   const s = ms/1000;
   return s<60 ? `${s.toFixed(1)}초` : `${Math.floor(s/60)}분 ${Math.round(s%60)}초`;
+}
+
+/* 'ㅇㅇㄴㄴㅇㄹ', '...', 'ㅋㅋㅋㅋ'처럼 해석하기 어려운 무성의한 응답 감지
+   (빈칸과는 별개 — 글자는 입력했지만 내용을 해석할 수 없는 경우) */
+function isEvasiveAnswer(text){
+  const t = String(text||'').trim();
+  if(!t) return false;
+  const hasSyllableOrLetter = /[가-힣a-zA-Z0-9]/.test(t);
+  if(!hasSyllableOrLetter) return true; // 자음/모음 낱자·문장부호·기호로만 구성 (ㅇㅇㄴㄴㅇㄹ, ㅋㅋㅋ, ..., ??)
+  const compact = t.replace(/\s/g,'');
+  if(compact.length>=2 && new Set(compact).size===1) return true; // 한 글자 반복 (하하하하, 아아아아)
+  return false;
 }
 
 /* ──────────────────────────────────────────
@@ -978,8 +992,12 @@ function renderTimingCard(meta, answers){
 function renderAnswerLog(answers){
   if(!answers || !answers.items || !answers.items.length) return '';
   const hasTiming = answers.items.some(x=>x.response_time_ms!=null);
+  const evasiveCount = answers.items.filter(x=>isEvasiveAnswer(x.answer)).length;
   const rows = answers.items.map((it,i)=>{
-    const ans = it.answer ? escapeHtml(it.answer) : '<span class="al-blank">무응답</span>';
+    let ans;
+    if(!it.answer) ans = '<span class="al-blank">무응답</span>';
+    else if(isEvasiveAnswer(it.answer)) ans = `${escapeHtml(it.answer)} <span class="chip chip-warn al-flag">${icon('alert')} 해석 곤란</span>`;
+    else ans = escapeHtml(it.answer);
     const timeCell = hasTiming ? `<td class="al-time">${it.response_time_ms!=null ? formatMs(it.response_time_ms) : '—'}</td>` : '';
     return `
       <tr data-domain="${escapeHtml(it.domain_id)}">
@@ -994,7 +1012,7 @@ function renderAnswerLog(answers){
     <div class="card">
       <div class="card-header">
         <h2>${icon('clipboard')} 문항별 응답 내역</h2>
-        <span class="badge">${answers.items.length}문항${hasTiming ? ' · 응답시간 포함' : ''}</span>
+        <span class="badge">${answers.items.length}문항${hasTiming ? ' · 응답시간 포함' : ''}${evasiveCount ? ` · 해석 곤란 ${evasiveCount}개` : ''}</span>
       </div>
       <div class="card-body">
         <div class="answer-log-wrap">
@@ -1176,6 +1194,7 @@ async function handleBatchUpload(evt){
           stem: it.stem,
           answer: answerMap[it.id] || '',
           response_time_ms: null,
+          low_effort: isEvasiveAnswer(answerMap[it.id]),
         })),
       };
 
@@ -1384,7 +1403,8 @@ const SYSTEM_PROMPT = `당신은 임상심리 보조 도구로서 문장완성�
 6. 무응답 문항은 해석에서 제외하되, 무응답이 많은 영역은 특이사항으로 언급할 수 있습니다.
 7. 응답자가 실제로 작성한 표현을 왜곡하거나 과장하지 말고, 특정 정신질환명을 단정적으로 진단하지 마세요.
 8. 모든 출력은 한국어로 작성하세요.
-9. 일부 문항에는 response_time_ms(해당 문항을 완성하는 데 걸린 시간, 밀리초)가 함께 제공될 수 있습니다. 유난히 짧거나(즉각 반응) 긴(주저·회피 가능성) 응답 시간이 관찰되면 참고 정보로 언급할 수 있으나, 이것만으로 단정적인 결론을 내리지는 마세요.`;
+9. 일부 문항에는 response_time_ms(해당 문항을 완성하는 데 걸린 시간, 밀리초)가 함께 제공될 수 있습니다. 유난히 짧거나(즉각 반응) 긴(주저·회피 가능성) 응답 시간이 관찰되면 참고 정보로 언급할 수 있으나, 이것만으로 단정적인 결론을 내리지는 마세요.
+10. low_effort:true로 표시된 문항은 'ㅇㅇㄴㄴㅇㄹ', 'ㅋㅋㅋㅋ', '...'처럼 자음·모음 낱자나 기호 반복 등으로 이루어져 내용을 해석하기 어려운 응답입니다. 이런 응답에서 억지로 의미나 감정을 추론하지 말고, 대신 해당 문항·영역에 회피적/방어적 태도가 있었을 가능성으로만 짧게 언급하세요. low_effort 문항이 한 영역에 몰려 있으면 그 영역의 요약과 watch_points에서 "해석 곤란 응답이 다수 있어 해석에 제한이 있다"는 점을 명시하세요.`;
 
 async function callOpenAI(apiKey, model, payload){
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -1415,8 +1435,10 @@ function localHeuristicReport(payload){
   const domains = Object.keys(byDomain).map(did=>{
     const d = domainOf(did);
     const list = byDomain[did];
-    const answered = list.filter(x=>x.answer && x.answer.trim());
-    const blanks = list.length - answered.length;
+    const answeredAll = list.filter(x=>x.answer && x.answer.trim());
+    const evasive = answeredAll.filter(x=>isEvasiveAnswer(x.answer));
+    const answered = answeredAll.filter(x=>!isEvasiveAnswer(x.answer)); // 해석 가능한 응답만 키워드 분석에 사용
+    const blanks = list.length - answeredAll.length;
     let pos=0, neg=0;
     answered.forEach(x=>{
       NEG_WORDS.forEach(w=>{ if(x.answer.includes(w)) neg++; });
@@ -1427,18 +1449,27 @@ function localHeuristicReport(payload){
     if(neg>=4 && neg>pos*2) tone = '주의_필요';
     if(pos>neg && pos>=2) tone = '긍정적';
     const sample = answered.slice(0,3).map(x=>`"${x.stem} ${x.answer}"`).join(', ');
+    const evasiveNote = evasive.length ? ` 이 중 ${evasive.length}개는 'ㅋㅋㅋ'·'...'처럼 해석하기 어려운 응답이라 분석에서 제외했습니다.` : '';
     const summary = answered.length
-      ? `${d.name}에서 ${answered.length}개 문항에 응답했습니다${blanks?`(무응답 ${blanks}개)`:''}. 대표 응답 예시: ${sample || '없음'}. 긍정적 표현 ${pos}회, 부정적 표현 ${neg}회가 감지되어 전반적으로 ${toneLabel(tone)} 경향으로 추정됩니다. (AI 미사용 간이 요약)`
-      : `${d.name}의 문항에 응답이 거의 없어 해석하기 어렵습니다. (AI 미사용 간이 요약)`;
-    return { domain_id:did, domain_name:d.name, summary, tone, key_themes: answered.length? ['키워드 기반 간이 분석']:['무응답'] };
+      ? `${d.name}에서 ${answeredAll.length}개 문항에 응답했습니다${blanks?`(무응답 ${blanks}개)`:''}.${evasiveNote} 대표 응답 예시: ${sample || '없음'}. 긍정적 표현 ${pos}회, 부정적 표현 ${neg}회가 감지되어 전반적으로 ${toneLabel(tone)} 경향으로 추정됩니다. (AI 미사용 간이 요약)`
+      : `${d.name}의 문항에 해석 가능한 응답이 거의 없어 해석하기 어렵습니다.${evasiveNote} (AI 미사용 간이 요약)`;
+    const key_themes = [];
+    if(answered.length) key_themes.push('키워드 기반 간이 분석');
+    if(evasive.length) key_themes.push(`해석 곤란 응답 ${evasive.length}개`);
+    if(!answeredAll.length) key_themes.push('무응답');
+    return { domain_id:did, domain_name:d.name, summary, tone, key_themes };
   });
 
   const totalBlanks = payload.items.filter(x=>!x.answer || !x.answer.trim()).length;
+  const totalEvasive = payload.items.filter(x=>isEvasiveAnswer(x.answer)).length;
+  const watch_points = [];
+  if(totalBlanks>0) watch_points.push(`무응답 문항 ${totalBlanks}개`);
+  if(totalEvasive>0) watch_points.push(`해석 곤란(자음·기호 반복 등) 응답 ${totalEvasive}개 — 응답 회피 가능성을 함께 검토하세요`);
   return {
-    overall_summary: `총 ${payload.items.length}개 문항 중 ${payload.items.length-totalBlanks}개에 응답했습니다. 이 요약은 OpenAI API 키가 설정되지 않아 키워드 빈도 기반의 규칙적 방식으로 생성된 간이 결과이며, 실제 서비스 배포 시 EMBEDDED_API_KEY를 설정하면 훨씬 정교한 AI 해석을 받을 수 있습니다.`,
+    overall_summary: `총 ${payload.items.length}개 문항 중 ${payload.items.length-totalBlanks}개에 응답했습니다${totalEvasive?` (이 중 ${totalEvasive}개는 해석하기 어려운 응답)`:''}. 이 요약은 OpenAI API 키가 설정되지 않아 키워드 빈도 기반의 규칙적 방식으로 생성된 간이 결과이며, 실제 서비스 배포 시 EMBEDDED_API_KEY를 설정하면 훨씬 정교한 AI 해석을 받을 수 있습니다.`,
     overall_tone: '중립적',
     strengths: ['간이 분석에서는 강점을 세부적으로 판별하지 않습니다.'],
-    watch_points: totalBlanks>0 ? [`무응답 문항 ${totalBlanks}개`] : [],
+    watch_points,
     domains,
     recommendation: '보다 신뢰도 높은 해석을 위해 OpenAI API 키를 설정하거나, 전문 상담자와의 면담을 통해 결과를 함께 검토하시기 바랍니다.',
   };
@@ -1455,13 +1486,17 @@ async function submitTest(){
 
   const payload = {
     respondent: respondent.name || '익명',
-    items: items.map(it=>({
-      domain_id: it.domain,
-      domain_name: domainOf(it.domain).name,
-      stem: it.stem,
-      answer: (responses[it.id]||'').trim(),
-      response_time_ms: itemTimings[it.id] ?? null,
-    })),
+    items: items.map(it=>{
+      const answer = (responses[it.id]||'').trim();
+      return {
+        domain_id: it.domain,
+        domain_name: domainOf(it.domain).name,
+        stem: it.stem,
+        answer,
+        response_time_ms: itemTimings[it.id] ?? null,
+        low_effort: isEvasiveAnswer(answer),
+      };
+    }),
   };
   const timedItems = payload.items.filter(x=>x.response_time_ms!=null);
   const totalTimeMs = timedItems.reduce((sum,x)=>sum+x.response_time_ms, 0);
