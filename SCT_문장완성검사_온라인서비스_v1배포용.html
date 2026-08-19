@@ -42,7 +42,7 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   *:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.001s !important;transition-duration:.001s !important;} }
-  body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height:100vh;font-size:14.5px;line-height:1.65;}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height:100vh;font-size:14.5px;line-height:1.65;word-break:keep-all;overflow-wrap:break-word;}
   button{font-family:inherit;cursor:pointer;}
   input,textarea,select{font-family:inherit;color:inherit;}
   h1,h2,h3{font-family:var(--serif);text-wrap:balance;}
@@ -114,7 +114,7 @@
   .item-row:last-child{border-bottom:none;}
   .item-num{font-size:11.5px;font-weight:600;color:var(--ink-faint);font-family:var(--mono);font-variant-numeric:tabular-nums;flex-shrink:0;}
   .item-stem{font-size:14px;color:var(--ink);flex-shrink:0;}
-  .item-input{flex:1;min-width:140px;padding:1px 4px 2px;border:none;border-bottom:1.5px solid var(--rule);background:transparent;background-image:repeating-linear-gradient(to bottom, transparent 0, transparent 24px, var(--rule-soft) 24px, var(--rule-soft) 25px);background-position:0 -1px;font-size:15px;color:var(--accent-ink);resize:none;overflow:hidden;outline:none;line-height:25px;letter-spacing:.005em;transition:border-color .15s;font-family:var(--serif);}
+  .item-input{flex:1;min-width:140px;padding:1px 4px 2px;border:none;border-bottom:1.5px solid var(--rule);background:transparent;font-size:15px;color:var(--accent-ink);resize:none;overflow:hidden;outline:none;line-height:25px;letter-spacing:.005em;transition:border-color .15s;font-family:var(--serif);}
   .item-input::placeholder{color:var(--ink-faint);font-style:italic;font-family:var(--sans);}
   .item-input:focus{border-color:var(--accent);}
   @media (max-width:560px){.item-row{gap:4px 0;}.item-input{width:100%;flex-basis:100%;margin-left:0;}}
@@ -172,7 +172,7 @@
   .intro-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--accent);margin-bottom:8px;}
   .intro-title{display:flex;align-items:center;gap:8px;font-size:18px;margin-bottom:10px;}
   .intro-title .icon{color:var(--accent);font-size:1.05em;}
-  .intro-lead{font-size:13.5px;color:var(--ink-soft);line-height:1.75;max-width:62ch;margin-bottom:22px;}
+  .intro-lead{font-size:13.5px;color:var(--ink-soft);line-height:1.8;margin-bottom:22px;word-break:keep-all;}
   .intro-lead b{color:var(--ink);font-weight:600;}
   .feature-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;}
   @media (max-width:560px){.feature-grid{grid-template-columns:1fr;}}
@@ -200,7 +200,7 @@
   .subject-domain .icon{font-size:1.2em;}
   .subject-stem{font-family:var(--serif);font-size:22px;line-height:1.55;color:var(--ink);margin-bottom:24px;text-wrap:balance;}
   .subject-input-wrap{max-width:440px;margin:0 auto 32px;}
-  .subject-input{width:100%;text-align:center;padding:10px 4px 8px;border:none;border-bottom:2px solid var(--rule);background:transparent;background-image:repeating-linear-gradient(to bottom, transparent 0, transparent 29px, var(--rule-soft) 29px, var(--rule-soft) 30px);font-size:18px;color:var(--accent-ink);outline:none;font-family:var(--serif);resize:none;overflow:hidden;line-height:30px;letter-spacing:.005em;transition:border-color .15s;}
+  .subject-input{width:100%;text-align:center;padding:10px 4px 8px;border:none;border-bottom:2px solid var(--rule);background:transparent;font-size:18px;color:var(--accent-ink);outline:none;font-family:var(--serif);resize:none;overflow:hidden;line-height:30px;letter-spacing:.005em;transition:border-color .15s;}
   .subject-input::placeholder{font-family:var(--sans);font-size:14px;}
   .subject-input:focus{border-color:var(--accent);}
   .subject-nav{display:flex;justify-content:center;gap:10px;}
@@ -777,6 +777,7 @@ function renderManageTab(){
         <p class="muted" style="margin-bottom:14px;">문항 문장, 소속 영역, 순서를 자유롭게 편집할 수 있습니다. 변경 사항은 자동 저장됩니다.</p>
         <div class="btn-row" style="margin-bottom:14px;">
           <button class="btn btn-primary" onclick="addItem()">＋ 새 문항 추가</button>
+          <button class="btn" onclick="shuffleItems()">🔀 순서 셔플</button>
           <button class="btn" onclick="resetItems()">기본 문항으로 초기화</button>
           <button class="btn" onclick="exportItems()">⭳ JSON 내보내기</button>
           <button class="btn" onclick="document.getElementById('importFile').click()">⭱ JSON 불러오기</button>
@@ -817,6 +818,15 @@ function moveItem(id, dir){
 function resetItems(){
   if(!confirm('현재 문항 구성을 기본 50문항으로 되돌릴까요? 되돌릴 수 없습니다.')) return;
   items = DEFAULT_ITEMS.map(x=>({...x}));
+  saveJSON(LS.items, items);
+  render();
+}
+function shuffleItems(){
+  if(!confirm('문항 순서를 무작위로 섞을까요? 문항 번호(#)가 새로 배정됩니다.')) return;
+  for(let i=items.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
   saveJSON(LS.items, items);
   render();
 }
