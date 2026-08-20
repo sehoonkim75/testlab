@@ -149,6 +149,12 @@
 
   .disclaimer{font-size:11.5px;color:var(--ink-faint);border-top:1px dashed var(--rule);padding-top:14px;margin-top:18px;line-height:1.7;}
 
+  /* ── 리포트 상단 고정 정보(대상자·검사 시간) ── */
+  .report-meta-bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px;padding:12px 18px;background:var(--accent-tint);border:1px solid var(--rule);border-radius:var(--radius-sm);}
+  .report-meta-bar .rmb-name{font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;font-size:13.5px;}
+  .report-meta-bar .rmb-name .icon{color:var(--accent);}
+  .report-meta-bar .rmb-time{color:var(--ink-soft);font-family:var(--mono);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px;font-size:12px;}
+
   .empty-state{text-align:center;padding:64px 20px;color:var(--ink-soft);}
   .empty-state .es-icon{width:34px;height:34px;margin:0 auto 14px;opacity:.5;}
   .empty-state .es-icon svg{width:100%;height:100%;stroke:var(--ink-soft);fill:none;stroke-width:1.3;}
@@ -351,7 +357,7 @@ const DEFAULT_ITEMS = [
 const LS = {
   items:'sct_items_v1', responses:'sct_responses_v1',
   respondent:'sct_respondent_v1', report:'sct_report_v1', model:'sct_model_v1',
-  timings:'sct_timings_v1', mode:'sct_mode_v1',
+  timings:'sct_timings_v1', mode:'sct_mode_v1', startedAt:'sct_started_at_v1',
 };
 
 function loadJSON(key, fallback){
@@ -368,6 +374,7 @@ let testMode = loadJSON(LS.mode, null);          // 'clinician' | 'subject' | nu
 let subjectIdx = 0;         // 검사대상자 모드: 현재 문항 위치 (세션 내에서만 유지)
 let subjectShownAt = null;  // 검사대상자 모드: 현재 문항이 화면에 표시된 시각(ms)
 let subjectStarted = false; // 검사대상자 모드: 시작 화면을 지나 실제 문항 진행 중인지
+let testStartedAt = loadJSON(LS.startedAt, null); // 검사 시작 시각(ms) — 진행 방식을 처음 고른 시점
 let activeTab = 'test';
 
 function domainOf(id){ return DOMAINS.find(d=>d.id===id) || DOMAINS[0]; }
@@ -499,6 +506,7 @@ function renderTestTab(){
 function chooseMode(mode){
   testMode = mode;
   subjectStarted = false;
+  if(!testStartedAt){ testStartedAt = Date.now(); saveJSON(LS.startedAt, testStartedAt); }
   saveJSON(LS.mode, mode);
   render();
 }
@@ -755,8 +763,10 @@ function clearResponses(){
   if(!confirm('작성한 모든 응답을 삭제할까요? 기록된 응답 시간도 함께 초기화됩니다.')) return;
   responses = {};
   itemTimings = {};
+  testStartedAt = null;
   saveJSON(LS.responses, responses);
   saveJSON(LS.timings, itemTimings);
+  saveJSON(LS.startedAt, null);
   render();
 }
 
@@ -793,10 +803,11 @@ function renderManageTab(){
           <button class="btn btn-primary" onclick="addItem()">＋ 새 문항 추가</button>
           <button class="btn" onclick="shuffleItems()">🔀 순서 셔플</button>
           <button class="btn" onclick="resetItems()">기본 문항으로 초기화</button>
-          <button class="btn" onclick="exportItems()">⭳ JSON 내보내기</button>
-          <button class="btn" onclick="document.getElementById('importFile').click()">⭱ JSON 불러오기</button>
-          <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importItems(event)">
+          <button class="btn" onclick="exportItems()">⭳ 엑셀로 내보내기 (.xlsx)</button>
+          <button class="btn" onclick="document.getElementById('importFile').click()">⭱ 엑셀 불러오기</button>
+          <input type="file" id="importFile" accept=".xlsx" style="display:none" onchange="importItems(event)">
         </div>
+        <p class="muted" style="margin-bottom:14px;">내보내기한 파일이 그대로 샘플 양식입니다 — Excel에서 열어 문항·영역·순서를 편집한 뒤 다시 불러오면 됩니다.</p>
         ${rows || `<div class="empty-state">${esIcon('folder')}등록된 문항이 없습니다.</div>`}
       </div>
     </div>`;
@@ -845,31 +856,50 @@ function shuffleItems(){
   render();
 }
 function exportItems(){
-  const blob = new Blob([JSON.stringify(items, null, 2)], {type:'application/json'});
+  const header = ['번호', '영역', '문항'];
+  const rows = items.map((it,i)=>[i+1, domainOf(it.domain).name, it.stem]);
+  const blob = buildXlsxBlob('문항', [header, ...rows]);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'sct_items.json'; a.click();
+  a.href = url; a.download = 'sct_items.xlsx'; a.click();
   URL.revokeObjectURL(url);
 }
-function importItems(evt){
+async function importItems(evt){
   const file = evt.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try{
-      const data = JSON.parse(reader.result);
-      if(!Array.isArray(data)) throw new Error('배열 형식이 아닙니다.');
-      const valid = data.every(x => x && typeof x.stem==='string' && DOMAINS.some(d=>d.id===x.domain));
-      if(!valid) throw new Error('domain/stem 형식이 올바르지 않습니다.');
-      items = data.map((x,i)=>({ id: i+1, domain:x.domain, stem:x.stem }));
-      saveJSON(LS.items, items);
-      render();
-      alert('문항을 불러왔습니다.');
-    }catch(e){
-      alert('JSON을 불러오지 못했습니다: '+e.message);
-    }
-  };
-  reader.readAsText(file);
-  evt.target.value = '';
+  try{
+    const buffer = await file.arrayBuffer();
+    const rows = await readXlsxRows(buffer);
+    if(rows.length < 2) throw new Error('데이터가 없습니다.');
+
+    const header = rows[0].map(h=>String(h||'').trim());
+    const iStem = header.indexOf('문항');
+    const iDomain = header.indexOf('영역');
+    if(iStem===-1) throw new Error('헤더에 "문항" 열이 필요합니다. 내보내기한 양식을 기준으로 작성해 주세요.');
+
+    const data = rows.slice(1)
+      .map(r=>({
+        stem: String(r[iStem]||'').trim(),
+        domainName: iDomain>-1 ? String(r[iDomain]||'').trim() : '',
+      }))
+      .filter(x=>x.stem);
+    if(!data.length) throw new Error('유효한 문항 행이 없습니다.');
+
+    const unmatched = new Set();
+    items = data.map((x,i)=>{
+      const d = DOMAINS.find(d=>d.name===x.domainName);
+      if(!d && x.domainName) unmatched.add(x.domainName);
+      return { id: i+1, domain: d ? d.id : DOMAINS[0].id, stem: x.stem };
+    });
+    saveJSON(LS.items, items);
+    render();
+    alert(unmatched.size
+      ? `문항을 불러왔습니다. 단, 알 수 없는 영역명(${Array.from(unmatched).join(', ')})은 '${DOMAINS[0].name}'으로 지정되었습니다.`
+      : '문항을 불러왔습니다.');
+  }catch(e){
+    alert('엑셀 파일을 불러오지 못했습니다: '+e.message);
+  } finally {
+    evt.target.value = '';
+  }
 }
 
 /* ──────────────────────────────────────────
@@ -897,6 +927,7 @@ function renderReportTab(){
         <div class="btn-row">
           <button class="btn" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
           <button class="btn" onclick="downloadReportJson()">⭳ 리포트 JSON 다운로드</button>
+          <button class="btn btn-danger" onclick="clearReport()">🗑 리포트 초기화</button>
           <button class="btn btn-danger" onclick="startNewTest()">🔄 새 검사 시작하기</button>
         </div>
         ${buildDisclaimer(meta)}
@@ -906,6 +937,13 @@ function renderReportTab(){
 
 /* 리포트 카드 마크업 — 화면 표시용/일괄 처리 ZIP의 개별 HTML 문서 양쪽에서 재사용 */
 function buildReportSections(r, meta, answers){
+  const rangeText = meta.testStartedAt ? `${meta.testStartedAt} → ${meta.generatedAt}` : `${meta.generatedAt} 생성 (시작 시각 미기록)`;
+  const metaBar = `
+    <div class="report-meta-bar">
+      <div class="rmb-name">${icon('userCircle')} ${escapeHtml(meta.respondentName || '익명')}</div>
+      <div class="rmb-time">${icon('clock')} ${escapeHtml(rangeText)}</div>
+    </div>`;
+
   const strengths = (r.strengths||[]).map(s=>`<span class="chip chip-pos">${escapeHtml(s)}</span>`).join('') || '<span class="muted">해당 없음</span>';
   const watch = (r.watch_points||[]).map(s=>`<span class="chip chip-warn">${escapeHtml(s)}</span>`).join('') || '<span class="muted">특이사항 없음</span>';
   const domainCards = (r.domains||[]).map(d=>{
@@ -922,6 +960,7 @@ function buildReportSections(r, meta, answers){
   }).join('');
 
   return `
+    ${metaBar}
     <div class="card">
       <div class="card-header">
         <h2>${icon('book')} 전체 프로파일 요약</h2>
@@ -957,7 +996,7 @@ function buildReportSections(r, meta, answers){
 function buildDisclaimer(meta){
   return `
     <div class="disclaimer">
-      응답자: ${escapeHtml(meta.respondentName || '익명')} · 생성 시각: ${escapeHtml(meta.generatedAt)} · 분석 방식: ${meta.mode==='ai' ? 'OpenAI API ('+escapeHtml(meta.model)+')' : '규칙 기반 간이 요약 (AI 키 미설정)'}<br><br>
+      분석 방식: ${meta.mode==='ai' ? 'OpenAI API ('+escapeHtml(meta.model)+')' : '규칙 기반 간이 요약 (AI 키 미설정)'}<br><br>
       ※ 본 리포트는 문장완성검사(SCT) 응답에 대한 자동 요약으로, 전문가의 임상적 진단이나 심리 평가를 대체하지 않습니다. 결과는 상담 및 참고 목적으로만 활용하시고, 위기 신호가 포함된 경우 반드시 전문 상담기관·의료기관과 상의하시기 바랍니다.
     </div>`;
 }
@@ -1040,9 +1079,17 @@ function startNewTest(){
   responses = {};
   itemTimings = {};
   subjectStarted = false;
+  testStartedAt = null;
   saveJSON(LS.responses, responses);
   saveJSON(LS.timings, itemTimings);
+  saveJSON(LS.startedAt, null);
   switchTab('test');
+}
+function clearReport(){
+  if(!confirm('현재 리포트를 삭제할까요? 응답 내용은 그대로 남아있고, 리포트만 초기화됩니다. 되돌릴 수 없습니다.')) return;
+  lastReport = null;
+  saveJSON(LS.report, null);
+  render();
 }
 
 /* ──────────────────────────────────────────
@@ -1285,7 +1332,7 @@ class ZipWriter{
   addFile(name, content){
     this.files.push({ name, bytes: new TextEncoder().encode(content) });
   }
-  build(){
+  build(mimeType){
     const encoder = new TextEncoder();
     const localParts = [];
     const centralParts = [];
@@ -1351,8 +1398,146 @@ class ZipWriter{
     edv.setUint32(16, centralOffset, true);
     edv.setUint16(20, 0, true);
 
-    return new Blob([...localParts, ...centralParts, end], { type: 'application/zip' });
+    return new Blob([...localParts, ...centralParts, end], { type: mimeType || 'application/zip' });
   }
+}
+
+/* ──────────────────────────────────────────
+   최소 XLSX 읽기/쓰기 — 외부 라이브러리 없이 문항 관리 내보내기/불러오기에 사용.
+   1시트, 인라인 문자열만 지원(쓰기). 읽기는 Excel이 실제로 저장한 파일(공유
+   문자열 테이블 + deflate 압축)도 인식하도록 DecompressionStream을 사용.
+   ────────────────────────────────────────── */
+function xmlEscape(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+}
+function colIndexToLetters(idx){
+  let n = idx+1, s = '';
+  while(n>0){ const rem=(n-1)%26; s=String.fromCharCode(65+rem)+s; n=Math.floor((n-1)/26); }
+  return s;
+}
+function colLettersToIndex(letters){
+  let n = 0;
+  for(const ch of letters) n = n*26 + (ch.charCodeAt(0)-64);
+  return n-1;
+}
+
+const XLSX_CONTENT_TYPES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;
+const XLSX_PKG_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+const XLSX_WORKBOOK_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+const XLSX_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts><fills count="1"><fill><patternFill patternType="none"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs></styleSheet>`;
+function xlsxWorkbookXml(sheetName){
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${xmlEscape(sheetName)}" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+}
+function buildXlsxSheetXml(rows){
+  const rowsXml = rows.map((row,ri)=>{
+    const cellsXml = row.map((val,ci)=>{
+      const ref = colIndexToLetters(ci)+(ri+1);
+      if(typeof val==='number' && Number.isFinite(val)) return `<c r="${ref}"><v>${val}</v></c>`;
+      return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEscape(val)}</t></is></c>`;
+    }).join('');
+    return `<row r="${ri+1}">${cellsXml}</row>`;
+  }).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rowsXml}</sheetData></worksheet>`;
+}
+function buildXlsxBlob(sheetName, rows){
+  const zip = new ZipWriter();
+  zip.addFile('[Content_Types].xml', XLSX_CONTENT_TYPES);
+  zip.addFile('_rels/.rels', XLSX_PKG_RELS);
+  zip.addFile('xl/workbook.xml', xlsxWorkbookXml(sheetName));
+  zip.addFile('xl/_rels/workbook.xml.rels', XLSX_WORKBOOK_RELS);
+  zip.addFile('xl/styles.xml', XLSX_STYLES);
+  zip.addFile('xl/worksheets/sheet1.xml', buildXlsxSheetXml(rows));
+  return zip.build('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+
+async function inflateRawRaw(bytes){
+  if(typeof DecompressionStream === 'undefined'){
+    throw new Error('이 브라우저는 압축된 xlsx를 읽을 수 없습니다. 최신 Chrome/Edge 등을 사용해 주세요.');
+  }
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+/* zip(=xlsx 컨테이너) 안의 파일들을 {경로: Uint8Array}로 반환 — store(0)/deflate(8) 방식 모두 지원 */
+async function unzipArchive(buffer){
+  const bytes = new Uint8Array(buffer);
+  const dv = new DataView(buffer);
+  let eocd = -1;
+  for(let i=bytes.length-22; i>=0; i--){
+    if(dv.getUint32(i, true)===0x06054b50){ eocd = i; break; }
+  }
+  if(eocd===-1) throw new Error('올바른 xlsx(zip) 파일이 아닙니다.');
+  const total = dv.getUint16(eocd+10, true);
+  let ptr = dv.getUint32(eocd+16, true);
+  const out = {};
+  for(let i=0; i<total; i++){
+    if(dv.getUint32(ptr, true)!==0x02014b50) break;
+    const method = dv.getUint16(ptr+10, true);
+    const compSize = dv.getUint32(ptr+20, true);
+    const nameLen = dv.getUint16(ptr+28, true);
+    const extraLen = dv.getUint16(ptr+30, true);
+    const commentLen = dv.getUint16(ptr+32, true);
+    const localOffset = dv.getUint32(ptr+42, true);
+    const name = new TextDecoder('utf-8').decode(bytes.slice(ptr+46, ptr+46+nameLen));
+    const lNameLen = dv.getUint16(localOffset+26, true);
+    const lExtraLen = dv.getUint16(localOffset+28, true);
+    const dataStart = localOffset+30+lNameLen+lExtraLen;
+    const compBytes = bytes.slice(dataStart, dataStart+compSize);
+    out[name] = method===0 ? compBytes : await inflateRawRaw(compBytes);
+    if(method!==0 && method!==8) throw new Error(`지원하지 않는 압축 방식(${method})입니다: ${name}`);
+    ptr += 46+nameLen+extraLen+commentLen;
+  }
+  return out;
+}
+/* 공유 문자열 테이블(xl/sharedStrings.xml)이 있으면 파싱 — 실제 Excel이 저장한 파일은 대부분 이 방식을 씀 */
+function parseSharedStrings(files){
+  const key = Object.keys(files).find(n=>/xl\/sharedStrings\.xml$/i.test(n));
+  if(!key) return [];
+  const xml = new TextDecoder('utf-8').decode(files[key]);
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  return Array.from(doc.getElementsByTagName('si')).map(si=>
+    Array.from(si.getElementsByTagName('t')).map(t=>t.textContent).join('')
+  );
+}
+function parseSheetRows(sheetXml, sharedStrings){
+  const doc = new DOMParser().parseFromString(sheetXml, 'application/xml');
+  const rows = [];
+  Array.from(doc.getElementsByTagName('row')).forEach(rowEl=>{
+    const cells = [];
+    Array.from(rowEl.getElementsByTagName('c')).forEach(c=>{
+      const ref = c.getAttribute('r') || '';
+      const colLetters = (ref.match(/^[A-Z]+/)||[''])[0];
+      const colIdx = colLetters ? colLettersToIndex(colLetters) : cells.length;
+      const type = c.getAttribute('t');
+      let val = '';
+      if(type==='inlineStr'){
+        const isEl = c.getElementsByTagName('is')[0];
+        val = isEl ? Array.from(isEl.getElementsByTagName('t')).map(t=>t.textContent).join('') : '';
+      }else if(type==='s'){
+        const vEl = c.getElementsByTagName('v')[0];
+        val = sharedStrings[parseInt(vEl?.textContent||'0', 10)] || '';
+      }else{
+        val = c.getElementsByTagName('v')[0]?.textContent || '';
+      }
+      cells[colIdx] = val;
+    });
+    rows.push(cells);
+  });
+  return rows;
+}
+/* xlsx 파일(ArrayBuffer) → 행 배열(각 행은 셀 문자열 배열). 첫 워크시트만 읽음 */
+async function readXlsxRows(buffer){
+  const files = await unzipArchive(buffer);
+  const sheetKey = Object.keys(files).find(n=>/^xl\/worksheets\/sheet\d*\.xml$/i.test(n)) || Object.keys(files).find(n=>/worksheets\/.*\.xml$/i.test(n));
+  if(!sheetKey) throw new Error('워크시트를 찾을 수 없습니다.');
+  const sharedStrings = parseSharedStrings(files);
+  const sheetXml = new TextDecoder('utf-8').decode(files[sheetKey]);
+  return parseSheetRows(sheetXml, sharedStrings).map(r => r.map(v=>v==null?'':v));
 }
 
 /* ──────────────────────────────────────────
@@ -1529,6 +1714,7 @@ async function submitTest(){
       meta: {
         respondentName: respondent.name || '익명',
         generatedAt: new Date().toLocaleString('ko-KR'),
+        testStartedAt: testStartedAt ? new Date(testStartedAt).toLocaleString('ko-KR') : null,
         mode, model,
         testMode,
         totalTimeMs: timedItems.length ? totalTimeMs : null,
