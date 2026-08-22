@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SCT 문장완성검사 온라인 서비스</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%232F5D57'/%3E%3Ctext x='50' y='63' font-family='Georgia,serif' font-size='42' fill='%23F5F2EC' text-anchor='middle'%3ESCT%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%232F5D57'/%3E%3Ctext x='52' y='60' font-family='Georgia,serif' font-weight='700' font-size='34' letter-spacing='4' fill='%23F7F7F4' text-anchor='middle'%3ESCT%3C/text%3E%3Crect x='34' y='71' width='32' height='4' rx='2' fill='%23F7F7F4' opacity='0.55'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
@@ -50,7 +50,9 @@
   /* ── 표제부 ── */
   .masthead{border-bottom:1px solid var(--rule);background:var(--sheet);position:sticky;top:0;z-index:100;}
   .mast-row{max-width:720px;margin:0 auto;padding:18px 24px;display:flex;align-items:center;gap:16px;}
-  .mast-mark{font-family:var(--serif);font-weight:700;font-size:19px;letter-spacing:.06em;color:var(--accent);border:1.5px solid var(--accent);border-radius:5px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .mast-mark{background:var(--accent);border-radius:11px;width:46px;height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex-shrink:0;}
+  .mast-mark .mm-text{font-family:var(--serif);font-weight:700;font-size:15px;letter-spacing:.15em;color:var(--sheet);padding-left:.15em;}
+  .mast-mark .mm-rule{width:20px;height:2px;border-radius:1px;background:var(--sheet);opacity:.55;}
   .mast-text h1{font-size:18px;font-weight:700;color:var(--ink);line-height:1.2;}
   .mast-text p{font-size:11.5px;color:var(--ink-faint);letter-spacing:.04em;margin-top:2px;}
   .mast-row .spacer{flex:1;}
@@ -244,7 +246,7 @@
 
 <header class="masthead">
   <div class="mast-row">
-    <div class="mast-mark">SCT</div>
+    <div class="mast-mark"><span class="mm-text">SCT</span><span class="mm-rule"></span></div>
     <div class="mast-text">
       <h1>문장완성검사</h1>
       <p>SENTENCE COMPLETION TEST · 온라인 검사지</p>
@@ -666,7 +668,6 @@ function renderSubjectRunning(){
           <div class="progress-num">${subjectIdx+1}/${total}</div>
         </div>
         <div class="subject-stage" data-domain="${d.id}">
-          <span class="subject-domain">${icon(DOMAIN_ICON[d.id])} ${escapeHtml(d.name)}</span>
           <div class="subject-stem">${escapeHtml(it.stem)}</div>
           <div class="subject-input-wrap">
             <textarea id="subjectAnswerInput" class="subject-input" rows="1" placeholder="( 문장을 이어서 완성하고 Enter를 눌러주세요 )"
@@ -1297,7 +1298,7 @@ function buildStandaloneReportDoc(personName, result, meta, answers, pageCss){
 <div class="layout" style="padding-top:28px;">
   <header class="masthead" style="position:static;border-bottom:1px solid var(--rule);margin:-24px -24px 0;">
     <div class="mast-row">
-      <div class="mast-mark">SCT</div>
+      <div class="mast-mark"><span class="mm-text">SCT</span><span class="mm-rule"></span></div>
       <div class="mast-text">
         <h1>${escapeHtml(personName)} 님 결과 리포트</h1>
         <p>SENTENCE COMPLETION TEST · 일괄 처리 결과</p>
