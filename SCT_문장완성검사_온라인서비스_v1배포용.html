@@ -241,10 +241,9 @@
     .card{box-shadow:none;border:none;}
   }
 
-  /* ── 검사 집중 모드: 실제로 응답을 입력하는 동안 헤더·탭을 가림 ── */
-  body.focus-mode .masthead,
+  /* ── 검사 집중 모드: 실제로 응답을 입력하는 동안 탭 메뉴만 가림. 로고(헤더)는 고정으로 계속 노출 ── */
   body.focus-mode .index{display:none;}
-  body.focus-mode .layout{padding-top:36px;}
+  body.focus-mode .layout{padding-top:14px;}
 </style>
 </head>
 <body>
