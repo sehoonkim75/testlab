@@ -42,7 +42,7 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   *:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.001s !important;transition-duration:.001s !important;} }
-  body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height:100vh;font-size:14.5px;line-height:1.65;word-break:keep-all;overflow-wrap:break-word;}
+  body{font-family:var(--sans);background-color:var(--paper);background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyMDAnIGhlaWdodD0nMjAwJz4KPGZpbHRlciBpZD0nbic+PGZlVHVyYnVsZW5jZSB0eXBlPSdmcmFjdGFsTm9pc2UnIGJhc2VGcmVxdWVuY3k9JzAuNzUnIG51bU9jdGF2ZXM9JzQnIHN0aXRjaFRpbGVzPSdzdGl0Y2gnLz48ZmVDb2xvck1hdHJpeCB0eXBlPSdtYXRyaXgnIHZhbHVlcz0nMCAwIDAgMCAwLjE1IDAgMCAwIDAgMC4xMiAwIDAgMCAwIDAuMDggMCAwIDAgMC4xNiAwJy8+PC9maWx0ZXI+CjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbHRlcj0ndXJsKCNuKScvPgo8L3N2Zz4K");background-repeat:repeat;color:var(--ink);min-height:100vh;font-size:14.5px;line-height:1.65;word-break:keep-all;overflow-wrap:break-word;}
   button{font-family:inherit;cursor:pointer;}
   input,textarea,select{font-family:inherit;color:inherit;}
   h1,h2,h3{font-family:var(--serif);text-wrap:balance;}
@@ -240,6 +240,11 @@
     .layout{padding:0;max-width:100%;}
     .card{box-shadow:none;border:none;}
   }
+
+  /* ── 검사 집중 모드: 실제로 응답을 입력하는 동안 헤더·탭을 가림 ── */
+  body.focus-mode .masthead,
+  body.focus-mode .index{display:none;}
+  body.focus-mode .layout{padding-top:36px;}
 </style>
 </head>
 <body>
@@ -367,16 +372,23 @@ function loadJSON(key, fallback){
 }
 function saveJSON(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
 
+/* 문항 구성(items)·분석 모델(model)만 기기에 남기고, 응답·리포트 등 개인별
+   기록은 새로고침·재접속 시 절대 남지 않도록 매번 정리한다 (검사장 공용
+   PC에서 이전 응답자의 답이 남아 보이는 것을 방지). */
+['responses','timings','report','startedAt','respondent','mode'].forEach(k=>{
+  try{ localStorage.removeItem(LS[k]); }catch(e){}
+});
+
 let items = loadJSON(LS.items, null) || DEFAULT_ITEMS.map(x=>({...x}));
-let responses = loadJSON(LS.responses, {});
-let itemTimings = loadJSON(LS.timings, {});      // { itemId: 응답까지 걸린 ms } — 검사대상자 모드에서만 기록
-let respondent = loadJSON(LS.respondent, { name:'', memo:'' });
-let lastReport = loadJSON(LS.report, null);
-let testMode = loadJSON(LS.mode, null);          // 'clinician' | 'subject' | null(선택 전)
+let responses = {};
+let itemTimings = {};       // { itemId: 응답까지 걸린 ms } — 검사대상자 모드에서만 기록
+let respondent = { name:'', memo:'' };
+let lastReport = null;
+let testMode = null;        // 'clinician' | 'subject' | null(선택 전) — 페이지를 열 때마다 다시 선택
 let subjectIdx = 0;         // 검사대상자 모드: 현재 문항 위치 (세션 내에서만 유지)
 let subjectShownAt = null;  // 검사대상자 모드: 현재 문항이 화면에 표시된 시각(ms)
 let subjectStarted = false; // 검사대상자 모드: 시작 화면을 지나 실제 문항 진행 중인지
-let testStartedAt = loadJSON(LS.startedAt, null); // 검사 시작 시각(ms) — 진행 방식을 처음 고른 시점
+let testStartedAt = null;   // 검사 시작 시각(ms) — 진행 방식을 처음 고른 시점
 let activeTab = 'test';
 
 function domainOf(id){ return DOMAINS.find(d=>d.id===id) || DOMAINS[0]; }
@@ -463,7 +475,13 @@ function switchTab(tab){
   render();
   window.scrollTo({top:0, behavior:'smooth'});
 }
+function updateFocusMode(){
+  // 실제로 문항에 응답하는 중일 때는 상단 헤더·탭을 가려 검사에만 집중하게 한다.
+  const inFocus = activeTab==='test' && !!testMode && (testMode==='clinician' || subjectStarted);
+  document.body.classList.toggle('focus-mode', inFocus);
+}
 function render(){
+  updateFocusMode();
   const el = document.getElementById('tabContent');
   if(activeTab==='test') el.innerHTML = renderTestTab();
   else if(activeTab==='manage') el.innerHTML = renderManageTab();
