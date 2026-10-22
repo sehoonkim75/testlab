@@ -1,0 +1,2422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자기소개서 기반 면접질문 생성기 v4</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234A63D8'/%3E%3Ctext x='50' y='56' font-size='58' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%92%AC%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  /* ════════════════════════════════════════
+     뉴모피즘(Neumorphism) 디자인 토큰
+     - 배경과 같은 색의 표면에 밝은 그림자(좌상단) + 어두운 그림자(우하단)를 주어
+       "튀어나온(raise)" 요소와 "눌린(inset)" 요소를 구분합니다.
+     - 입력칸·트랙은 눌린 형태, 카드·버튼은 튀어나온 형태입니다.
+     ════════════════════════════════════════ */
+  :root {
+    color-scheme: light;
+    --bg: #E6EAF1;
+    /* 글자색: 배경 대비 4.5:1 이상이 되도록 진하게 조정 */
+    --text-main: #141A26;
+    --text-sub: #343E50;
+    --text-light: #556074;
+    --accent: #3A52C9;
+    --accent-deep: #2E44AE;
+    --accent-soft: #D9E0F8;
+    --green: #116630;
+    --green-soft: #DCF3E4;
+    --yellow: #8A5205;
+    --yellow-soft: #F8EFCF;
+    --red: #B71C1C;
+    --red-soft: #F8DEDE;
+    --gray: #4B5563;
+
+    /* 사용자 입력 영역 전용 색 — 배경과 확실히 구분되는 밝은 면 + 테두리 */
+    --input-bg: #FBFCFE;
+    --input-border: #9AA6BB;
+    --input-border-hover: #6F7D96;
+    --input-focus-ring: rgba(58, 82, 201, 0.22);
+
+    --sh-dark: rgba(152, 167, 191, 0.62);
+    --sh-light: rgba(255, 255, 255, 0.92);
+    --raise:    8px 8px 18px var(--sh-dark), -8px -8px 18px var(--sh-light);
+    --raise-sm: 4px 4px 9px var(--sh-dark), -4px -4px 9px var(--sh-light);
+    --raise-xs: 2px 2px 5px var(--sh-dark), -2px -2px 5px var(--sh-light);
+    --inset:    inset 4px 4px 9px var(--sh-dark), inset -4px -4px 9px var(--sh-light);
+    --inset-sm: inset 2px 2px 5px var(--sh-dark), inset -2px -2px 5px var(--sh-light);
+    --line: rgba(152, 167, 191, 0.32);
+
+    --radius: 22px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    background: var(--bg);
+    color: var(--text-main);
+    min-height: 100vh;
+    font-size: 16.5px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    /* 한국어 줄바꿈: 어절 단위로 끊고, 긴 영문·숫자는 넘치지 않게 */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    line-break: strict;
+  }
+  p, li, .info-box, .result-reason, .q-reason, .q-quote { text-wrap: pretty; }
+  h1, h2, .step-label { text-wrap: balance; }
+
+  button, input, select, textarea { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  /* ── 헤더 (가운데 정렬) ── */
+  .header {
+    background: var(--bg);
+    padding: 18px 24px 14px;
+    text-align: center;
+  }
+  .header-row { display: inline-flex; align-items: center; justify-content: center; gap: 12px; }
+  .header-icon {
+    width: 42px; height: 42px;
+    border-radius: 13px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 21px; line-height: 1;
+    flex-shrink: 0;
+    box-shadow: var(--raise-sm);
+  }
+  .header h1 { font-size: 22px; font-weight: 700; line-height: 1.3; }
+  .header .subtitle { font-size: 14.5px; color: var(--text-sub); margin-top: 6px; }
+
+  /* ── 단계 표시줄 ── */
+  .stepper-wrap {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg);
+    padding: 12px 16px 14px;
+    box-shadow: 0 6px 14px rgba(152,167,191,0.28);
+  }
+  .stepper { list-style: none; display: flex; max-width: 760px; margin: 0 auto; }
+  .stepper li { flex: 1; position: relative; display: flex; justify-content: center; }
+  /* 단계 사이 연결선 */
+  .stepper li + li::before {
+    content: ''; position: absolute; top: 19px; right: calc(50% + 26px); left: calc(-50% + 26px);
+    height: 3px; border-radius: 3px; background: #C3CBD8;
+  }
+  .stepper li.done + li::before, .stepper li.done + li.current::before { background: var(--accent); }
+  .step-dot {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    background: none; border: none; cursor: pointer; padding: 0 4px;
+    color: var(--text-sub); font-weight: 600;
+  }
+  .step-dot:disabled { cursor: not-allowed; opacity: .55; }
+  .sd-num {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; line-height: 1;
+    background: var(--bg); box-shadow: var(--raise-xs); color: var(--text-sub);
+    transition: background .2s, color .2s, box-shadow .2s;
+  }
+  .sd-label { font-size: 14px; line-height: 1.3; text-align: center; }
+  .stepper li.current .sd-num { background: var(--accent); color: #fff; box-shadow: 3px 3px 8px rgba(58,82,201,0.4); }
+  .stepper li.current .sd-label { color: var(--accent); font-weight: 700; }
+  .stepper li.done .sd-num { background: var(--accent-soft); color: var(--accent); box-shadow: var(--inset-sm); }
+  .stepper li.done .sd-label { color: var(--text-main); }
+
+  /* ── 단계 화면 ── */
+  .step-page { display: none; flex-direction: column; gap: 28px; }
+  .step-page.active { display: flex; animation: pageIn .25s ease; }
+  @keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .page-title { text-align: center; padding: 4px 8px 0; }
+  .page-title .pt-step {
+    display: inline-block; font-size: 13.5px; font-weight: 700; color: var(--accent);
+    padding: 3px 14px; border-radius: 999px; box-shadow: var(--inset-sm); margin-bottom: 10px;
+  }
+  .page-title h2 { font-size: 24px; font-weight: 700; line-height: 1.35; }
+  .page-title p { font-size: 15.5px; color: var(--text-sub); margin: 8px auto 0; max-width: 620px; text-wrap: pretty; }
+  .wizard-nav { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; padding-top: 4px; }
+  .wizard-nav .btn { min-width: 120px; }
+
+  /* ── 레이아웃 ── */
+  .layout {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 40px 24px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  /* ── 카드 ── */
+  .card {
+    background: var(--bg);
+    border-radius: var(--radius);
+    box-shadow: var(--raise);
+  }
+  .card-header {
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .card-header.clickable { cursor: pointer; justify-content: space-between; }
+  .card-header .ch-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .card-icon {
+    width: 36px; height: 36px; border-radius: 11px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px; box-shadow: var(--raise-xs); flex-shrink: 0;
+  }
+  .card-header h2, .card-header h3 { font-size: 17.5px; font-weight: 700; line-height: 1.35; }
+  .sub-badge {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700; line-height: 1; color: var(--accent); box-shadow: var(--raise-xs);
+  }
+  .body-text { font-size: 15.5px; color: var(--text-sub); line-height: 1.8; text-wrap: pretty; }
+  .body-text b { color: var(--text-main); }
+  .flow-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .flow-list li { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: var(--radius-sm); box-shadow: var(--inset-sm); }
+  .flow-list .fl-num {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; margin-top: 1px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; line-height: 1; color: #fff; background: var(--accent);
+  }
+  .flow-list b { display: block; font-size: 15.5px; color: var(--text-main); line-height: 1.5; }
+  .flow-list span:not(.fl-num) { display: block; font-size: 14.5px; color: var(--text-sub); line-height: 1.6; text-wrap: pretty; }
+  .note-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .note-list li { position: relative; padding-left: 18px; font-size: 15.5px; color: var(--text-sub); line-height: 1.75; text-wrap: pretty; }
+  .note-list li::before { content: ''; position: absolute; left: 2px; top: .72em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .note-list b { color: var(--text-main); }
+  .hint-line { font-size: 14.5px; color: var(--text-sub); margin-top: 14px; line-height: 1.7; text-wrap: pretty; }
+  .hint-line code { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; padding: 1px 6px; border-radius: 6px; box-shadow: var(--inset-sm); }
+  .hint-inline { font-size: 15px; color: var(--text-sub); }
+  .badge {
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 3px 11px;
+    border-radius: 999px;
+    color: var(--accent);
+    box-shadow: var(--inset-sm);
+  }
+  .card-body { padding: 28px; }
+  .caret { font-size: 18px; color: var(--text-light); transition: transform .2s; }
+
+  /* ── 공통 입력 요소 ──
+     사용자가 직접 입력·선택하는 곳은 회색 배경과 확실히 구분되도록
+     밝은 면 + 진한 테두리 + 살짝 눌린 그림자로 표시합니다. */
+  .field, select, .setting-input {
+    padding: 12px 16px;
+    border: 1.5px solid var(--input-border);
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    background-color: var(--input-bg);
+    color: var(--text-main);
+    box-shadow: inset 2px 2px 4px rgba(152,167,191,0.35);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+    width: 100%;
+  }
+  .field:hover, select:hover, .setting-input:hover { border-color: var(--input-border-hover); }
+  .field:focus, select:focus, .setting-input:focus {
+    border-color: var(--accent);
+    background-color: #FFFFFF;
+    box-shadow: 0 0 0 4px var(--input-focus-ring);
+  }
+  ::placeholder { color: #6A758A; opacity: 1; }
+  select { cursor: pointer; width: auto; min-width: 260px; appearance: none; font-weight: 500;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-main) 50%), linear-gradient(135deg, var(--text-main) 50%, transparent 50%);
+    background-position: calc(100% - 20px) 52%, calc(100% - 14px) 52%;
+    background-size: 6px 6px; background-repeat: no-repeat; padding-right: 42px; }
+
+  /* ── 분석 설정 ── */
+  .settings-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .settings-row label { font-size: 15.5px; font-weight: 600; color: var(--text-sub); white-space: nowrap; }
+  .key-status {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px; border-radius: 999px;
+    font-size: 15px; font-weight: 600;
+    box-shadow: var(--inset-sm);
+  }
+  .key-status .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .key-status.ok { color: var(--green); }
+  .key-status.ok .dot { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+  .key-status.missing { color: var(--red); }
+  .key-status.missing .dot { background: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }
+  .apikey-hint { font-size: 14.5px; color: var(--text-sub); margin-top: 14px; line-height: 1.7; }
+  .apikey-hint code { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; padding: 1px 6px; border-radius: 6px; box-shadow: var(--inset-sm); }
+
+  /* ── 탭(분절 컨트롤) ── */
+  .tabs-wrap { padding: 22px 28px 0; }
+  .tabs {
+    display: inline-flex;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 999px;
+    box-shadow: var(--inset);
+  }
+  .tab {
+    padding: 9px 20px;
+    font-size: 15.5px;
+    font-weight: 600;
+    color: var(--text-sub);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    border-radius: 999px;
+    transition: box-shadow .2s, color .2s;
+  }
+  .tab.active { color: #fff; background: var(--accent); box-shadow: 2px 2px 6px rgba(58,82,201,0.35); }
+  .tab:hover:not(.active) { color: var(--text-main); }
+  .tab-content { display: none; padding: 22px 28px 28px; }
+  .tab-content.active { display: block; }
+
+  /* ── 직접 입력 ── */
+  .items-list { display: flex; flex-direction: column; gap: 18px; }
+  .item-row {
+    border-radius: var(--radius-md);
+    box-shadow: var(--raise-sm);
+    padding: 14px 16px 10px;
+  }
+  .item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .item-num { font-size: 14px; font-weight: 700; color: var(--accent); }
+  .item-inputs { display: flex; flex-direction: column; gap: 10px; }
+  .item-inputs textarea { line-height: 1.7; resize: vertical; }
+  .item-inputs .q-input { min-height: 0; font-weight: 600; overflow: hidden; }
+  .item-inputs .a-input { min-height: 120px; }
+  .char-count {
+    text-align: right;
+    font-size: 13.5px;
+    color: var(--text-sub);
+    padding: 6px 4px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .icon-btn {
+    width: 32px; height: 32px; border: none; border-radius: 10px;
+    background: var(--bg); color: var(--text-light);
+    font-size: 20px; line-height: 1; cursor: pointer;
+    box-shadow: var(--raise-xs);
+    transition: color .15s, box-shadow .15s;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { color: var(--red); }
+  .icon-btn:active { box-shadow: var(--inset-sm); }
+
+  /* ── 엑셀 업로드 ── */
+  .upload-zone {
+    border-radius: var(--radius-md);
+    padding: 44px 20px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--input-bg);
+    border: 2px dashed var(--input-border);
+    box-shadow: inset 2px 2px 5px rgba(152,167,191,0.35);
+    transition: border-color .2s, background .2s;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: #EEF2FF; }
+  .upload-icon { font-size: 40px; margin-bottom: 8px; }
+  .upload-zone p { font-size: 16px; color: var(--text-sub); }
+  .upload-zone strong { color: var(--accent); }
+  .upload-zone input[type=file] { display: none; }
+
+  .excel-guide {
+    margin-bottom: 20px;
+    font-size: 15px;
+    color: var(--text-sub);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    box-shadow: var(--raise-sm);
+  }
+  .excel-guide-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+  .excel-guide-head strong { color: var(--text-main); font-size: 15.5px; }
+  .col-list { display: flex; gap: 8px; flex-wrap: wrap; }
+  .col-badge {
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: var(--inset-sm);
+  }
+  .col-badge b { font-family: 'JetBrains Mono', monospace; color: var(--accent); margin-right: 4px; }
+
+  /* ── 버튼(튀어나온 형태 → 누르면 눌린 형태) ── */
+  .btn-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+  .btn {
+    padding: 12px 22px;
+    border-radius: var(--radius-sm);
+    font-size: 15.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: var(--bg);
+    box-shadow: var(--raise-sm);
+    transition: box-shadow .15s, color .15s, transform .1s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    text-align: center;
+    line-height: 1.35;
+    color: var(--text-main);
+  }
+  .btn:hover:not(:disabled) { color: var(--text-main); }
+  .btn:active:not(:disabled) { box-shadow: var(--inset-sm); transform: translateY(1px); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-primary {
+    background: linear-gradient(145deg, #5670E4, #3F57C8);
+    color: #fff;
+    box-shadow: 5px 5px 12px rgba(63,87,200,0.38), -5px -5px 12px var(--sh-light);
+  }
+  .btn-primary:hover:not(:disabled) { color: #fff; filter: brightness(1.05); }
+  .btn-primary:active:not(:disabled) { box-shadow: inset 3px 3px 7px rgba(30,45,120,0.45), inset -2px -2px 6px rgba(255,255,255,0.18); }
+  .btn-green {
+    background: linear-gradient(145deg, #1E9A50, #157A3E);
+    color: #fff;
+    box-shadow: 5px 5px 12px rgba(21,122,62,0.33), -5px -5px 12px var(--sh-light);
+  }
+  .btn-green:hover:not(:disabled) { color: #fff; filter: brightness(1.05); }
+  .btn-green:active:not(:disabled) { box-shadow: inset 3px 3px 7px rgba(10,70,35,0.45); }
+  .btn-sm { padding: 9px 16px; font-size: 14.5px; }
+  .btn-block { flex: 1; }
+
+  /* ── 진행 상태 ── */
+  .progress-card { display: none; }
+  .progress-card.show { display: block; }
+  .progress-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .progress-bar-wrap {
+    height: 14px;
+    border-radius: 99px;
+    overflow: hidden;
+    margin: 14px 0 12px;
+    box-shadow: var(--inset);
+    padding: 3px;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #6A80EA, var(--accent));
+    border-radius: 99px;
+    transition: width .4s ease;
+    width: 0%;
+  }
+  .progress-text { font-size: 15px; color: var(--text-sub); }
+
+  /* ── 결과 ── */
+  .result-section { display: none; }
+  .result-section.show { display: block; }
+  .result-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .stat-row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 18px; margin-bottom: 26px; }
+  .stat-box { padding: 20px 14px; border-radius: var(--radius-md); text-align: center; box-shadow: var(--raise-sm); }
+  .stat-num { font-size: 34px; font-weight: 700; line-height: 1.1; }
+  .stat-box.green .stat-num { color: var(--green); }
+  .stat-box.yellow .stat-num { color: var(--yellow); }
+  .stat-box.red .stat-num { color: var(--red); }
+  .stat-box.gray .stat-num { color: var(--gray); }
+  .stat-label { font-size: 14.5px; color: var(--text-sub); margin-top: 6px; font-weight: 600; }
+
+  .result-filter-bar { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; align-items: center; }
+  .filter-label { font-size: 15px; color: var(--text-sub); font-weight: 600; margin-right: 4px; }
+  .filter-chip {
+    padding: 7px 16px; border-radius: 999px; font-size: 14.5px; font-weight: 600;
+    border: none; background: var(--bg); cursor: pointer; color: var(--text-sub);
+    box-shadow: var(--raise-xs);
+    transition: box-shadow .15s, color .15s;
+  }
+  .filter-chip.active { color: var(--accent); box-shadow: var(--inset-sm); }
+
+  .result-list { display: flex; flex-direction: column; gap: 18px; }
+  .result-card {
+    border-radius: var(--radius-md);
+    box-shadow: var(--raise-sm);
+    overflow: hidden;
+    position: relative;
+  }
+  .result-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+    background: var(--text-light);
+  }
+
+  .result-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px 18px 26px;
+    cursor: pointer;
+    gap: 14px;
+  }
+  .result-card-meta { display: flex; align-items: flex-start; gap: 14px; flex: 1; min-width: 0; }
+  .result-card-head .caret { align-self: flex-start; margin-top: 4px; }
+  .verdict-badge {
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-size: 14.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    line-height: 1.4;
+    margin-top: 1px;
+    color: #fff;
+    background: var(--gray);
+  }
+  .result-name { font-size: 16.5px; font-weight: 700; }
+  .result-name .field { font-weight: 400; color: var(--text-sub); font-size: 15px; }
+  .result-reason { font-size: 14.5px; color: var(--text-sub); }
+  .result-card.open .caret { transform: rotate(180deg); }
+
+  .result-card-body { display: none; padding: 4px 22px 22px 26px; }
+  .result-card.open .result-card-body { display: block; }
+
+  .divider { height: 1px; background: var(--line); margin: 16px 0; }
+  /* 안내 상자 */
+  .info-box {
+    padding: 16px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-sub);
+    box-shadow: var(--inset-sm);
+  }
+  .info-box b, .info-box strong { color: var(--text-main); }
+  .info-box .ib-line { display: flex; align-items: flex-start; gap: 8px; }
+  .info-box .ib-line + .ib-line { margin-top: 8px; }
+  .info-box .ib-ic { flex-shrink: 0; width: 1.4em; text-align: center; }
+  .info-box a { color: var(--accent); font-weight: 600; text-decoration: none; }
+
+
+  /* ── 설정 입력 ── */
+  .setting-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 22px; margin-bottom: 20px; }
+  .setting-item { display: flex; flex-direction: column; gap: 9px; }
+  .setting-item.full { grid-column: 1 / -1; }
+  .setting-label { font-size: 15px; font-weight: 600; color: var(--text-main); display: flex; align-items: flex-start; gap: 6px; line-height: 1.45; }
+  .setting-label .sl-ic { flex-shrink: 0; width: 1.3em; text-align: center; }
+  .setting-label .req { color: var(--red); font-style: normal; }
+  .setting-desc { font-size: 14px; color: var(--text-sub); font-weight: 400; }
+
+  .prompt-status { font-size: 13.5px; padding: 4px 12px; border-radius: 999px; font-weight: 700; box-shadow: var(--inset-sm); white-space: nowrap; }
+  .prompt-status.draft { color: var(--text-sub); }
+  .prompt-status.stale { color: var(--yellow); }
+  .prompt-status.confirmed { color: var(--green); }
+
+  .prompt-editor {
+    min-height: 240px;
+    font-size: 14.5px;
+    font-family: 'JetBrains Mono', 'Noto Sans KR', monospace;
+    line-height: 1.75;
+    resize: vertical;
+    padding: 16px 18px;
+  }
+
+  /* ── 미리보기 표 ── */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); box-shadow: var(--inset-sm); padding: 6px; }
+  .sample-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .sample-table th { color: var(--text-sub); padding: 10px 14px; text-align: center; font-weight: 700; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  .sample-table td { padding: 10px 14px; color: var(--text-main); vertical-align: top; text-align: center; border-bottom: 1px solid var(--line); }
+  .sample-table tr:last-child td { border-bottom: none; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .preview-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .ok-pill { font-size: 13.5px; color: var(--green); padding: 3px 12px; border-radius: 999px; font-weight: 700; box-shadow: var(--inset-sm); }
+  .muted { font-size: 14.5px; color: var(--text-sub); }
+
+  .empty-note { text-align: center; padding: 30px 10px; color: var(--text-light); font-size: 15.5px; }
+
+  /* ── 알림 ── */
+  .toast-wrap { position: fixed; top: 86px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: min(360px, calc(100vw - 40px)); }
+  .toast {
+    background: #2F3747; color: #fff;
+    padding: 13px 17px; border-radius: var(--radius-sm);
+    font-size: 15px; line-height: 1.55;
+    box-shadow: 6px 6px 16px rgba(40,50,70,0.35);
+    opacity: 0; transform: translateY(-6px);
+    transition: opacity .25s, transform .25s;
+    white-space: pre-line;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.warn { background: #9A5B05; }
+  .toast.error { background: var(--red); }
+  .toast.success { background: var(--green); }
+
+  /* ── 1단계: 모델 고르기 카드 ── */
+  .model-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .model-opt { position: relative; display: block; cursor: pointer; }
+  .model-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .mo-box {
+    display: flex; flex-direction: column; gap: 4px; height: 100%;
+    padding: 16px 18px; border-radius: var(--radius-md);
+    border: 2px solid transparent; box-shadow: var(--raise-sm);
+    transition: box-shadow .15s, border-color .15s;
+  }
+  .model-opt:hover .mo-box { border-color: var(--line); }
+  .model-opt input:checked + .mo-box { border-color: var(--accent); box-shadow: var(--inset-sm); }
+  .model-opt input:focus-visible + .mo-box { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .mo-tag { font-size: 13.5px; font-weight: 700; color: var(--accent); }
+  .mo-name { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 600; color: var(--text-main); }
+  .mo-desc { font-size: 14px; color: var(--text-sub); line-height: 1.6; }
+  .mo-check { position: absolute; top: 12px; right: 14px; font-size: 15px; color: var(--accent); font-weight: 700; opacity: 0; transition: opacity .15s; }
+  .model-opt input:checked + .mo-box .mo-check { opacity: 1; }
+
+  /* ── 2단계: 세부 단계 표시 ── */
+  .substepper { list-style: none; display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+  .ss-dot {
+    width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 10px 4px 9px; border: none; border-radius: var(--radius-sm); background: var(--bg);
+    cursor: pointer; color: var(--text-sub); font-size: 13.5px; font-weight: 600; line-height: 1.3;
+    box-shadow: var(--raise-xs); transition: box-shadow .15s, color .15s;
+  }
+  .ss-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13.5px; font-weight: 700; line-height: 1; box-shadow: var(--inset-sm);
+  }
+  .ss-dot.current { color: var(--accent); box-shadow: var(--inset-sm); }
+  .ss-dot.current .ss-num { background: var(--accent); color: #fff; box-shadow: none; }
+  .ss-dot.done .ss-num { background: var(--accent-soft); color: var(--accent); }
+  .ss-caption { text-align: center; font-size: 14.5px; color: var(--text-sub); margin-top: 14px; }
+  .ss-caption b { color: var(--accent); }
+
+  .substep { display: none; }
+  .substep.active { display: block; animation: pageIn .25s ease; }
+
+  .quick-start {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap;
+    padding: 16px 20px; border-radius: var(--radius-md); box-shadow: var(--inset-sm);
+    font-size: 15px; color: var(--text-sub);
+  }
+  .quick-start b { color: var(--text-main); }
+
+  .preset-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 22px; }
+  .preset-label { font-size: 14.5px; font-weight: 700; color: var(--text-sub); margin-right: 2px; }
+  .preset-chip {
+    padding: 7px 16px; border-radius: 999px; font-size: 14.5px; font-weight: 600;
+    border: none; background: var(--bg); cursor: pointer; color: var(--text-sub);
+    box-shadow: var(--raise-xs); transition: box-shadow .15s, color .15s;
+  }
+  .preset-chip small { font-weight: 500; opacity: .85; margin-left: 4px; }
+  .preset-chip.active { color: var(--accent); box-shadow: var(--inset-sm); }
+
+  .num-unit { display: flex; align-items: center; gap: 10px; }
+  .num-unit .setting-input { flex: 1; }
+  .num-unit .unit { font-size: 15px; font-weight: 600; color: var(--text-sub); }
+  .range { width: 100%; accent-color: var(--accent); cursor: pointer; }
+  .setting-input.invalid { border-color: var(--red); box-shadow: 0 0 0 4px var(--red-soft); }
+  .field-error { display: none; margin: -6px 0 18px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--red-soft); color: var(--red); font-size: 14.5px; font-weight: 600; }
+  .field-error.show { display: block; }
+
+  .tag-input {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    min-height: 52px; padding: 8px 10px; cursor: text;
+    border: 1.5px solid var(--input-border); border-radius: var(--radius-sm);
+    background: var(--input-bg); box-shadow: inset 2px 2px 4px rgba(152,167,191,0.35);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .tag-input:hover { border-color: var(--input-border-hover); }
+  .tag-input:focus-within { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 4px var(--input-focus-ring); }
+  .tag-input input { flex: 1; min-width: 180px; border: none; outline: none; background: transparent; font-size: 16px; padding: 4px 6px; color: var(--text-main); }
+  .tag {
+    display: inline-flex; align-items: center; gap: 2px;
+    padding: 3px 4px 3px 12px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent-deep); font-size: 14.5px; font-weight: 600;
+  }
+  .tag button {
+    width: 24px; height: 24px; border: none; border-radius: 50%; background: transparent;
+    color: inherit; font-size: 17px; line-height: 1; cursor: pointer;
+  }
+  .tag button:hover { background: rgba(58,82,201,0.15); }
+
+  .summary-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .summary-list li { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); box-shadow: var(--inset-sm); }
+  .sm-k { font-size: 15px; font-weight: 700; color: var(--text-main); min-width: 150px; display: flex; gap: 8px; }
+  .sm-v { flex: 1; min-width: 0; font-size: 15px; color: var(--text-sub); }
+  .link-btn { border: none; background: none; color: var(--accent); font-size: 14.5px; font-weight: 700; cursor: pointer; padding: 4px 6px; border-radius: 8px; white-space: nowrap; }
+  .link-btn:hover { background: var(--accent-soft); }
+
+  .advanced { margin-top: 22px; border-radius: var(--radius-md); box-shadow: var(--raise-sm); }
+  .advanced > summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 16px 20px; cursor: pointer; font-size: 16px; font-weight: 700; }
+  .advanced > summary::-webkit-details-marker { display: none; }
+  .advanced[open] > summary .caret { transform: rotate(180deg); }
+  .advanced-body { padding: 0 20px 20px; }
+
+  /* ── 3단계: 적용 설정 요약줄 ── */
+  .cond-strip {
+    display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap;
+    padding: 14px 20px; border-radius: var(--radius-md); box-shadow: var(--inset-sm);
+    font-size: 14.5px; color: var(--text-sub);
+  }
+  .cond-strip b { color: var(--text-main); }
+  .cond-strip .cs-sep { color: var(--text-light); }
+  .cond-strip .link-btn { margin-left: auto; }
+
+  /* ── 4단계: 결과 검색 ── */
+  .result-search { margin-left: auto; width: 240px; padding: 8px 14px; font-size: 15px; }
+
+
+  /* ── 1단계: 이용 동의 · 접속 키 ── */
+  .agree-box {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 16px 18px; border-radius: var(--radius-md); box-shadow: var(--inset-sm); cursor: pointer;
+  }
+  .agree-box input { width: 20px; height: 20px; margin-top: 3px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
+  .agree-box span { font-size: 15.5px; font-weight: 600; line-height: 1.6; }
+  .key-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .pw-wrap { position: relative; flex: 1; min-width: 240px; }
+  .pw-wrap .setting-input { padding-right: 54px; font-family: 'JetBrains Mono', monospace; font-size: 15px; }
+  .pw-toggle {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    width: 38px; height: 38px; border: none; border-radius: 10px; background: transparent;
+    font-size: 18px; cursor: pointer;
+  }
+  .pw-toggle:hover { background: var(--accent-soft); }
+  .setting-input[readonly] { background-color: #EEF1F6; color: var(--text-sub); }
+
+  /* ── 2단계: 모델(4종) · 답변 다양성 · 평가요소 ── */
+  .model-options.two { grid-template-columns: repeat(2, 1fr); }
+  .seg { display: inline-flex; flex-wrap: wrap; gap: 6px; padding: 6px; border-radius: 999px; box-shadow: var(--inset); }
+  .seg button {
+    min-width: 54px; padding: 8px 18px; border: none; border-radius: 999px; background: transparent;
+    font-size: 15.5px; font-weight: 700; color: var(--text-sub); cursor: pointer;
+  }
+  .seg button.active { background: var(--accent); color: #fff; box-shadow: 2px 2px 6px rgba(58,82,201,0.35); }
+  .count-line { margin-top: 16px; font-size: 15px; color: var(--text-sub); }
+  .count-line b { color: var(--accent); }
+
+  .logo-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .logo-preview {
+    width: 104px; height: 104px; flex-shrink: 0; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-md); background: var(--input-bg); box-shadow: var(--inset-sm);
+  }
+  .logo-preview img { max-width: 86%; max-height: 86%; object-fit: contain; }
+  .logo-preview span { font-size: 13.5px; color: var(--text-light); text-align: center; }
+  .logo-row .upload-zone { flex: 1; min-width: 220px; padding: 24px 16px; }
+  .logo-row .upload-icon { font-size: 30px; margin-bottom: 4px; }
+
+  /* ── 3단계: 문항 분량 · 지원자 선택 ── */
+  .qa-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 4px; }
+  .qa-meta label { font-size: 14px; font-weight: 600; color: var(--text-sub); }
+  .qa-limit { width: 120px; padding: 8px 12px; font-size: 15px; }
+  .len-mini { flex: 1; min-width: 140px; height: 12px; padding: 2px; border-radius: 99px; box-shadow: var(--inset-sm); }
+  .len-mini > div { height: 100%; width: 0; border-radius: 99px; background: var(--accent); transition: width .2s; }
+  .len-mini > div.over { background: var(--red); }
+  .len-mini > div.low { background: var(--text-light); }
+  .qa-meta .char-count { padding: 0; }
+  .char-count.over { color: var(--red); font-weight: 700; }
+
+  .cb { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; vertical-align: middle; }
+  .table-wrap.tall { max-height: 380px; overflow-y: auto; }
+  .sample-table thead th { position: sticky; top: 0; background: var(--bg); }
+  .job-ok { color: var(--green); font-weight: 700; }
+  .job-none { color: var(--text-light); }
+
+  /* ── 4단계: 결과 카드 ── */
+  .result-card.v-done::before { background: var(--green); }
+  .result-card.v-fail::before { background: var(--red); }
+  .v-done .verdict-badge { background: var(--green); }
+  .v-fail .verdict-badge { background: var(--red); }
+  .result-name .r-field { font-size: 15px; font-weight: 400; color: var(--text-sub); }
+  .err-box { padding: 14px 18px; border-radius: var(--radius-sm); background: var(--red-soft); color: var(--red); font-size: 15px; font-weight: 600; }
+
+  /* ── 면접질문 보고서 ── */
+  .report { padding-top: 4px; }
+  .r-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-bottom: 14px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+  .r-head .r-brand { display: flex; align-items: center; gap: 12px; }
+  .r-title { font-size: 18px; font-weight: 700; }
+  .r-meta { font-size: 14px; color: var(--text-sub); font-family: 'JetBrains Mono', 'Noto Sans KR', monospace; }
+  .r-logo { max-height: 40px; max-width: 150px; object-fit: contain; }
+  .r-tools { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+  .sec-title { font-size: 16.5px; font-weight: 700; margin: 26px 0 14px; }
+  .ov-card { padding: 18px 20px; margin-bottom: 18px; border-radius: var(--radius-md); box-shadow: var(--inset-sm); }
+  .ov-card > h4 { font-size: 15.5px; font-weight: 700; margin-bottom: 12px; }
+  .ov-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .ov-table th { padding: 8px 12px; text-align: left; color: var(--text-sub); font-weight: 700; border-bottom: 1px solid var(--line); }
+  .ov-table td { padding: 10px 12px; vertical-align: top; line-height: 1.65; border-bottom: 1px solid var(--line); }
+  .ov-table tr:last-child td { border-bottom: none; }
+  .ov-bars { display: flex; flex-direction: column; gap: 14px; }
+  .ov-bar-label { font-size: 14.5px; font-weight: 600; margin-bottom: 6px; }
+  .len-bar-label { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; color: var(--text-sub); margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .len-bar-outer { height: 12px; padding: 2px; border-radius: 99px; box-shadow: var(--inset-sm); }
+  .len-bar-inner { height: 100%; border-radius: 99px; background: var(--accent); }
+  .len-bar-inner.over { background: var(--red); }
+  .len-bar-inner.low { background: var(--text-light); }
+
+  .q-card { position: relative; padding: 18px 20px 18px 26px; margin-bottom: 16px; border-radius: var(--radius-md); box-shadow: var(--raise-sm); overflow: hidden; }
+  .q-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--accent); }
+  .q-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .q-num { padding: 2px 10px; border-radius: 8px; background: var(--accent); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 13.5px; font-weight: 600; }
+  .q-factor { padding: 2px 12px; border-radius: 999px; box-shadow: var(--inset-sm); color: var(--accent); font-size: 14px; font-weight: 700; }
+  .q-top .btn { margin-left: auto; }
+  .q-main { font-size: 17px; font-weight: 700; line-height: 1.6; }
+  .q-quote { margin: 12px 0; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--accent-soft); font-size: 15px; color: var(--text-sub); }
+  .q-quote b, .q-reason b, .q-subs b { display: block; margin-bottom: 2px; font-size: 13.5px; font-weight: 700; }
+  .q-quote b { color: var(--accent-deep); }
+  .q-reason { margin: 10px 0; font-size: 15px; color: var(--text-sub); }
+  .q-subs { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 15px; }
+  .q-subs ol { margin: 6px 0 0 22px; }
+  .q-subs li { margin-bottom: 4px; }
+  .essay-box { padding: 16px 18px; margin-bottom: 12px; border-radius: var(--radius-sm); box-shadow: var(--inset-sm); }
+  .essay-box .eq { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .essay-box .ea { font-size: 15px; color: var(--text-sub); line-height: 1.8; white-space: pre-wrap; }
+  .raw-json {
+    margin-top: 14px; padding: 14px; max-height: 340px; overflow: auto; border-radius: var(--radius-sm);
+    background: #1E2533; color: #D6E0F0; font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .hidden { display: none !important; }
+
+  @media print {
+    @page { size: A4; margin: 14mm 12mm; }
+    body { background: #fff; }
+    .no-print { display: none !important; }
+    .layout { padding: 0; max-width: 100%; }
+    .q-card, .essay-box, .ov-card { box-shadow: none; border: 1px solid #C9D1DE; break-inside: avoid; page-break-inside: avoid; }
+    .len-bar-outer { box-shadow: none; border: 1px solid #C9D1DE; }
+    .sec-title, .ov-card > h4 { break-after: avoid; page-break-after: avoid; }
+  }
+
+  @media (max-width: 640px) {
+    .layout { padding: 22px 16px 64px; gap: 26px; }
+    .header { padding: 14px 16px 10px; }
+    .header h1 { font-size: 19px; }
+    .header-icon { width: 36px; height: 36px; font-size: 18px; }
+    .sd-num { width: 34px; height: 34px; font-size: 14.5px; }
+    .stepper li + li::before { top: 16px; right: calc(50% + 22px); left: calc(-50% + 22px); }
+    .sd-label { font-size: 12.5px; }
+    .page-title h2 { font-size: 21px; }
+    .flow-list { grid-template-columns: 1fr; }
+    .wizard-nav .btn { flex: 1; min-width: 0; }
+    .result-actions { width: 100%; }
+    .result-actions .btn { flex: 1 1 100%; }
+    .stat-box { padding: 16px 6px; }
+    .stat-row { gap: 12px; }
+    .stat-num { font-size: 26px; }
+    .card-body, .tab-content { padding-left: 18px; padding-right: 18px; }
+    .card-header { padding: 18px; }
+    .tabs-wrap { padding: 18px 18px 0; }
+    .setting-grid { grid-template-columns: 1fr; }
+    .model-options, .model-options.two { grid-template-columns: 1fr; }
+    .substepper { gap: 6px; }
+    .ss-dot { padding: 8px 2px; }
+    .ss-label { display: none; }
+    .summary-list li { flex-wrap: wrap; }
+    .sm-k { min-width: 0; width: 100%; }
+    .result-search { width: 100%; margin-left: 0; }
+    .cond-strip .link-btn { margin-left: 0; }
+    .q-card { padding: 16px 16px 16px 20px; }
+    .q-top .btn { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header no-print">
+  <div class="header-row">
+    <span class="header-icon" aria-hidden="true">💬</span>
+    <h1>자기소개서 기반 면접질문 생성기</h1>
+  </div>
+  <p class="subtitle">자기소개서와 직무 내용을 분석해 평가요소별 맞춤 면접질문을 만듭니다</p>
+</header>
+
+<!-- 단계 표시줄 -->
+<nav class="stepper-wrap no-print" aria-label="진행 단계">
+  <ol class="stepper" id="stepper">
+    <li><button type="button" class="step-dot" data-step="1" onclick="goToStep(1)"><span class="sd-num">1</span><span class="sd-label">시작하기</span></button></li>
+    <li><button type="button" class="step-dot" data-step="2" onclick="goToStep(2)"><span class="sd-num">2</span><span class="sd-label">생성 설정</span></button></li>
+    <li><button type="button" class="step-dot" data-step="3" onclick="goToStep(3)"><span class="sd-num">3</span><span class="sd-label">자기소개서 입력</span></button></li>
+    <li><button type="button" class="step-dot" data-step="4" onclick="goToStep(4)"><span class="sd-num">4</span><span class="sd-label">결과 확인</span></button></li>
+  </ol>
+</nav>
+
+<main class="layout">
+
+  <!-- ════════ 1단계: 시작하기 ════════ -->
+  <div class="step-page active" data-page="1">
+    <div class="page-title">
+      <span class="pt-step">1단계</span>
+      <h2>시작하기</h2>
+      <p>서비스 내용과 유의사항을 확인하고, 오픈에이아이 접속 키를 등록합니다.</p>
+    </div>
+
+    <section class="card">
+      <div class="card-header"><span class="card-icon" aria-hidden="true">📌</span><h3>서비스 소개</h3></div>
+      <div class="card-body">
+        <p class="body-text">
+          지원자의 <b>자기소개서</b>와 모집 분야의 <b>직무수행내용</b>을 인공지능이 분석해, 평가요소별 맞춤 면접질문
+          (<b>주질문 · 근거 구절 · 질문 의도 · 보조질문</b>)과 문항별 요약을 만들어 주는 도구입니다.
+        </p>
+        <p class="body-text" style="margin-top:10px;">
+          별도 서버 없이 이 브라우저에서만 동작합니다. 한 명을 직접 입력해 결과를 먼저 확인한 뒤, 엑셀 파일로 여러 명을 한꺼번에 처리하는 방식을 권장합니다.
+        </p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header"><span class="card-icon" aria-hidden="true">📝</span><h3>이용 순서</h3></div>
+      <div class="card-body">
+        <ol class="flow-list">
+          <li><span class="fl-num">1</span><div><b>시작하기</b><span>유의사항에 동의하고 접속 키를 등록합니다.</span></div></li>
+          <li><span class="fl-num">2</span><div><b>생성 설정</b><span>한 화면에 한두 가지씩, 4개의 짧은 화면을 넘기며 정합니다. 추천값 그대로 건너뛸 수도 있습니다.</span></div></li>
+          <li><span class="fl-num">3</span><div><b>자기소개서 입력</b><span>직접 입력하거나 엑셀 파일을 올린 뒤 생성을 시작합니다.</span></div></li>
+          <li><span class="fl-num">4</span><div><b>결과 확인</b><span>질문을 확인·복사하고 엑셀·개별 보고서로 내려받습니다.</span></div></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header"><span class="card-icon" aria-hidden="true">⚠️</span><h3>유의사항</h3></div>
+      <div class="card-body">
+        <ul class="note-list">
+          <li><b>접속 키 보안</b> — 키는 이 브라우저 탭에만 보관되고 탭을 닫으면 지워집니다. 공용 컴퓨터에서는 사용 후 반드시 탭을 닫으세요.</li>
+          <li><b>비용 발생</b> — 생성 1건마다 오픈에이아이 사용 요금이 부과됩니다. 대량 처리 전에 한 명으로 먼저 시험하세요.</li>
+          <li><b>개인정보 취급</b> — 자기소개서 내용이 오픈에이아이로 전송됩니다. 기관의 개인정보 처리 방침과 외부 서비스 이용 규정을 지키는 범위에서 사용하세요.</li>
+          <li><b>결과 검토</b> — 만들어진 질문은 초안입니다. 실제 면접에 쓰기 전에 담당자가 반드시 검토·수정하세요.</li>
+          <li><b>처리 중 유지</b> — 일괄 생성 중에 탭을 닫거나 새로 고치면 결과가 사라집니다. 끝나면 결과를 바로 내려받으세요.</li>
+        </ul>
+        <label class="agree-box" style="margin-top:20px;">
+          <input type="checkbox" id="agreeCheck">
+          <span>위 이용 안내와 유의사항을 모두 확인했으며, 이에 동의하고 서비스를 이용합니다.</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="card-icon" aria-hidden="true">🔑</span><h3>오픈에이아이 접속 키 등록</h3></div>
+        <span class="key-status missing" id="keyStatus"><span class="dot"></span><span id="keyStatusText">키 미등록</span></span>
+      </div>
+      <div class="card-body">
+        <div class="key-row">
+          <div class="pw-wrap">
+            <input class="setting-input" type="password" id="apiKey" placeholder="sk-로 시작하는 접속 키를 붙여 넣으세요" autocomplete="off" aria-label="오픈에이아이 접속 키">
+            <button type="button" class="pw-toggle" id="pwToggle" onclick="togglePwView()" title="키 보이기/숨기기" aria-label="키 보이기/숨기기">👁️</button>
+          </div>
+          <button type="button" class="btn btn-primary" id="btnKey" onclick="toggleKey()">등록</button>
+        </div>
+        <div class="hint-line">🔒 등록한 키는 이 탭을 닫기 전까지만 유지됩니다. 키는 지금 등록하지 않아도 되며, 생성을 시작하기 전까지만 등록하면 됩니다.</div>
+      </div>
+    </section>
+
+    <div class="wizard-nav">
+      <span></span>
+      <button type="button" class="btn btn-primary" onclick="goToStep(2)">다음: 생성 설정 <span aria-hidden="true">→</span></button>
+    </div>
+  </div>
+
+  <!-- ════════ 2단계: 생성 설정 ════════ -->
+  <div class="step-page" data-page="2" id="settingsBody">
+    <div class="page-title">
+      <span class="pt-step">2단계</span>
+      <h2>생성 설정</h2>
+      <p>한 화면에 한두 가지씩 차례로 정합니다. 각 화면은 추천값으로 미리 채워져 있어, 처음이라면 그대로 넘겨도 됩니다.</p>
+    </div>
+
+    <nav aria-label="생성 설정 세부 단계">
+      <ol class="substepper" id="substepper" style="grid-template-columns:repeat(4, 1fr);"></ol>
+      <p class="ss-caption" id="ssCaption"></p>
+    </nav>
+
+    <div class="quick-start" id="quickStart">
+      <span>⚡ <b>처음이신가요?</b> 추천 설정 그대로 바로 자기소개서 입력으로 넘어갈 수 있습니다.</span>
+      <button type="button" class="btn btn-sm" onclick="goToStep(3)">추천 설정으로 건너뛰기 <span aria-hidden="true">→</span></button>
+    </div>
+
+    <!-- 2-1. 모델 · 답변 다양성 -->
+    <section class="card substep" data-sub="1">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="sub-badge">1</span><h3>🤖 인공지능 모델과 질문 다양성</h3></div>
+        <button type="button" class="btn btn-sm" onclick="resetSub(1)">↩️ 추천값으로</button>
+      </div>
+      <div class="card-body">
+        <div class="setting-label" style="margin-bottom:12px;"><span class="sl-ic" aria-hidden="true">🧠</span><span>인공지능 모델</span></div>
+        <div class="model-options two" role="radiogroup" aria-label="인공지능 모델">
+          <label class="model-opt"><input type="radio" name="model" value="gpt-4.1-mini"><span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">👍 기본 권장</span><span class="mo-name">gpt-4.1-mini</span><span class="mo-desc">빠르고 저렴하면서 품질도 안정적입니다.</span></span></label>
+          <label class="model-opt"><input type="radio" name="model" value="gpt-4.1"><span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">🎯 품질 우선</span><span class="mo-name">gpt-4.1</span><span class="mo-desc">질문이 더 구체적이지만 비용이 늘어납니다.</span></span></label>
+          <label class="model-opt"><input type="radio" name="model" value="gpt-4o"><span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">🧩 이전 주력 모델</span><span class="mo-name">gpt-4o</span><span class="mo-desc">기존 결과와 비교해 볼 때 씁니다.</span></span></label>
+          <label class="model-opt"><input type="radio" name="model" value="gpt-4o-mini"><span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">💰 가장 저렴함</span><span class="mo-name">gpt-4o-mini</span><span class="mo-desc">많은 인원을 시험 삼아 돌려 볼 때 알맞습니다.</span></span></label>
+        </div>
+
+        <div class="divider" style="margin:26px 0 22px;"></div>
+
+        <label class="setting-label" for="temperature" style="margin-bottom:12px;"><span class="sl-ic" aria-hidden="true">🎨</span><span>질문 다양성 (온도)</span></label>
+        <div class="preset-row" id="tempPresets" style="margin-bottom:14px;">
+          <button type="button" class="preset-chip" data-temp="0.2">일관되게<small>0.2</small></button>
+          <button type="button" class="preset-chip" data-temp="0.4">균형 (추천)<small>0.4</small></button>
+          <button type="button" class="preset-chip" data-temp="0.8">다양하게<small>0.8</small></button>
+        </div>
+        <div class="num-unit" style="max-width:260px;"><input class="setting-input" id="temperature" type="number" min="0" max="1" step="0.1" value="0.4"><span class="unit">0 ~ 1</span></div>
+        <div class="field-error" id="err_sub1" role="alert" style="margin-top:12px;"></div>
+        <p class="setting-desc" style="margin-top:10px;">낮을수록 같은 자기소개서에 비슷한 질문이, 높을수록 매번 다른 질문이 나옵니다.</p>
+      </div>
+    </section>
+
+    <!-- 2-2. 보고서 로고 -->
+    <section class="card substep" data-sub="2">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="sub-badge">2</span><h3>🏛️ 보고서 로고 (선택)</h3></div>
+        <button type="button" class="btn btn-sm" onclick="resetSub(2)">↩️ 로고 지우기</button>
+      </div>
+      <div class="card-body">
+        <div class="info-box" style="margin-bottom:20px;">
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">💡</span><span>올린 기관 로고는 <b>개별 면접질문 보고서</b> 맨 위에 표시됩니다. 넣지 않아도 생성에는 영향이 없습니다.</span></div>
+        </div>
+        <div class="logo-row">
+          <div class="logo-preview" id="logoPreview"><span>미리 보기</span></div>
+          <div class="upload-zone" id="logoDropZone" onclick="document.getElementById('logoFile').click()">
+            <div class="upload-icon" aria-hidden="true">🖼️</div>
+            <p><strong>눌러서 고르거나</strong> 이미지를 끌어다 놓으세요</p>
+            <p style="margin-top:4px; font-size:14px;">PNG·SVG 권장(투명 배경), 2MB 이하</p>
+            <input type="file" id="logoFile" accept="image/*" onchange="loadLogo(this.files[0])">
+          </div>
+        </div>
+        <p class="hint-line">💾 로고는 이 브라우저에 저장되어 다음에 열 때도 그대로 쓰입니다.</p>
+      </div>
+    </section>
+
+    <!-- 2-3. 평가요소 · 보조질문 수 -->
+    <section class="card substep" data-sub="3">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="sub-badge">3</span><h3>🧭 평가요소와 보조질문 수</h3></div>
+        <button type="button" class="btn btn-sm" onclick="resetSub(3)">↩️ 추천값으로</button>
+      </div>
+      <div class="card-body">
+        <div class="info-box" style="margin-bottom:20px;">
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">💡</span><span>평가요소마다 <b>주질문 1개</b>를 만들고, 주질문마다 답변을 깊이 확인하는 <b>보조질문</b>을 붙입니다.</span></div>
+        </div>
+        <label class="setting-label" for="factorInput" style="margin-bottom:12px;"><span class="sl-ic" aria-hidden="true">📋</span><span>평가요소 <em class="req">*</em></span></label>
+        <div class="preset-row" id="factorPresets" style="margin-bottom:14px;">
+          <span class="preset-label">빠른 선택</span>
+        </div>
+        <div class="tag-input" id="factorTagBox" onclick="if(event.target===this) document.getElementById('factorInput').focus()">
+          <input id="factorInput" type="text" placeholder="평가요소를 쓰고 Enter (최대 8개)" autocomplete="off">
+        </div>
+        <p class="setting-desc" style="margin-top:9px;">보고서와 엑셀에 이 순서대로 나옵니다. × 를 눌러 지우고, Enter나 쉼표(,)로 추가합니다.</p>
+
+        <div class="divider" style="margin:26px 0 22px;"></div>
+
+        <div class="setting-label" style="margin-bottom:12px;"><span class="sl-ic" aria-hidden="true">🔎</span><span>주질문마다 붙일 보조질문 수</span></div>
+        <div class="seg" id="subNSeg" role="radiogroup" aria-label="보조질문 수"></div>
+        <p class="count-line" id="countLine"></p>
+      </div>
+    </section>
+
+    <!-- 2-4. 설정 확인 -->
+    <section class="card substep" data-sub="4">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="sub-badge">4</span><h3>✅ 설정 확인</h3></div>
+        <button type="button" class="btn btn-sm" onclick="resetAll()">↩️ 설정 전체 초기화</button>
+      </div>
+      <div class="card-body">
+        <p class="body-text" style="margin-bottom:16px;">지금까지 정한 설정입니다. 고칠 곳이 있으면 <b>수정</b>을 누르세요. 설정은 이 브라우저에 저장되어 다음에 열 때도 그대로 쓰입니다.</p>
+        <ul class="summary-list" id="settingSummary"></ul>
+
+        <details class="advanced" id="promptAdvanced">
+          <summary>
+            <span class="card-icon" aria-hidden="true">🛠️</span>
+            <span style="flex:1;">고급: 시스템 지시문 직접 수정 <span class="muted" style="font-weight:500;">(선택)</span></span>
+            <span class="prompt-status draft" id="promptStatus">자동 생성 사용</span>
+            <span class="caret" aria-hidden="true">▾</span>
+          </summary>
+          <div class="advanced-body">
+            <div class="info-box" style="margin-bottom:16px;">
+              <div class="ib-line"><span class="ib-ic" aria-hidden="true">💡</span><span>손대지 않으면 위 설정으로 <b>자동 생성한 지시문</b>을 씁니다.</span></div>
+              <div class="ib-line"><span class="ib-ic" aria-hidden="true">✅</span><span>고친 뒤에는 반드시 <b>확정</b>을 눌러야 반영됩니다. 위 설정을 바꾸면 확정이 풀리고 자동 생성으로 돌아갑니다.</span></div>
+              <div class="ib-line"><span class="ib-ic" aria-hidden="true">🔖</span><span>응답은 반드시 JSON이어야 하며, <b>main_questions</b> 배열 구조는 지우지 마세요.</span></div>
+            </div>
+            <textarea class="field prompt-editor" id="promptEditor" spellcheck="false" aria-label="시스템 지시문"></textarea>
+            <div class="btn-row">
+              <button type="button" class="btn btn-primary btn-sm" onclick="confirmPrompt()">✅ 이 지시문으로 확정</button>
+              <button type="button" class="btn btn-sm" onclick="restoreAutoPrompt()">🔄 자동 생성으로 되돌리기</button>
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <div class="wizard-nav">
+      <button type="button" class="btn" id="subPrevBtn" onclick="subPrev()"><span aria-hidden="true">←</span> 이전</button>
+      <button type="button" class="btn btn-primary" id="subNextBtn" onclick="subNext()">다음 <span aria-hidden="true">→</span></button>
+    </div>
+  </div>
+
+  <!-- ════════ 3단계: 자기소개서 입력 ════════ -->
+  <div class="step-page" data-page="3">
+    <div class="page-title">
+      <span class="pt-step">3단계</span>
+      <h2>자기소개서 입력</h2>
+      <p>한 명은 직접 입력으로 결과를 먼저 확인하고, 여러 명은 엑셀 파일로 한꺼번에 처리하세요.</p>
+    </div>
+
+    <div class="cond-strip" id="condStrip"></div>
+
+    <section class="card">
+      <div class="tabs-wrap">
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab active" data-tab="single" role="tab">✏️ 직접 입력 (한 명)</button>
+          <button type="button" class="tab" data-tab="batch" role="tab">📊 엑셀 올리기 (여러 명)</button>
+        </div>
+      </div>
+
+      <!-- 직접 입력 -->
+      <div id="tab-single" class="tab-content active">
+        <div class="setting-grid">
+          <div class="setting-item full">
+            <label class="setting-label" for="sField"><span class="sl-ic" aria-hidden="true">🏢</span><span>모집 분야 (선택)</span></label>
+            <input class="setting-input" id="sField" type="text" placeholder="예: 경영지원(일반행정)">
+          </div>
+          <div class="setting-item full">
+            <label class="setting-label" for="sJob"><span class="sl-ic" aria-hidden="true">📑</span><span>직무수행내용 (선택)</span></label>
+            <textarea class="field" id="sJob" rows="3" placeholder="해당 모집 분야의 주요 직무수행내용(직무기술서)을 붙여 넣으세요."></textarea>
+            <span class="setting-desc">넣으면 직무와 이어지는 질문이 더 잘 만들어집니다.</span>
+          </div>
+        </div>
+        <div class="info-box" style="margin-bottom:20px;">
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">💡</span><span>자기소개서 문항과 답변을 입력하세요. <b>제한 글자 수</b>를 넣으면 작성 분량이 막대로 표시되고 보고서에도 나옵니다.</span></div>
+        </div>
+        <div class="items-list" id="qaList"></div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-sm" onclick="addQA()">➕ 문항 추가</button>
+          <button type="button" class="btn btn-sm" onclick="clearQA()">🗑️ 전체 삭제</button>
+          <button type="button" class="btn btn-sm" onclick="fillExample()" title="예시 자기소개서로 서비스를 미리 시험해 봅니다">🧪 예시 자기소개서 넣어 보기</button>
+        </div>
+        <div class="divider" style="margin:24px 0 4px;"></div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" id="btnSingle" onclick="runSingle()">💬 면접질문 만들기</button>
+          <span class="hint-inline" id="singleHint">보통 10~30초 걸립니다.</span>
+        </div>
+      </div>
+
+      <!-- 엑셀 올리기 -->
+      <div id="tab-batch" class="tab-content">
+        <div class="excel-guide">
+          <div class="excel-guide-head">
+            <strong>📋 엑셀 구성 (1행: 제목 / 2행부터: 자료)</strong>
+            <div class="btn-row" style="margin-top:0;">
+              <button type="button" class="btn btn-sm" onclick="downloadTemplate()">⬇️ 입력 양식 내려받기</button>
+            </div>
+          </div>
+          <p class="muted" style="margin-bottom:8px;"><b>"자기소개서" 시트</b> — 지원자 한 명의 문항마다 한 행씩</p>
+          <div class="col-list">
+            <span class="col-badge"><b>A</b>수험번호</span>
+            <span class="col-badge"><b>B</b>이름</span>
+            <span class="col-badge"><b>C</b>모집 분야</span>
+            <span class="col-badge"><b>D</b>전형 단계</span>
+            <span class="col-badge"><b>E</b>질문</span>
+            <span class="col-badge"><b>F</b>답변</span>
+            <span class="col-badge"><b>G</b>제한 글자 수</span>
+          </div>
+          <p class="muted" style="margin:14px 0 8px;"><b>"직무내용" 시트</b> (선택) — 모집 분야별 직무수행내용</p>
+          <div class="col-list">
+            <span class="col-badge"><b>A</b>모집 분야</span>
+            <span class="col-badge"><b>B</b>직무수행내용</span>
+          </div>
+          <p class="muted" style="margin-top:12px;">수험번호(A열)가 같은 행은 한 지원자로 묶입니다. 모집 분야 이름은 두 시트에서 띄어쓰기까지 똑같아야 연결됩니다.</p>
+        </div>
+
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('excelFile').click()">
+          <div class="upload-icon" aria-hidden="true">📂</div>
+          <p><strong>눌러서 고르거나</strong> 파일을 끌어다 놓으세요</p>
+          <p style="margin-top:4px; font-size:14.5px;">.xlsx / .xls 파일 지원</p>
+          <input type="file" id="excelFile" accept=".xlsx,.xls" onchange="loadExcel(this.files[0])">
+        </div>
+
+        <div id="excelPreview" style="display:none;">
+          <div class="preview-head">
+            <div class="ch-left">
+              <span style="font-size:16px; font-weight:700;">📋 불러온 지원자</span>
+              <span class="ok-pill" id="previewBadge"></span>
+            </div>
+            <button type="button" class="btn btn-sm" onclick="resetExcel()">✕ 파일 다시 고르기</button>
+          </div>
+          <div class="table-wrap tall">
+            <table class="sample-table">
+              <thead><tr>
+                <th><input type="checkbox" class="cb" id="checkAll" checked onchange="toggleAll(this.checked)" aria-label="전체 선택"></th>
+                <th>수험번호</th><th>이름</th><th>모집 분야</th><th>문항 수</th><th>직무내용</th><th>상태</th>
+              </tr></thead>
+              <tbody id="candBody"></tbody>
+            </table>
+          </div>
+          <p class="muted" style="margin-top:10px;" id="previewNote"></p>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" id="btnBatch" onclick="startBatch()" disabled>💬 선택한 지원자 면접질문 만들기</button>
+          <span class="hint-inline" id="batchHint"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 진행 상태 -->
+    <section class="card progress-card" id="progressCard">
+      <div class="card-body">
+        <div class="progress-top">
+          <span style="font-size:16px; font-weight:700;" id="progressTitle">생성 중</span>
+          <div class="ch-left">
+            <span style="font-size:15px;" class="mono" id="progressCount"></span>
+            <button type="button" class="btn btn-sm" id="cancelBtn" onclick="requestCancel()" style="display:none;">⏹ 중단</button>
+          </div>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="progress-text" id="progressText">면접질문을 만들고 있습니다.</div>
+      </div>
+    </section>
+
+    <div class="wizard-nav">
+      <button type="button" class="btn" onclick="goToStep(2)"><span aria-hidden="true">←</span> 이전</button>
+      <button type="button" class="btn" id="toResultBtn" onclick="goToStep(4)" style="display:none;">지난 결과 보기 <span aria-hidden="true">→</span></button>
+    </div>
+  </div>
+
+  <!-- ════════ 4단계: 결과 확인 ════════ -->
+  <div class="step-page" data-page="4">
+    <div class="page-title">
+      <span class="pt-step">4단계</span>
+      <h2>결과 확인</h2>
+      <p>지원자를 눌러 질문을 확인하고, 엑셀이나 개별 보고서로 내려받습니다.</p>
+    </div>
+
+    <section class="card">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="card-icon" aria-hidden="true">📊</span><h3>생성 결과</h3></div>
+        <div class="result-actions">
+          <button type="button" class="btn btn-sm" id="retryBtn" onclick="retryFailed()" style="display:none;">🔁 실패한 지원자 다시 시도</button>
+          <button type="button" class="btn btn-sm" id="zipBtn" onclick="downloadZip()">📁 개별 보고서 (압축 파일)</button>
+          <button type="button" class="btn btn-sm btn-green" id="excelBtn" onclick="downloadExcel()">⬇️ 엑셀로 내려받기</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="stat-row" id="statRow"></div>
+        <div class="result-filter-bar" id="resultFilterBar">
+          <span class="filter-label">걸러 보기</span>
+          <button type="button" class="filter-chip active" data-f="all" onclick="setResultFilter('all')">전체</button>
+          <button type="button" class="filter-chip" data-f="done" onclick="setResultFilter('done')">🟢 완료</button>
+          <button type="button" class="filter-chip" data-f="fail" onclick="setResultFilter('fail')">🔴 실패</button>
+          <input class="field result-search" id="resultSearch" type="search" placeholder="🔎 수험번호·모집 분야 검색" aria-label="수험번호나 모집 분야로 검색" oninput="renderResultList()">
+        </div>
+        <div class="result-list" id="resultList"></div>
+      </div>
+    </section>
+
+    <div class="wizard-nav">
+      <button type="button" class="btn" onclick="goToStep(3)"><span aria-hidden="true">←</span> 입력 화면으로</button>
+      <button type="button" class="btn" onclick="goToStep(2)">생성 설정 바꾸기</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- SheetJS (엑셀 읽기·쓰기) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- JSZip (개별 보고서 압축) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script>
+// ══════════════════════════════════════════
+// 기본값
+// ══════════════════════════════════════════
+const DEFAULT_SETTINGS = {
+  model: 'gpt-4.1-mini',
+  temp: 0.4,
+  factors: ['정신자세', '전문지식', '발표력', '품행', '발전가능성'],
+  subN: 3,
+};
+const FACTOR_PRESETS = [
+  { label: '공공기관 5요소', factors: ['정신자세', '전문지식', '발표력', '품행', '발전가능성'] },
+  { label: '직업기초능력', factors: ['의사소통능력', '문제해결능력', '대인관계능력', '자기개발능력', '직업윤리'] },
+  { label: '역량 중심', factors: ['직무전문성', '문제해결', '협업', '책임감'] },
+];
+const MAX_FACTORS = 8;
+const SETTINGS_LS_KEY = 'iq_settings_v4';
+
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// 브라우저 저장소 접근이 막힌 환경(사생활 보호 창 등)에서도 오류 없이 동작하도록 감쌈
+const store = {    // localStorage: 브라우저를 닫아도 유지 (생성 설정, 로고)
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+};
+const session = {  // sessionStorage: 탭을 닫으면 삭제 (접속 키, 동의 여부)
+  get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { sessionStorage.removeItem(k); } catch (e) {} },
+};
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+// ──────────────────────────────────────────
+// 알림
+// ──────────────────────────────────────────
+function toast(msg, type) {
+  type = type || 'info';
+  let wrap = document.querySelector('.toast-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'toast-wrap';
+    wrap.setAttribute('role', 'status');
+    document.body.appendChild(wrap);
+  }
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, type === 'error' ? 7000 : 4500);
+}
+
+// ══════════════════════════════════════════
+// 생성 설정 (이 브라우저에 저장)
+// ══════════════════════════════════════════
+let settings = loadSettings();
+let customPrompt = settings.customPrompt || null;   // null이면 자동 생성 지시문 사용
+
+function loadSettings() {
+  const s = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  let saved = null;
+  try { saved = JSON.parse(store.get(SETTINGS_LS_KEY) || 'null'); } catch (e) {}
+  if (!saved || typeof saved !== 'object') return s;
+  if (typeof saved.model === 'string') s.model = saved.model;
+  if (Number.isFinite(saved.temp) && saved.temp >= 0 && saved.temp <= 1) s.temp = saved.temp;
+  if (Array.isArray(saved.factors) && saved.factors.length) s.factors = saved.factors.map(String).slice(0, MAX_FACTORS);
+  if (Number.isInteger(saved.subN) && saved.subN >= 1 && saved.subN <= 5) s.subN = saved.subN;
+  if (typeof saved.customPrompt === 'string' && saved.customPrompt.trim()) s.customPrompt = saved.customPrompt;
+  s.restored = true;
+  return s;
+}
+function saveSettings() {
+  store.set(SETTINGS_LS_KEY, JSON.stringify({
+    model: settings.model, temp: settings.temp, factors: settings.factors, subN: settings.subN,
+    customPrompt: customPrompt || '',
+  }));
+}
+
+function buildPrompt(s) {
+  const n = s.factors.length;
+  const list = s.factors.map((f, i) => `${i + 1}. ${f}`).join('  ');
+  const subs = Array.from({ length: s.subN }, () => '"..."').join(', ');
+  return `당신은 공공기관 채용 면접 설계 전문가입니다.
+지원자의 자기소개서와 모집분야의 직무수행내용을 분석하여, 지원자 개인에게 맞춤화된 구조화 면접질문을 생성합니다.
+
+[평가요소] 아래 ${n}개 평가요소별로 주질문을 1개씩, 총 ${n}개 생성합니다. (순서 유지)
+${list}
+
+[생성 규칙]
+- 주질문은 자기소개서의 구체적 경험·표현에 근거해야 하며, 일반적인 질문은 지양합니다.
+- 근거구절: 해당 질문의 근거가 된 자기소개서 문장을 원문 그대로 인용합니다.
+- 질문이유: 이 질문으로 무엇을 검증하려는지 1~2문장으로 설명합니다.
+- 보조질문: 주질문에 대한 답변을 심층 검증(STAR 후속 탐침)하는 질문 ${s.subN}개를 생성합니다.
+- 직무수행내용이 제공된 경우, 직무 지식·성장 가능성과 관련된 평가요소의 질문은 직무 연관성을 반영합니다.
+
+[문항별 요약] 자기소개서 문항 각각에 대해, 답변 내용을 1~2문장으로 핵심만 요약합니다. (문항 순서와 동일한 순서로 작성)
+
+[출력 형식] 반드시 아래 JSON 형식으로만 응답하세요. JSON 외의 텍스트, 마크다운, 코드블록 기호를 포함하지 마세요.
+{
+  "main_questions": [
+    {
+      "번호": 1,
+      "평가요소": "${s.factors[0]}",
+      "주질문": "...",
+      "근거구절": "...",
+      "질문이유": "...",
+      "보조질문": [${subs}]
+    }
+  ],
+  "item_summaries": [
+    { "번호": 1, "요약": "..." }
+  ]
+}`;
+}
+function getPrompt() { return customPrompt || buildPrompt(settings); }
+
+// 질문 구성이 바뀌면 확정해 둔 지시문을 풀어, 예전 구성으로 생성되는 일을 막음
+function markPromptStale() {
+  if (!customPrompt) return;
+  customPrompt = null;
+  setPromptStatus('stale');
+  toast('질문 구성이 바뀌어 직접 확정한 지시문을 해제했습니다.\n바뀐 설정으로 자동 생성한 지시문을 씁니다.', 'warn');
+}
+function setPromptStatus(state) {
+  const map = { confirmed: ['✅ 직접 확정', 'confirmed'], stale: ['⚠️ 자동 생성으로 전환됨', 'stale'], draft: ['자동 생성 사용', 'draft'] };
+  const [t, c] = map[state] || map.draft;
+  const el = $('promptStatus');
+  el.textContent = t;
+  el.className = 'prompt-status ' + c;
+}
+function confirmPrompt() {
+  const txt = $('promptEditor').value.trim();
+  if (!txt) { toast('지시문이 비어 있습니다.', 'warn'); return; }
+  if (!txt.includes('main_questions')) { toast('지시문에 "main_questions" 응답 형식이 없습니다.\n"자동 생성으로 되돌리기"로 다시 불러온 뒤 고쳐 주세요.', 'warn'); return; }
+  customPrompt = txt;
+  saveSettings();
+  setPromptStatus('confirmed');
+  renderSummary();
+  toast('시스템 지시문을 확정했습니다.', 'success');
+}
+function restoreAutoPrompt() {
+  customPrompt = null;
+  $('promptEditor').value = buildPrompt(settings);
+  saveSettings();
+  setPromptStatus('draft');
+  renderSummary();
+  toast('자동 생성 지시문으로 되돌렸습니다.', 'success');
+}
+$('promptAdvanced').addEventListener('toggle', () => {
+  if ($('promptAdvanced').open) $('promptEditor').value = getPrompt();
+});
+
+// ══════════════════════════════════════════
+// 단계별 화면 이동
+// ══════════════════════════════════════════
+let currentStep = 1;
+function hasResults() { return viewList().length > 0; }
+function isBusy() { return $('progressCard').classList.contains('show'); }
+
+function goToStep(n) {
+  if (n === currentStep) return;
+  if (isBusy()) { toast('생성이 진행 중입니다. 끝난 뒤에 이동할 수 있습니다.', 'warn'); return; }
+  if (n > 1 && !$('agreeCheck').checked) {
+    toast('1단계 유의사항을 읽고 동의에 체크해 주세요.', 'warn');
+    if (currentStep !== 1) goToStep(1);
+    $('agreeCheck').closest('.agree-box').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  if (n === 4 && !hasResults()) { toast('아직 결과가 없습니다. 3단계에서 생성을 먼저 시작하세요.', 'warn'); return; }
+  if (currentStep === 2 && n > 2) {
+    commitFactorInput();
+    const bad = firstInvalidSub();
+    if (bad) { showSub(bad.sub); toast(bad.err, 'warn'); return; }
+  }
+  currentStep = n;
+  document.querySelectorAll('.step-page').forEach(pg => pg.classList.toggle('active', Number(pg.dataset.page) === n));
+  if (n === 2) showSub(currentSub);
+  if (n === 3) { renderCondStrip(); document.querySelectorAll('.q-input').forEach(autoGrow); }
+  updateStepper();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function updateStepper() {
+  document.querySelectorAll('#stepper li').forEach(li => {
+    const btn = li.querySelector('.step-dot');
+    const k = Number(btn.dataset.step);
+    li.classList.toggle('current', k === currentStep);
+    li.classList.toggle('done', k < currentStep);
+    btn.disabled = (k === 4 && !hasResults());
+    if (k === currentStep) btn.setAttribute('aria-current', 'step'); else btn.removeAttribute('aria-current');
+    li.querySelector('.sd-num').textContent = k < currentStep ? '✓' : String(k);
+  });
+  $('toResultBtn').style.display = hasResults() ? '' : 'none';
+}
+
+// 동의 여부는 이 탭에서만 기억
+if (session.get('iq_gate_ok') === '1') $('agreeCheck').checked = true;
+$('agreeCheck').addEventListener('change', e => {
+  if (e.target.checked) session.set('iq_gate_ok', '1'); else session.del('iq_gate_ok');
+});
+
+// ══════════════════════════════════════════
+// 접속 키 등록 / 수정
+// ══════════════════════════════════════════
+let keyLocked = false;
+function maskKey(k) { return k.length <= 10 ? '****' : k.slice(0, 5) + '****' + k.slice(-4); }
+function hasKey() { return keyLocked && !!$('apiKey').value.trim(); }
+function setKeyStatus(state, text) {
+  $('keyStatus').className = 'key-status ' + state;
+  $('keyStatusText').textContent = text;
+}
+function lockKey() {
+  keyLocked = true;
+  $('apiKey').readOnly = true;
+  $('apiKey').type = 'password';
+  $('btnKey').textContent = '수정';
+  $('btnKey').classList.remove('btn-primary');
+  setKeyStatus('ok', '등록됨 · ' + maskKey($('apiKey').value.trim()));
+}
+function unlockKey() {
+  keyLocked = false;
+  $('apiKey').readOnly = false;
+  $('btnKey').textContent = '등록';
+  $('btnKey').classList.add('btn-primary');
+  setKeyStatus('missing', '수정 중 — 고친 뒤 [등록]');
+  $('apiKey').focus();
+}
+function toggleKey() {
+  if (keyLocked) { unlockKey(); return; }
+  const v = $('apiKey').value.trim();
+  if (!v) { toast('접속 키를 입력하세요.', 'warn'); $('apiKey').focus(); return; }
+  if (!v.startsWith('sk-') && !confirm('입력한 키가 일반적인 오픈에이아이 키 형식(sk-…)이 아닙니다. 그래도 등록할까요?')) return;
+  session.set('iq_key', v);
+  lockKey();
+  toast('접속 키를 등록했습니다.', 'success');
+}
+function togglePwView() {
+  const el = $('apiKey');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+$('apiKey').addEventListener('keydown', e => { if (e.key === 'Enter' && !keyLocked) toggleKey(); });
+const savedKey = session.get('iq_key');
+if (savedKey) { $('apiKey').value = savedKey; lockKey(); }
+
+// ══════════════════════════════════════════
+// 2단계 세부 화면 (한 화면에 설정 2개 이하)
+// ══════════════════════════════════════════
+const SUBSTEPS = [
+  { label: '모델',      title: '모델과 질문 다양성' },
+  { label: '로고',      title: '보고서 로고' },
+  { label: '질문 구성', title: '평가요소와 보조질문 수' },
+  { label: '확인',      title: '설정 확인' },
+];
+let currentSub = 1;
+
+function renderSubstepper() {
+  $('substepper').innerHTML = SUBSTEPS.map((s, i) => {
+    const k = i + 1;
+    const cls = k === currentSub ? 'current' : (k < currentSub ? 'done' : '');
+    return `<li><button type="button" class="ss-dot ${cls}" onclick="showSub(${k}, true)" title="${k}. ${s.title}" ${k === currentSub ? 'aria-current="step"' : ''}>
+      <span class="ss-num">${k < currentSub ? '✓' : k}</span><span class="ss-label">${s.label}</span></button></li>`;
+  }).join('');
+  $('ssCaption').innerHTML = `<b>${currentSub} / ${SUBSTEPS.length}</b> · ${SUBSTEPS[currentSub - 1].title}`;
+}
+// 앞으로 건너뛸 때는 지나치는 화면의 입력값을 먼저 확인
+function showSub(k, fromNav) {
+  if (fromNav && k > currentSub) {
+    commitFactorInput();
+    for (let s = currentSub; s < k; s++) {
+      const err = subError(s);
+      if (err) { k = s; toast(err, 'warn'); break; }
+    }
+  }
+  currentSub = k;
+  document.querySelectorAll('.substep').forEach(el => el.classList.toggle('active', Number(el.dataset.sub) === k));
+  $('quickStart').style.display = k === 1 ? '' : 'none';
+  renderSubstepper();
+  if (k === SUBSTEPS.length) renderSummary();
+  $('subPrevBtn').innerHTML = k === 1 ? '<span aria-hidden="true">←</span> 이전: 시작하기' : '<span aria-hidden="true">←</span> 이전';
+  $('subNextBtn').innerHTML = k < SUBSTEPS.length
+    ? `다음: ${SUBSTEPS[k].title} <span aria-hidden="true">→</span>`
+    : '설정 완료 · 자기소개서 입력 <span aria-hidden="true">→</span>';
+  if (fromNav !== undefined) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function subPrev() { if (currentSub > 1) showSub(currentSub - 1, false); else goToStep(1); }
+function subNext() {
+  commitFactorInput();
+  const err = subError(currentSub);
+  if (err) { toast(err, 'warn'); return; }
+  if (currentSub < SUBSTEPS.length) showSub(currentSub + 1, false);
+  else goToStep(3);
+}
+function subError(k) {
+  if (k === 1 && !tempValid()) return '질문 다양성(온도)은 0에서 1 사이 숫자로 넣어 주세요.';
+  if (k === 3 && !settings.factors.length) return '평가요소를 하나 이상 넣어 주세요.';
+  return null;
+}
+function firstInvalidSub() {
+  for (let k = 1; k < SUBSTEPS.length; k++) {
+    const err = subError(k);
+    if (err) return { sub: k, err };
+  }
+  return null;
+}
+
+// ── 2-1. 모델 · 온도 ──
+function tempValid() {
+  const raw = $('temperature').value.trim();
+  const v = Number(raw);
+  return raw !== '' && Number.isFinite(v) && v >= 0 && v <= 1;
+}
+function syncTempView() {
+  const ok = tempValid();
+  $('temperature').classList.toggle('invalid', !ok);
+  $('err_sub1').textContent = ok ? '' : '⚠️ 0에서 1 사이 숫자로 넣어 주세요. (예: 0.4)';
+  $('err_sub1').classList.toggle('show', !ok);
+  document.querySelectorAll('#tempPresets .preset-chip').forEach(b => b.classList.toggle('active', ok && Number(b.dataset.temp) === settings.temp));
+}
+document.querySelectorAll('input[name="model"]').forEach(r => r.addEventListener('change', () => {
+  settings.model = r.value; saveSettings();
+}));
+document.querySelectorAll('#tempPresets .preset-chip').forEach(b => b.addEventListener('click', () => {
+  $('temperature').value = b.dataset.temp;
+  settings.temp = Number(b.dataset.temp);
+  syncTempView(); saveSettings();
+}));
+$('temperature').addEventListener('input', () => {
+  if (tempValid()) { settings.temp = Number($('temperature').value); saveSettings(); }
+  syncTempView();
+});
+
+// ── 2-2. 보고서 로고 ──
+let orgLogo = store.get('iq_logo') || '';
+function renderLogoPreview() {
+  $('logoPreview').innerHTML = orgLogo ? `<img src="${orgLogo}" alt="기관 로고">` : '<span>미리 보기</span>';
+}
+function loadLogo(file) {
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { toast('이미지 파일만 올릴 수 있습니다.', 'warn'); return; }
+  if (file.size > 2 * 1024 * 1024) { toast('로고 파일이 너무 큽니다. 2MB 이하 이미지를 쓰세요.', 'warn'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    orgLogo = e.target.result;
+    store.set('iq_logo', orgLogo);
+    renderLogoPreview();
+    toast('로고를 넣었습니다.', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+function clearLogo() {
+  orgLogo = '';
+  store.set('iq_logo', '');
+  $('logoFile').value = '';
+  renderLogoPreview();
+}
+
+// ── 2-3. 평가요소 (꼬리표 입력) · 보조질문 수 ──
+function setFactors(list, silent) {
+  const uniq = [...new Set(list.map(t => String(t).trim()).filter(Boolean))];
+  if (uniq.length > MAX_FACTORS) toast(`평가요소는 최대 ${MAX_FACTORS}개까지 넣을 수 있습니다.`, 'warn');
+  const next = uniq.slice(0, MAX_FACTORS);
+  const changed = next.join('|') !== settings.factors.join('|');
+  settings.factors = next;
+  const box = $('factorTagBox');
+  box.querySelectorAll('.tag').forEach(t => t.remove());
+  next.forEach((w, i) => {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.innerHTML = `${i + 1}. ${escapeHtml(w)}<button type="button" aria-label="${escapeHtml(w)} 지우기" title="지우기">×</button>`;
+    tag.querySelector('button').addEventListener('click', () => {
+      setFactors(settings.factors.filter((_, k) => k !== i));
+      $('factorInput').focus();
+    });
+    box.insertBefore(tag, $('factorInput'));
+  });
+  document.querySelectorAll('#factorPresets .preset-chip').forEach(b => {
+    b.classList.toggle('active', FACTOR_PRESETS[Number(b.dataset.i)].factors.join('|') === next.join('|'));
+  });
+  renderCountLine();
+  if (changed && !silent) { markPromptStale(); saveSettings(); }
+}
+function commitFactorInput() {
+  const input = $('factorInput');
+  const parts = input.value.split(',').map(t => t.trim()).filter(Boolean);
+  input.value = '';
+  if (parts.length) setFactors(settings.factors.concat(parts));
+}
+(function initFactorInput() {
+  $('factorPresets').insertAdjacentHTML('beforeend', FACTOR_PRESETS.map((p, i) =>
+    `<button type="button" class="preset-chip" data-i="${i}" title="${escapeHtml(p.factors.join(', '))}">${escapeHtml(p.label)}<small>${p.factors.length}개</small></button>`).join(''));
+  document.querySelectorAll('#factorPresets .preset-chip').forEach(b => b.addEventListener('click', () => {
+    setFactors(FACTOR_PRESETS[Number(b.dataset.i)].factors);
+  }));
+  const input = $('factorInput');
+  input.addEventListener('keydown', e => {
+    if (e.isComposing) return;   // 한글 조합 중 Enter는 무시
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); commitFactorInput(); }
+    else if (e.key === 'Backspace' && !input.value && settings.factors.length) setFactors(settings.factors.slice(0, -1));
+  });
+  input.addEventListener('input', () => { if (input.value.includes(',')) commitFactorInput(); });
+  input.addEventListener('blur', commitFactorInput);
+})();
+
+function renderSubNSeg() {
+  $('subNSeg').innerHTML = [1, 2, 3, 4, 5].map(n =>
+    `<button type="button" role="radio" aria-checked="${n === settings.subN}" class="${n === settings.subN ? 'active' : ''}" onclick="setSubN(${n})">${n}개</button>`).join('');
+  renderCountLine();
+}
+function setSubN(n) {
+  if (n === settings.subN) return;
+  settings.subN = n;
+  renderSubNSeg();
+  markPromptStale();
+  saveSettings();
+}
+function renderCountLine() {
+  const f = settings.factors.length, s = settings.subN;
+  $('countLine').innerHTML = f
+    ? `한 지원자당 주질문 <b>${f}개</b> × 보조질문 <b>${s}개</b> → 질문 <b>${f * (s + 1)}개</b>가 만들어집니다.`
+    : '⚠️ 평가요소를 하나 이상 넣어 주세요.';
+}
+
+// ── 화면별 기본값 ──
+function resetSub(k) {
+  if (k === 1) {
+    settings.model = DEFAULT_SETTINGS.model;
+    settings.temp = DEFAULT_SETTINGS.temp;
+    applySettingsToView();
+  } else if (k === 2) {
+    clearLogo();
+  } else if (k === 3) {
+    $('factorInput').value = '';
+    setFactors(DEFAULT_SETTINGS.factors);
+    setSubN(DEFAULT_SETTINGS.subN);
+  }
+  saveSettings();
+  toast(`${SUBSTEPS[k - 1].title}을(를) 기본값으로 되돌렸습니다.`, 'success');
+}
+function resetAll() {
+  if (!confirm('모든 생성 설정(모델·질문 다양성·로고·평가요소·보조질문 수·직접 수정한 지시문)을 처음 상태로 되돌릴까요?')) return;
+  settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  customPrompt = null;
+  clearLogo();
+  store.del(SETTINGS_LS_KEY);
+  applySettingsToView();
+  setPromptStatus('draft');
+  $('promptEditor').value = buildPrompt(settings);
+  renderSummary();
+  toast('생성 설정을 처음 상태로 되돌렸습니다.', 'success');
+}
+function applySettingsToView() {
+  const radio = [...document.querySelectorAll('input[name="model"]')].find(r => r.value === settings.model)
+    || document.querySelector('input[name="model"]');
+  radio.checked = true;
+  settings.model = radio.value;
+  $('temperature').value = settings.temp;
+  syncTempView();
+  setFactors(settings.factors, true);
+  renderSubNSeg();
+}
+
+// ── 2-4. 설정 확인 ──
+function renderSummary() {
+  const rows = [
+    ['🧠', '인공지능 모델', `<b>${escapeHtml(settings.model)}</b>`, 1],
+    ['🎨', '질문 다양성', `<b>${settings.temp}</b> (${settings.temp <= 0.25 ? '일관되게' : settings.temp >= 0.7 ? '다양하게' : '균형'})`, 1],
+    ['🏛️', '보고서 로고', orgLogo ? '넣음' : '없음', 2],
+    ['📋', '평가요소', settings.factors.length ? `${settings.factors.length}개 (${settings.factors.map(escapeHtml).join(', ')})` : '<b style="color:var(--red)">없음</b>', 3],
+    ['🔎', '보조질문', `주질문마다 <b>${settings.subN}개</b>`, 3],
+    ['🛠️', '시스템 지시문', customPrompt ? '<b>직접 수정한 지시문</b> 사용' : '설정으로 자동 생성', 4],
+  ];
+  $('settingSummary').innerHTML = rows.map(([ic, k, v, sub]) => `
+    <li><span class="sm-k"><span aria-hidden="true">${ic}</span>${k}</span><span class="sm-v">${v}</span>
+    ${sub < SUBSTEPS.length ? `<button type="button" class="link-btn" onclick="showSub(${sub}, false)">수정</button>` : ''}</li>`).join('');
+}
+
+function renderCondStrip() {
+  const keyPart = hasKey()
+    ? '<span>🔑 키 <b>등록됨</b></span>'
+    : '<span style="color:var(--red); font-weight:700;">🔑 접속 키 미등록</span><button type="button" class="link-btn" style="margin-left:0;" onclick="goToStep(1)">등록하기</button>';
+  $('condStrip').innerHTML = `
+    ${keyPart}<span class="cs-sep">|</span>
+    <span>모델 <b>${escapeHtml(settings.model)}</b></span><span class="cs-sep">·</span>
+    <span>평가요소 <b>${settings.factors.length}개</b></span><span class="cs-sep">·</span>
+    <span>보조질문 <b>${settings.subN}개</b></span>
+    ${customPrompt ? '<span class="cs-sep">·</span><span>지시문 <b>직접 수정</b></span>' : ''}
+    <button type="button" class="link-btn" onclick="goToStep(2)">설정 바꾸기</button>`;
+}
+
+// ──────────────────────────────────────────
+// 탭 전환
+// ──────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + name));
+  if (name === 'single') document.querySelectorAll('.q-input').forEach(autoGrow);
+}
+document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
+
+// ══════════════════════════════════════════
+// 오픈에이아이 호출 — 요청 제한·서버 오류는 자동으로 다시 시도, 키·모델 오류는 즉시 중단
+// ══════════════════════════════════════════
+function preflight() {
+  if (!hasKey()) {
+    toast('오픈에이아이 접속 키를 먼저 등록하세요. (1단계)', 'warn');
+    return false;
+  }
+  if (!settings.factors.length) { toast('평가요소를 하나 이상 넣어 주세요. (2단계)', 'warn'); return false; }
+  return true;
+}
+function friendlyApiError(status, raw) {
+  if (status === 401) return '접속 키가 올바르지 않거나 만료되었습니다. 1단계에서 키를 확인하세요. (' + raw + ')';
+  if (status === 403) return '이 키로는 해당 모델을 쓸 권한이 없습니다. (' + raw + ')';
+  if (status === 404) return '선택한 모델을 찾을 수 없습니다. 2단계에서 다른 모델을 고르세요. (' + raw + ')';
+  if (status === 429) return '요청 한도를 넘었거나 사용 금액 한도에 도달했습니다. (' + raw + ')';
+  return raw;
+}
+async function callOpenAI(userPrompt) {
+  const body = {
+    model: settings.model,
+    temperature: settings.temp,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: getPrompt() },
+      { role: 'user', content: userPrompt },
+    ],
+  };
+  let lastErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await sleep(1500 * Math.pow(2, attempt - 1));
+    let res;
+    try {
+      res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + $('apiKey').value.trim() },
+        body: JSON.stringify(body),
+      });
+    } catch (e) {
+      lastErr = new Error('네트워크 연결 오류입니다. 인터넷 연결이나 사내 차단 여부를 확인하세요.');
+      continue;
+    }
+    let data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (res.ok && data && data.choices && data.choices[0]) {
+      const text = String(data.choices[0].message?.content || '').replace(/```json|```/g, '').trim();
+      let parsed;
+      try { parsed = JSON.parse(text); } catch (e) { lastErr = new Error('모델 응답을 해석하지 못했습니다.'); continue; }
+      if (!Array.isArray(parsed.main_questions)) throw new Error('응답에 main_questions 목록이 없습니다. 직접 수정한 지시문을 확인하세요.');
+      return parsed;
+    }
+    const raw = (data && data.error && data.error.message) || `응답 코드 ${res.status}`;
+    const err = new Error(friendlyApiError(res.status, raw));
+    if (res.status === 429 || res.status >= 500) { lastErr = err; continue; }
+    err.fatal = [401, 403, 404].includes(res.status);
+    throw err;
+  }
+  throw lastErr || new Error('알 수 없는 오류가 발생했습니다.');
+}
+function buildUserPrompt(field, jobDesc, qaArr) {
+  let p = `[모집분야] ${field || '(미지정)'}\n\n`;
+  p += `[직무수행내용]\n${jobDesc && jobDesc.trim() ? jobDesc.trim() : '(제공되지 않음)'}\n\n`;
+  p += '[자기소개서]\n';
+  qaArr.forEach((qa, i) => { p += `\n(문항 ${i + 1}) ${qa.question}\n(답변 ${i + 1}) ${qa.answer}\n`; });
+  p += '\n위 자기소개서를 바탕으로 시스템 지침에 따라 맞춤형 면접질문을 JSON으로 생성하세요.';
+  return p;
+}
+
+// ══════════════════════════════════════════
+// 3단계: 직접 입력
+// ══════════════════════════════════════════
+function addQA(q, a, limit) {
+  const list = $('qaList');
+  if (list.children.length >= 10) { toast('문항은 최대 10개까지 추가할 수 있습니다.', 'warn'); return; }
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.innerHTML = `
+    <div class="item-header">
+      <span class="item-num"></span>
+      <button type="button" class="icon-btn" onclick="removeQA(this)" title="이 문항 삭제" aria-label="이 문항 삭제">×</button>
+    </div>
+    <div class="item-inputs">
+      <textarea class="field q-input" rows="1" placeholder="자기소개서 문항 (예: 지원 동기와 입사 후 포부를 기술하시오)" aria-label="문항" oninput="autoGrow(this)"></textarea>
+      <textarea class="field a-input" placeholder="지원자의 답변을 붙여 넣으세요" aria-label="답변" oninput="updateLen(this)"></textarea>
+      <div class="qa-meta">
+        <label>제한 글자 수</label>
+        <input class="setting-input qa-limit" type="number" min="0" placeholder="예: 600" aria-label="제한 글자 수" oninput="updateLen(this)">
+        <div class="len-mini" aria-hidden="true"><div></div></div>
+        <span class="char-count"></span>
+      </div>
+    </div>`;
+  div.querySelector('.q-input').value = q || '';
+  div.querySelector('.a-input').value = a || '';
+  div.querySelector('.qa-limit').value = limit || '';
+  list.appendChild(div);
+  renumberQA();
+  updateLen(div.querySelector('.a-input'));
+  requestAnimationFrame(() => autoGrow(div.querySelector('.q-input')));
+}
+function removeQA(btn) { btn.closest('.item-row').remove(); renumberQA(); }
+function renumberQA() {
+  document.querySelectorAll('#qaList .item-row').forEach((el, i) => { el.querySelector('.item-num').textContent = '문항 ' + (i + 1); });
+}
+function clearQA() {
+  if (!confirm('입력한 문항을 모두 지울까요?')) return;
+  $('qaList').innerHTML = '';
+  addQA();
+}
+// 질문 칸은 내용 길이에 맞춰 높이가 늘어나 긴 질문도 잘리지 않게 함
+function autoGrow(ta) { if (!ta || ta.offsetParent === null) return; ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+window.addEventListener('resize', () => document.querySelectorAll('.q-input').forEach(autoGrow));
+
+// 글자 수는 공백을 포함해 셈 (보고서의 작성 분량과 같은 기준)
+function updateLen(el) {
+  const row = el.closest('.item-row');
+  const len = row.querySelector('.a-input').value.length;
+  const limit = parseInt(row.querySelector('.qa-limit').value, 10) || 0;
+  const bar = row.querySelector('.len-mini');
+  const cc = row.querySelector('.char-count');
+  bar.style.display = limit ? '' : 'none';
+  if (!limit) { cc.textContent = `${len}자 (공백 포함)`; cc.classList.remove('over'); return; }
+  const pct = Math.round(len / limit * 100);
+  bar.firstElementChild.style.width = Math.min(pct, 100) + '%';
+  bar.firstElementChild.className = pct > 100 ? 'over' : (pct < 60 ? 'low' : '');
+  cc.textContent = `${len} / ${limit}자 (${pct}%)` + (pct > 100 ? ' · 초과' : '');
+  cc.classList.toggle('over', pct > 100);
+}
+function collectQA() {
+  return [...document.querySelectorAll('#qaList .item-row')].map(el => ({
+    question: el.querySelector('.q-input').value.trim(),
+    answer: el.querySelector('.a-input').value.trim(),
+    limit: parseInt(el.querySelector('.qa-limit').value, 10) || 0,
+  })).filter(qa => qa.answer);
+}
+
+const SAMPLE_DATA = [
+  ['20260001', '홍길동', '경영지원(일반행정)', '면접전형', '지원 동기와 입사 후 포부를 기술하시오.',
+    '대학 시절 교내 행정지원 근로장학생으로 2년간 근무하며 규정에 따라 문서를 처리하고 민원인을 응대하는 과정에서 공공서비스의 가치를 체감했습니다. 입사 후에는 정확한 행정 처리와 적극적인 소통으로 조직에 기여하겠습니다.', 600],
+  ['20260001', '홍길동', '경영지원(일반행정)', '면접전형', '협업 과정에서 갈등을 해결한 경험을 기술하시오.',
+    '조별 과제에서 일정 지연을 두고 팀원 간 갈등이 있었을 때, 각자의 진행 상황을 공유하는 주간 점검표를 제안하여 역할과 마감을 명확히 했고, 결과적으로 기한 내 과제를 완수했습니다.', 500],
+  ['20260002', '김철수', '정보시스템(전산)', '면접전형', '지원 동기와 입사 후 포부를 기술하시오.',
+    '공공데이터 활용 공모전에 참가하여 파이썬으로 데이터 전처리와 시각화를 수행한 경험을 통해 공공 정보시스템 분야에 관심을 갖게 되었습니다. 입사 후 안정적인 시스템 운영과 데이터 기반 업무 개선에 기여하고 싶습니다.', 600],
+  ['20260002', '김철수', '정보시스템(전산)', '면접전형', '직무 관련 전문성을 쌓기 위해 노력한 경험을 기술하시오.',
+    '정보처리기사 자격을 취득하고, 교내 전산실 유지보수 아르바이트를 하며 서버 점검과 장애 대응 절차를 익혔습니다. 특히 반복 업무를 스크립트로 자동화하여 점검 시간을 단축한 경험이 있습니다.', 500],
+];
+const SAMPLE_JOBS = [
+  ['경영지원(일반행정)', '예산 편성 및 집행 관리, 인사·복무 관리, 문서 및 기록물 관리, 대내외 민원 응대, 각종 위원회 운영 지원'],
+  ['정보시스템(전산)', '정보시스템 운영 및 유지보수, 서버·네트워크 관리, 정보보안 점검, 전산장비 도입 및 관리, 데이터 관리 및 통계 지원'],
+];
+function fillExample() {
+  const hasText = [...document.querySelectorAll('#qaList .a-input')].some(t => t.value.trim());
+  if (hasText && !confirm('입력한 내용을 지우고 예시 자기소개서를 넣을까요?')) return;
+  $('qaList').innerHTML = '';
+  SAMPLE_DATA.filter(r => r[0] === '20260001').forEach(r => addQA(r[4], r[5], r[6]));
+  $('sField').value = SAMPLE_JOBS[0][0];
+  $('sJob').value = SAMPLE_JOBS[0][1];
+  toast('예시 자기소개서를 넣었습니다. 바로 [면접질문 만들기]를 눌러 보세요.', 'success');
+}
+
+let singleCand = null;
+async function runSingle() {
+  if (!preflight()) return;
+  const qa = collectQA();
+  if (!qa.length) { toast('자기소개서 답변을 하나 이상 입력하세요.', 'warn'); return; }
+  const field = $('sField').value.trim();
+  $('btnSingle').disabled = true;
+  setProgress(true, '면접질문 만드는 중', '', 30, false);
+  updateProgress(30, `🤖 ${settings.model} 모델이 자기소개서를 분석하고 있습니다. 보통 10~30초 걸립니다.`);
+  const t0 = Date.now();
+  const cand = { exam: '직접 입력', name: '', field: field || '-', status: '', qa, result: null, error: null };
+  try {
+    cand.result = await callOpenAI(buildUserPrompt(field, $('sJob').value, qa));
+    updateProgress(100, `✅ 완료했습니다. (${((Date.now() - t0) / 1000).toFixed(1)}초)`);
+  } catch (e) {
+    cand.error = e.message;
+  }
+  singleCand = cand;
+  resultView = 'single';
+  setTimeout(() => {
+    setProgress(false);
+    $('btnSingle').disabled = false;
+    if (cand.error) toast('생성하지 못했습니다.\n' + cand.error, 'error');
+    renderResults();
+  }, 400);
+}
+
+// ══════════════════════════════════════════
+// 3단계: 엑셀 일괄 처리
+// ══════════════════════════════════════════
+let candidates = [];   // {exam, name, field, status, qa:[{question,answer,limit}], result, error, checked}
+let jobInfo = {};      // 모집 분야 → 직무수행내용
+
+function downloadTemplate() {
+  if (typeof XLSX === 'undefined') { toast('엑셀 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.', 'error'); return; }
+  const wb = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.aoa_to_sheet([['수험번호', '이름', '모집분야', '전형단계', '질문', '답변', '제한글자수'], ...SAMPLE_DATA]);
+  ws1['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 18 }, { wch: 10 }, { wch: 38 }, { wch: 70 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(wb, ws1, '자기소개서');
+  const ws2 = XLSX.utils.aoa_to_sheet([['모집분야', '직무수행내용'], ...SAMPLE_JOBS]);
+  ws2['!cols'] = [{ wch: 18 }, { wch: 80 }];
+  XLSX.utils.book_append_sheet(wb, ws2, '직무내용');
+  const guide = [
+    ['자기소개서 기반 면접질문 생성기 — 입력 양식 작성 안내'],
+    [''],
+    ['[자기소개서 시트]'],
+    ['· 1행(제목)은 고치거나 지우지 마세요.'],
+    ['· 지원자 한 명이 문항 여러 개를 썼다면, 문항마다 한 행씩 입력합니다.'],
+    ['· 같은 지원자의 행은 수험번호가 같아야 하나로 묶입니다. 수험번호가 비어 있는 행은 무시됩니다.'],
+    ['· 이름은 보고서에서 자동으로 가려집니다(블라인드 처리).'],
+    ['· 제한글자수는 해당 문항의 작성 제한 글자 수입니다. 비워 두면 보고서에 분량 막대가 나오지 않습니다.'],
+    ['· 예시 행(홍길동, 김철수)은 지운 뒤 실제 자료를 입력하세요.'],
+    [''],
+    ['[직무내용 시트]'],
+    ['· 모집분야 이름은 자기소개서 시트와 띄어쓰기까지 똑같아야 연결됩니다.'],
+    ['· 한 분야의 직무내용이 길면 여러 행으로 나눠 입력해도 자동으로 합쳐집니다.'],
+    ['· 이 시트를 지우면 직무내용 없이 자기소개서만으로 질문이 만들어집니다.'],
+    [''],
+    ['[유의사항]'],
+    ['· 파일 형식은 .xlsx를 권장합니다.'],
+    ['· 시트 이름("자기소개서", "직무내용")은 바꾸지 마세요.'],
+  ];
+  const ws3 = XLSX.utils.aoa_to_sheet(guide);
+  ws3['!cols'] = [{ wch: 95 }];
+  XLSX.utils.book_append_sheet(wb, ws3, '작성안내');
+  XLSX.writeFile(wb, '면접질문생성기_입력양식.xlsx');
+}
+
+function loadExcel(file) {
+  if (!file) return;
+  if (typeof XLSX === 'undefined') { toast('엑셀 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const wsName = wb.SheetNames.find(n => n.includes('자기소개서')) || wb.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wsName], { header: 1, defval: '' });
+      const map = new Map();
+      let skipped = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const [exam, name, field, status, question, answer, limit] = rows[i];
+        if (exam === '' || exam == null) { if (rows[i].some(v => String(v).trim())) skipped++; continue; }
+        const key = String(exam).trim();
+        if (!map.has(key)) map.set(key, { exam: key, name: String(name || '').trim(), field: String(field || '').trim(), status: String(status || '').trim(), qa: [], result: null, error: null, checked: true });
+        map.get(key).qa.push({ question: String(question || '').trim(), answer: String(answer || '').trim(), limit: parseInt(limit, 10) || 0 });
+      }
+      if (!map.size) { toast('불러올 지원자가 없습니다. A열(수험번호)과 시트 구성을 확인하세요.', 'error'); return; }
+      candidates = [...map.values()];
+
+      jobInfo = {};
+      const jobSheet = wb.SheetNames.find(n => n.includes('직무'));
+      if (jobSheet) {
+        const jrows = XLSX.utils.sheet_to_json(wb.Sheets[jobSheet], { header: 1, defval: '' });
+        for (let i = 1; i < jrows.length; i++) {
+          const f = String(jrows[i][0] || '').trim();
+          if (!f) continue;
+          const desc = jrows[i].slice(1).map(String).filter(s => s.trim()).join('\n');
+          jobInfo[f] = (jobInfo[f] ? jobInfo[f] + '\n' : '') + desc;
+        }
+      }
+      const linked = candidates.filter(c => jobInfo[c.field]).length;
+      $('previewBadge').textContent = `총 ${candidates.length}명 · 문항 ${candidates.reduce((s, c) => s + c.qa.length, 0)}개`;
+      const notes = [];
+      if (skipped) notes.push(`⚠️ 수험번호가 비어 있는 ${skipped}개 행은 뺐습니다.`);
+      notes.push(jobSheet
+        ? `직무내용이 연결된 지원자 ${linked}명 / ${candidates.length}명` + (linked < candidates.length ? ' — 연결되지 않은 지원자는 모집 분야 이름이 두 시트에서 같은지 확인하세요.' : '')
+        : '직무내용 시트가 없어 자기소개서만으로 질문을 만듭니다.');
+      $('previewNote').textContent = notes.join(' ');
+      renderCandTable();
+      $('excelPreview').style.display = '';
+      $('uploadZone').style.display = 'none';
+      toast(`${candidates.length}명을 불러왔습니다.`, 'success');
+    } catch (err) {
+      toast('엑셀 파일을 읽는 중 오류가 발생했습니다.\n' + err.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function resetExcel() {
+  if (candidates.some(c => c.result) && !confirm('이 파일로 만든 결과가 있습니다. 다른 파일을 고르면 결과가 지워집니다. 계속할까요?')) return;
+  candidates = [];
+  jobInfo = {};
+  if (resultView === 'batch') resultView = null;
+  $('excelFile').value = '';
+  $('excelPreview').style.display = 'none';
+  $('uploadZone').style.display = '';
+  updateBatchHint();
+  updateStepper();
+}
+
+function blindName(n) { return n ? n[0] + '○'.repeat(Math.max(n.length - 1, 1)) : ''; }
+const STATUS_HTML = {
+  wait: '<span class="status st-wait">대기</span>',
+  run: '<span class="status st-run">생성 중</span>',
+  done: '<span class="status st-done">완료</span>',
+  fail: '<span class="status st-fail">실패</span>',
+};
+function candState(c) { return c.result ? 'done' : (c.error ? 'fail' : 'wait'); }
+function renderCandTable() {
+  $('candBody').innerHTML = candidates.map((c, i) => `
+    <tr>
+      <td><input type="checkbox" class="cb cand-check" data-i="${i}" ${c.checked ? 'checked' : ''} aria-label="${escapeHtml(c.exam)} 선택"></td>
+      <td class="mono">${escapeHtml(c.exam)}</td>
+      <td>${escapeHtml(blindName(c.name) || '-')}</td>
+      <td>${escapeHtml(c.field || '-')}</td>
+      <td>${c.qa.length}개</td>
+      <td>${jobInfo[c.field] ? '<span class="job-ok">✓ 연결</span>' : '<span class="job-none">없음</span>'}</td>
+      <td id="st-${i}">${STATUS_HTML[candState(c)]}</td>
+    </tr>`).join('');
+  document.querySelectorAll('.cand-check').forEach(ch => ch.addEventListener('change', () => {
+    candidates[Number(ch.dataset.i)].checked = ch.checked;
+    updateBatchHint();
+  }));
+  updateBatchHint();
+}
+function toggleAll(v) {
+  candidates.forEach(c => { c.checked = v; });
+  document.querySelectorAll('.cand-check').forEach(ch => { ch.checked = v; });
+  updateBatchHint();
+}
+function pendingTargets() { return candidates.map((c, i) => i).filter(i => candidates[i].checked && !candidates[i].result); }
+function updateBatchHint() {
+  const sel = candidates.filter(c => c.checked).length;
+  const todo = pendingTargets().length;
+  $('btnBatch').disabled = !todo;
+  $('checkAll').checked = candidates.length > 0 && sel === candidates.length;
+  if (!candidates.length) { $('batchHint').textContent = ''; return; }
+  const skip = sel - todo;
+  $('batchHint').textContent = todo
+    ? `${todo}명 생성 예정 · 예상 소요 약 ${formatDuration(todo * 20000)}` + (skip ? ` (이미 완료된 ${skip}명은 건너뜀)` : '')
+    : (sel ? '선택한 지원자는 모두 완료되었습니다.' : '생성할 지원자를 선택하세요.');
+}
+
+// 엑셀 업로드 영역 · 로고 영역에 끌어다 놓기
+[['uploadZone', f => loadExcel(f)], ['logoDropZone', f => loadLogo(f)]].forEach(([id, fn]) => {
+  const zone = $(id);
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) fn(file);
+  });
+});
+
+// ──────────────────────────────────────────
+// 일괄 실행
+// ──────────────────────────────────────────
+let cancelRequested = false;
+function requestCancel() {
+  cancelRequested = true;
+  $('cancelBtn').disabled = true;
+  $('cancelBtn').textContent = '⏳ 진행 중인 건만 마무리';
+}
+function startBatch() { runBatch(pendingTargets()); }
+function retryFailed() {
+  const targets = candidates.map((c, i) => i).filter(i => candidates[i].error);
+  if (!targets.length) { toast('다시 시도할 실패 건이 없습니다.', 'info'); return; }
+  goToStep(3);
+  switchTab('batch');
+  runBatch(targets);
+}
+function retryOne(i) {
+  goToStep(3);
+  switchTab('batch');
+  runBatch([i]);
+}
+
+async function runBatch(targets) {
+  if (!targets.length) { toast('생성할 지원자가 없습니다. (이미 완료된 지원자는 건너뜁니다)', 'warn'); return; }
+  if (!preflight()) return;
+  cancelRequested = false;
+  let fatalError = null, done = 0;
+  const startedAt = Date.now();
+  $('btnBatch').disabled = true;
+  setProgress(true, `${targets.length}명 생성 중`, `0 / ${targets.length}`, 0, true);
+
+  for (const i of targets) {
+    if (cancelRequested) break;
+    const c = candidates[i];
+    $('st-' + i).innerHTML = STATUS_HTML.run;
+    updateProgress(Math.round(done / targets.length * 100), `${c.exam} 지원자의 면접질문을 만들고 있습니다.`);
+    try {
+      c.result = await callOpenAI(buildUserPrompt(c.field, jobInfo[c.field] || '', c.qa));
+      c.error = null;
+    } catch (e) {
+      c.error = e.message;
+      if (e.fatal) { fatalError = e; cancelRequested = true; }
+    }
+    $('st-' + i).innerHTML = STATUS_HTML[candState(c)];
+    done++;
+    const left = targets.length - done;
+    const eta = left ? ` · 남은 시간 약 ${formatDuration((Date.now() - startedAt) / done * left)}` : '';
+    $('progressCount').textContent = `${done} / ${targets.length}`;
+    updateProgress(Math.round(done / targets.length * 100), `${done}명 완료${eta}`);
+    if (left && !cancelRequested) await sleep(800);   // 요청 제한 여유
+  }
+
+  resultView = 'batch';
+  updateProgress(100, cancelRequested ? '⏹ 생성을 중단했습니다.' : '✅ 모두 마쳤습니다.');
+  setTimeout(() => {
+    setProgress(false);
+    updateBatchHint();
+    if (fatalError) toast('생성을 멈췄습니다.\n' + fatalError.message, 'error');
+    else if (cancelRequested) toast(`생성을 중단했습니다. 끝난 ${done}명의 결과만 표시합니다.`, 'warn');
+    const failN = candidates.filter(c => c.error).length;
+    if (!fatalError && failN) toast(`${failN}명은 실패했습니다. 결과 화면에서 다시 시도할 수 있습니다.`, 'warn');
+    if (hasResults()) renderResults();
+  }, 400);
+}
+
+// ──────────────────────────────────────────
+// 진행 상태 · 시간
+// ──────────────────────────────────────────
+function setProgress(show, title, count, pct, cancellable) {
+  $('progressCard').classList.toggle('show', show);
+  if (!show) return;
+  if (title) $('progressTitle').textContent = title;
+  $('progressCount').textContent = count || '';
+  $('progressBar').style.width = (pct || 0) + '%';
+  const btn = $('cancelBtn');
+  btn.style.display = cancellable ? '' : 'none';
+  btn.disabled = false;
+  btn.textContent = '⏹ 중단';
+  $('progressCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function updateProgress(pct, text) {
+  $('progressBar').style.width = pct + '%';
+  $('progressText').textContent = text;
+}
+function formatDuration(ms) {
+  const s = Math.max(1, Math.round(ms / 1000));
+  if (s < 60) return `${s}초`;
+  const m = Math.round(s / 60);
+  return m < 60 ? `${m}분` : `${Math.floor(m / 60)}시간 ${m % 60}분`;
+}
+
+// ══════════════════════════════════════════
+// 4단계: 결과
+// ══════════════════════════════════════════
+let resultView = null;   // 'single' | 'batch'
+let resultFilter = 'all';
+
+function viewList() {
+  if (resultView === 'single') return singleCand ? [singleCand] : [];
+  if (resultView === 'batch') return candidates.filter(c => c.result || c.error);
+  return [];
+}
+function renderResults() {
+  const list = viewList();
+  const doneN = list.filter(c => c.result).length;
+  const failN = list.filter(c => c.error).length;
+  $('statRow').innerHTML = `
+    <div class="stat-box green"><div class="stat-num">${doneN}</div><div class="stat-label">🟢 완료</div></div>
+    <div class="stat-box red"><div class="stat-num">${failN}</div><div class="stat-label">🔴 실패</div></div>
+    ${resultView === 'batch' ? `<div class="stat-box gray"><div class="stat-num">${candidates.length - list.length}</div><div class="stat-label">⚪ 미처리</div></div>` : ''}`;
+  $('resultFilterBar').style.display = list.length > 1 ? 'flex' : 'none';
+  $('retryBtn').style.display = resultView === 'batch' && failN ? '' : 'none';
+  $('excelBtn').disabled = !doneN;
+  $('zipBtn').disabled = !doneN;
+  $('zipBtn').textContent = `📁 개별 보고서 ${doneN}건 (압축 파일)`;
+  resultFilter = 'all';
+  $('resultSearch').value = '';
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
+  renderResultList();
+  if (list.length === 1) openResult(0);
+  goToStep(4);
+  updateStepper();
+}
+function setResultFilter(f) {
+  resultFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+  renderResultList();
+}
+function renderResultList() {
+  const q = $('resultSearch').value.trim().toLowerCase();
+  const list = viewList();
+  const shown = list
+    .map((c, i) => ({ c, i }))
+    .filter(({ c }) => resultFilter === 'all' || candState(c) === resultFilter)
+    .filter(({ c }) => !q || [c.exam, c.field, c.name].some(s => String(s || '').toLowerCase().includes(q)));
+  if (!shown.length) { $('resultList').innerHTML = '<div class="empty-note">해당하는 결과가 없습니다.</div>'; return; }
+  $('resultList').innerHTML = shown.map(({ c, i }) => {
+    const st = candState(c);
+    const first = c.result && c.result.main_questions[0];
+    const preview = c.result
+      ? `질문 ${c.result.main_questions.length}개 · ${escapeHtml(first ? first.주질문 || '' : '')}`
+      : escapeHtml(c.error || '');
+    return `
+    <div class="result-card v-${st}" id="rc-${i}">
+      <div class="result-card-head" onclick="toggleResult(${i})">
+        <div class="result-card-meta">
+          <span class="verdict-badge">${st === 'done' ? '완료' : '실패'}</span>
+          <div style="min-width:0;">
+            <div class="result-name">${escapeHtml(c.exam)}${c.name ? ' · ' + escapeHtml(blindName(c.name)) : ''} <span class="r-field">${escapeHtml(c.field || '')}</span></div>
+            <div class="result-reason">${preview}</div>
+          </div>
+        </div>
+        <span class="caret" aria-hidden="true">▾</span>
+      </div>
+      <div class="result-card-body" id="rcb-${i}"></div>
+    </div>`;
+  }).join('');
+}
+function toggleResult(i) {
+  const card = $('rc-' + i);
+  if (card.classList.contains('open')) card.classList.remove('open'); else openResult(i);
+}
+function openResult(i) {
+  const card = $('rc-' + i);
+  if (!card) return;
+  const c = viewList()[i];
+  const body = $('rcb-' + i);
+  if (!body.dataset.rendered) {
+    body.innerHTML = c.result
+      ? renderReport(c, c.result, i)
+      : `<div class="err-box">생성하지 못했습니다: ${escapeHtml(c.error)}</div>
+         ${resultView === 'batch' ? `<div class="btn-row"><button type="button" class="btn btn-sm" onclick="retryOne(${candidates.indexOf(c)})">🔁 이 지원자만 다시 시도</button></div>` : ''}`;
+    body.dataset.rendered = '1';
+  }
+  card.classList.add('open');
+}
+
+// ──────────────────────────────────────────
+// 보고서 (화면 · 인쇄 · 압축 파일 공용)
+//   viewIdx가 있으면 화면용 도구 단추(인쇄·복사)를 함께 그림
+// ──────────────────────────────────────────
+function renderReport(meta, result, viewIdx) {
+  const tools = viewIdx !== undefined;
+  const qs = result.main_questions.map((q, idx) => {
+    const subs = Array.isArray(q.보조질문) ? q.보조질문 : [];
+    const copyText = `[${q.평가요소 || ''}] ${q.주질문 || ''}` + (subs.length ? '\n' + subs.map((s, k) => `  ${k + 1}. ${s}`).join('\n') : '');
+    return `
+    <div class="q-card">
+      <div class="q-top">
+        <span class="q-num">Q${q.번호 ?? idx + 1}</span>
+        ${q.평가요소 ? `<span class="q-factor">${escapeHtml(q.평가요소)}</span>` : ''}
+        ${tools ? `<button type="button" class="btn btn-sm no-print" data-copy="${escapeHtml(copyText)}" onclick="copyText(this)">📋 질문 복사</button>` : ''}
+      </div>
+      <div class="q-main">${escapeHtml(q.주질문 || '')}</div>
+      ${q.근거구절 ? `<div class="q-quote"><b>자기소개서 근거 구절</b>“${escapeHtml(q.근거구절)}”</div>` : ''}
+      ${q.질문이유 ? `<div class="q-reason"><b>질문 의도</b>${escapeHtml(q.질문이유)}</div>` : ''}
+      ${subs.length ? `<div class="q-subs"><b>보조질문</b><ol>${subs.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ol></div>` : ''}
+    </div>`;
+  }).join('');
+
+  const summaries = Array.isArray(result.item_summaries) ? result.item_summaries : [];
+  const qa = meta.qa || [];
+  const summaryTable = qa.length ? `
+    <div class="ov-card">
+      <h4>📝 자기소개서 문항별 요약</h4>
+      <table class="ov-table">
+        <thead><tr><th style="width:36%">문항</th><th>요약</th></tr></thead>
+        <tbody>${qa.map((x, i) => {
+          const sum = summaries.find(s => Number(s.번호) === i + 1) || summaries[i];
+          return `<tr><td>문항 ${i + 1}. ${escapeHtml(x.question)}</td><td>${sum && sum.요약 ? escapeHtml(sum.요약) : '-'}</td></tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>` : '';
+  const withLimit = qa.filter(x => x.limit > 0);
+  const lenGraphs = withLimit.length ? `
+    <div class="ov-card">
+      <h4>📏 문항별 작성 분량</h4>
+      <div class="ov-bars">${qa.map((x, i) => x.limit > 0 ? `
+        <div><div class="ov-bar-label">문항 ${i + 1}. ${escapeHtml(x.question)}</div>${lenBarHtml(x.answer.length, x.limit)}</div>` : '').join('')}
+      </div>
+    </div>` : '';
+  const essays = qa.length ? `
+    <div class="sec-title">📄 자기소개서 원문</div>
+    ${qa.map((x, i) => `<div class="essay-box"><div class="eq">문항 ${i + 1}. ${escapeHtml(x.question)}</div><div class="ea">${escapeHtml(x.answer)}</div></div>`).join('')}` : '';
+
+  return `
+  <div class="report">
+    <div class="r-head">
+      <span class="r-brand">${orgLogo ? `<img class="r-logo" src="${orgLogo}" alt="기관 로고">` : ''}<span class="r-title">개별 면접질문 보고서</span></span>
+      <span class="r-meta">${meta.exam === '직접 입력' ? '직접 입력' : '수험번호 ' + escapeHtml(meta.exam)}${meta.name ? ' · ' + escapeHtml(blindName(meta.name)) : ''} · ${escapeHtml(meta.field || '-')}</span>
+    </div>
+    ${tools ? `<div class="r-tools no-print">
+      <button type="button" class="btn btn-sm" onclick="printReport(${viewIdx})">🖨️ 인쇄 / PDF 저장</button>
+      <button type="button" class="btn btn-sm" data-copy="${escapeHtml(allQuestionsText(result))}" onclick="copyText(this)">📋 질문 전체 복사</button>
+      <button type="button" class="btn btn-sm" onclick="this.closest('.report').querySelector('.raw-json').classList.toggle('hidden')">{ } 응답 원문 보기</button>
+    </div>` : ''}
+    ${summaryTable}
+    ${lenGraphs}
+    <div class="sec-title">💬 평가요소별 면접질문</div>
+    ${qs}
+    ${essays}
+    ${tools ? `<div class="raw-json hidden no-print">${escapeHtml(JSON.stringify(result, null, 2))}</div>` : ''}
+  </div>`;
+}
+function lenBarHtml(len, limit) {
+  const pct = Math.round(len / limit * 100);
+  const cls = pct > 100 ? 'over' : (pct < 60 ? 'low' : '');
+  return `
+    <div class="len-bar-label"><span>작성 분량</span><span>${len}자 / ${limit}자 (${pct}%)</span></div>
+    <div class="len-bar-outer"><div class="len-bar-inner ${cls}" style="width:${Math.min(pct, 100)}%"></div></div>`;
+}
+function allQuestionsText(result) {
+  return result.main_questions.map((q, i) => {
+    const subs = Array.isArray(q.보조질문) ? q.보조질문 : [];
+    return `Q${i + 1}. [${q.평가요소 || ''}] ${q.주질문 || ''}` + (subs.length ? '\n' + subs.map((s, k) => `  ${k + 1}. ${s}`).join('\n') : '');
+  }).join('\n\n');
+}
+async function copyText(btn) {
+  const text = btn.dataset.copy;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+  toast('클립보드에 복사했습니다.', 'success');
+}
+
+// 보고서만 담긴 독립 문서 (인쇄 창 · 압축 파일 공용)
+function reportDoc(c) {
+  const font = document.querySelector('link[href*="fonts.googleapis.com/css2"]');
+  return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>면접질문 보고서 - ${escapeHtml(c.exam)}</title>${font ? font.outerHTML : ''}${document.querySelector('style').outerHTML}</head>
+<body><main class="layout"><section class="card"><div class="card-body">${renderReport(c, c.result)}</div></section></main></body></html>`;
+}
+function printReport(i) {
+  const w = window.open('', '_blank');
+  if (!w) { toast('팝업이 차단되었습니다. 이 페이지의 팝업을 허용한 뒤 다시 눌러 주세요.', 'warn'); return; }
+  w.document.open();
+  w.document.write(reportDoc(viewList()[i]));
+  w.document.close();
+  w.onload = () => { w.focus(); w.print(); };
+}
+
+function dateStamp() {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+}
+function downloadExcel() {
+  if (typeof XLSX === 'undefined') { toast('엑셀 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.', 'error'); return; }
+  const rows = [['수험번호', '이름', '모집분야', '평가요소', '주질문', '근거구절', '질문이유', '보조질문']];
+  viewList().forEach(c => {
+    if (!c.result) return;
+    c.result.main_questions.forEach(q => rows.push([
+      c.exam, c.name, c.field,
+      q.평가요소 || '', q.주질문 || '', q.근거구절 || '', q.질문이유 || '',
+      Array.isArray(q.보조질문) ? q.보조질문.map((s, i) => `${i + 1}. ${s}`).join('\n') : '',
+    ]));
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 16 }, { wch: 12 }, { wch: 50 }, { wch: 40 }, { wch: 35 }, { wch: 55 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '면접질문');
+  XLSX.writeFile(wb, `면접질문_생성결과_${dateStamp()}.xlsx`);
+}
+async function downloadZip() {
+  const done = viewList().filter(c => c.result);
+  if (!done.length) { toast('내려받을 보고서가 없습니다.', 'warn'); return; }
+  if (typeof JSZip === 'undefined') { toast('압축 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.', 'error'); return; }
+  const btn = $('zipBtn');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ 압축 중…';
+  try {
+    const zip = new JSZip();
+    const used = new Set();
+    done.forEach(c => {
+      const base = `${c.exam}_${(c.name || '').replace(/[\\/:*?"<>|]/g, '')}`.replace(/_$/, '');
+      let name = base, n = 1;
+      while (used.has(name)) name = `${base}_${++n}`;
+      used.add(name);
+      zip.file(`${name}.html`, reportDoc(c));
+    });
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `면접질문_보고서_${dateStamp()}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (e) {
+    toast('압축 파일을 만드는 중 오류가 발생했습니다.\n' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+// ──────────────────────────────────────────
+// 시작
+// ──────────────────────────────────────────
+applySettingsToView();
+renderLogoPreview();
+setPromptStatus(customPrompt ? 'confirmed' : 'draft');
+addQA();
+showSub(1);
+updateStepper();
+if (settings.restored) setTimeout(() => toast('지난번에 쓴 생성 설정을 불러왔습니다.\n2단계 마지막 화면에서 확인하거나 초기화할 수 있습니다.', 'info'), 500);
+
+// 생성 중 창을 닫으려 하면 한 번 확인
+window.addEventListener('beforeunload', e => {
+  if (isBusy()) { e.preventDefault(); e.returnValue = ''; }
+});
+</script>
+</body>
+</html>
