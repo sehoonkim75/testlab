@@ -1,0 +1,3291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자기소개서 불성실 탐지 서비스 v5</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234A63D8'/%3E%3Ctext x='50' y='56' font-size='58' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%94%8D%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  /* ════════════════════════════════════════
+     뉴모피즘(Neumorphism) 디자인 토큰
+     - 배경과 같은 색의 표면에 밝은 그림자(좌상단) + 어두운 그림자(우하단)를 주어
+       "튀어나온(raise)" 요소와 "눌린(inset)" 요소를 구분합니다.
+     - 입력칸·트랙은 눌린 형태, 카드·버튼은 튀어나온 형태입니다.
+     ════════════════════════════════════════ */
+  :root {
+    color-scheme: light;
+    --bg: #E6EAF1;
+    /* 글자색: 배경 대비 4.5:1 이상이 되도록 진하게 조정 */
+    --text-main: #141A26;
+    --text-sub: #343E50;
+    --text-light: #556074;
+    --accent: #3A52C9;
+    --accent-deep: #2E44AE;
+    --accent-soft: #D9E0F8;
+    --green: #116630;
+    --green-soft: #DCF3E4;
+    --yellow: #8A5205;
+    --yellow-soft: #F8EFCF;
+    --red: #B71C1C;
+    --red-soft: #F8DEDE;
+    --gray: #4B5563;
+
+    /* 사용자 입력 영역 전용 색 — 배경과 확실히 구분되는 밝은 면 + 테두리 */
+    --input-bg: #FBFCFE;
+    --input-border: #9AA6BB;
+    --input-border-hover: #6F7D96;
+    --input-focus-ring: rgba(58, 82, 201, 0.22);
+
+    --sh-dark: rgba(152, 167, 191, 0.62);
+    --sh-light: rgba(255, 255, 255, 0.92);
+    --raise:    8px 8px 18px var(--sh-dark), -8px -8px 18px var(--sh-light);
+    --raise-sm: 4px 4px 9px var(--sh-dark), -4px -4px 9px var(--sh-light);
+    --raise-xs: 2px 2px 5px var(--sh-dark), -2px -2px 5px var(--sh-light);
+    --inset:    inset 4px 4px 9px var(--sh-dark), inset -4px -4px 9px var(--sh-light);
+    --inset-sm: inset 2px 2px 5px var(--sh-dark), inset -2px -2px 5px var(--sh-light);
+    --line: rgba(152, 167, 191, 0.32);
+
+    --radius: 22px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    background: var(--bg);
+    color: var(--text-main);
+    min-height: 100vh;
+    font-size: 16.5px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    /* 한국어 줄바꿈: 어절 단위로 끊고, 긴 영문·숫자는 넘치지 않게 */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    line-break: strict;
+  }
+  p, li, .info-box, .item-result-reason, .result-reason, .apikey-hint, .criteria-auto-note { text-wrap: pretty; }
+  h1, h2, .step-label { text-wrap: balance; }
+
+  button, input, select, textarea { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  /* ── 헤더 (가운데 정렬) ── */
+  .header {
+    background: var(--bg);
+    padding: 18px 24px 14px;
+    text-align: center;
+  }
+  .header-row { display: inline-flex; align-items: center; justify-content: center; gap: 12px; }
+  .header-icon {
+    width: 42px; height: 42px;
+    border-radius: 13px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 21px; line-height: 1;
+    flex-shrink: 0;
+    box-shadow: var(--raise-sm);
+  }
+  .header h1 { font-size: 22px; font-weight: 700; line-height: 1.3; }
+  .header .subtitle { font-size: 14.5px; color: var(--text-sub); margin-top: 6px; }
+
+  /* ── 단계 표시줄 ── */
+  .stepper-wrap {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg);
+    padding: 12px 16px 14px;
+    box-shadow: 0 6px 14px rgba(152,167,191,0.28);
+  }
+  .stepper { list-style: none; display: flex; max-width: 760px; margin: 0 auto; }
+  .stepper li { flex: 1; position: relative; display: flex; justify-content: center; }
+  /* 단계 사이 연결선 */
+  .stepper li + li::before {
+    content: ''; position: absolute; top: 19px; right: calc(50% + 26px); left: calc(-50% + 26px);
+    height: 3px; border-radius: 3px; background: #C3CBD8;
+  }
+  .stepper li.done + li::before, .stepper li.done + li.current::before { background: var(--accent); }
+  .step-dot {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    background: none; border: none; cursor: pointer; padding: 0 4px;
+    color: var(--text-sub); font-weight: 600;
+  }
+  .step-dot:disabled { cursor: not-allowed; opacity: .55; }
+  .sd-num {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; line-height: 1;
+    background: var(--bg); box-shadow: var(--raise-xs); color: var(--text-sub);
+    transition: background .2s, color .2s, box-shadow .2s;
+  }
+  .sd-label { font-size: 14px; line-height: 1.3; text-align: center; }
+  .stepper li.current .sd-num { background: var(--accent); color: #fff; box-shadow: 3px 3px 8px rgba(58,82,201,0.4); }
+  .stepper li.current .sd-label { color: var(--accent); font-weight: 700; }
+  .stepper li.done .sd-num { background: var(--accent-soft); color: var(--accent); box-shadow: var(--inset-sm); }
+  .stepper li.done .sd-label { color: var(--text-main); }
+
+  /* ── 단계 화면 ── */
+  .step-page { display: none; flex-direction: column; gap: 28px; }
+  .step-page.active { display: flex; animation: pageIn .25s ease; }
+  @keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .page-title { text-align: center; padding: 4px 8px 0; }
+  .page-title .pt-step {
+    display: inline-block; font-size: 13.5px; font-weight: 700; color: var(--accent);
+    padding: 3px 14px; border-radius: 999px; box-shadow: var(--inset-sm); margin-bottom: 10px;
+  }
+  .page-title h2 { font-size: 24px; font-weight: 700; line-height: 1.35; }
+  .page-title p { font-size: 15.5px; color: var(--text-sub); margin: 8px auto 0; max-width: 620px; text-wrap: pretty; }
+  .wizard-nav { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; padding-top: 4px; }
+  .wizard-nav .btn { min-width: 120px; }
+
+  /* ── 레이아웃 ── */
+  .layout {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 40px 24px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  /* ── 카드 ── */
+  .card {
+    background: var(--bg);
+    border-radius: var(--radius);
+    box-shadow: var(--raise);
+  }
+  .card-header {
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .card-header.clickable { cursor: pointer; justify-content: space-between; }
+  .card-header .ch-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .card-icon {
+    width: 36px; height: 36px; border-radius: 11px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px; box-shadow: var(--raise-xs); flex-shrink: 0;
+  }
+  .card-header h2, .card-header h3 { font-size: 17.5px; font-weight: 700; line-height: 1.35; }
+  .sub-badge {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700; line-height: 1; color: var(--accent); box-shadow: var(--raise-xs);
+  }
+  .body-text { font-size: 15.5px; color: var(--text-sub); line-height: 1.8; text-wrap: pretty; }
+  .body-text b { color: var(--text-main); }
+  .flow-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .flow-list li { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: var(--radius-sm); box-shadow: var(--inset-sm); }
+  .flow-list .fl-num {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; margin-top: 1px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; line-height: 1; color: #fff; background: var(--accent);
+  }
+  .flow-list b { display: block; font-size: 15.5px; color: var(--text-main); line-height: 1.5; }
+  .flow-list span:not(.fl-num) { display: block; font-size: 14.5px; color: var(--text-sub); line-height: 1.6; text-wrap: pretty; }
+  .note-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .note-list li { position: relative; padding-left: 18px; font-size: 15.5px; color: var(--text-sub); line-height: 1.75; text-wrap: pretty; }
+  .note-list li::before { content: ''; position: absolute; left: 2px; top: .72em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .note-list b { color: var(--text-main); }
+  .hint-line { font-size: 14.5px; color: var(--text-sub); margin-top: 14px; line-height: 1.7; text-wrap: pretty; }
+  .hint-line code { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; padding: 1px 6px; border-radius: 6px; box-shadow: var(--inset-sm); }
+  .hint-inline { font-size: 15px; color: var(--text-sub); }
+  .badge {
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 3px 11px;
+    border-radius: 999px;
+    color: var(--accent);
+    box-shadow: var(--inset-sm);
+  }
+  .card-body { padding: 28px; }
+  .caret { font-size: 18px; color: var(--text-light); transition: transform .2s; }
+
+  /* ── 공통 입력 요소 ──
+     사용자가 직접 입력·선택하는 곳은 회색 배경과 확실히 구분되도록
+     밝은 면 + 진한 테두리 + 살짝 눌린 그림자로 표시합니다. */
+  .field, select, .setting-input {
+    padding: 12px 16px;
+    border: 1.5px solid var(--input-border);
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    background-color: var(--input-bg);
+    color: var(--text-main);
+    box-shadow: inset 2px 2px 4px rgba(152,167,191,0.35);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+    width: 100%;
+  }
+  .field:hover, select:hover, .setting-input:hover { border-color: var(--input-border-hover); }
+  .field:focus, select:focus, .setting-input:focus {
+    border-color: var(--accent);
+    background-color: #FFFFFF;
+    box-shadow: 0 0 0 4px var(--input-focus-ring);
+  }
+  ::placeholder { color: #6A758A; opacity: 1; }
+  select { cursor: pointer; width: auto; min-width: 260px; appearance: none; font-weight: 500;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-main) 50%), linear-gradient(135deg, var(--text-main) 50%, transparent 50%);
+    background-position: calc(100% - 20px) 52%, calc(100% - 14px) 52%;
+    background-size: 6px 6px; background-repeat: no-repeat; padding-right: 42px; }
+
+  /* ── 분석 설정 ── */
+  .settings-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .settings-row label { font-size: 15.5px; font-weight: 600; color: var(--text-sub); white-space: nowrap; }
+  .key-status {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px; border-radius: 999px;
+    font-size: 15px; font-weight: 600;
+    box-shadow: var(--inset-sm);
+  }
+  .key-status .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .key-status.ok { color: var(--green); }
+  .key-status.ok .dot { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+  .key-status.missing { color: var(--red); }
+  .key-status.missing .dot { background: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }
+  .apikey-hint { font-size: 14.5px; color: var(--text-sub); margin-top: 14px; line-height: 1.7; }
+  .apikey-hint code { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; padding: 1px 6px; border-radius: 6px; box-shadow: var(--inset-sm); }
+
+  /* ── 탭(분절 컨트롤) ── */
+  .tabs-wrap { padding: 22px 28px 0; }
+  .tabs {
+    display: inline-flex;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 999px;
+    box-shadow: var(--inset);
+  }
+  .tab {
+    padding: 9px 20px;
+    font-size: 15.5px;
+    font-weight: 600;
+    color: var(--text-sub);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    border-radius: 999px;
+    transition: box-shadow .2s, color .2s;
+  }
+  .tab.active { color: #fff; background: var(--accent); box-shadow: 2px 2px 6px rgba(58,82,201,0.35); }
+  .tab:hover:not(.active) { color: var(--text-main); }
+  .tab-content { display: none; padding: 22px 28px 28px; }
+  .tab-content.active { display: block; }
+
+  /* ── 직접 입력 ── */
+  .items-list { display: flex; flex-direction: column; gap: 18px; }
+  .item-row {
+    border-radius: var(--radius-md);
+    box-shadow: var(--raise-sm);
+    padding: 14px 16px 10px;
+  }
+  .item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .item-num { font-size: 14px; font-weight: 700; color: var(--accent); }
+  .item-inputs { display: flex; flex-direction: column; gap: 10px; }
+  .item-inputs textarea { line-height: 1.7; resize: vertical; }
+  .item-inputs .q-input { min-height: 0; font-weight: 600; overflow: hidden; }
+  .item-inputs .a-input { min-height: 120px; }
+  .char-count {
+    text-align: right;
+    font-size: 13.5px;
+    color: var(--text-sub);
+    padding: 6px 4px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .icon-btn {
+    width: 32px; height: 32px; border: none; border-radius: 10px;
+    background: var(--bg); color: var(--text-light);
+    font-size: 20px; line-height: 1; cursor: pointer;
+    box-shadow: var(--raise-xs);
+    transition: color .15s, box-shadow .15s;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { color: var(--red); }
+  .icon-btn:active { box-shadow: var(--inset-sm); }
+
+  /* ── 엑셀 업로드 ── */
+  .upload-zone {
+    border-radius: var(--radius-md);
+    padding: 44px 20px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--input-bg);
+    border: 2px dashed var(--input-border);
+    box-shadow: inset 2px 2px 5px rgba(152,167,191,0.35);
+    transition: border-color .2s, background .2s;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: #EEF2FF; }
+  .upload-icon { font-size: 40px; margin-bottom: 8px; }
+  .upload-zone p { font-size: 16px; color: var(--text-sub); }
+  .upload-zone strong { color: var(--accent); }
+  .upload-zone input[type=file] { display: none; }
+
+  .excel-guide {
+    margin-bottom: 20px;
+    font-size: 15px;
+    color: var(--text-sub);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    box-shadow: var(--raise-sm);
+  }
+  .excel-guide-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+  .excel-guide-head strong { color: var(--text-main); font-size: 15.5px; }
+  .col-list { display: flex; gap: 8px; flex-wrap: wrap; }
+  .col-badge {
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: var(--inset-sm);
+  }
+  .col-badge b { font-family: 'JetBrains Mono', monospace; color: var(--accent); margin-right: 4px; }
+
+  /* ── 버튼(튀어나온 형태 → 누르면 눌린 형태) ── */
+  .btn-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+  .btn {
+    padding: 12px 22px;
+    border-radius: var(--radius-sm);
+    font-size: 15.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: var(--bg);
+    box-shadow: var(--raise-sm);
+    transition: box-shadow .15s, color .15s, transform .1s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    text-align: center;
+    line-height: 1.35;
+    color: var(--text-main);
+  }
+  .btn:hover:not(:disabled) { color: var(--text-main); }
+  .btn:active:not(:disabled) { box-shadow: var(--inset-sm); transform: translateY(1px); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-primary {
+    background: linear-gradient(145deg, #5670E4, #3F57C8);
+    color: #fff;
+    box-shadow: 5px 5px 12px rgba(63,87,200,0.38), -5px -5px 12px var(--sh-light);
+  }
+  .btn-primary:hover:not(:disabled) { color: #fff; filter: brightness(1.05); }
+  .btn-primary:active:not(:disabled) { box-shadow: inset 3px 3px 7px rgba(30,45,120,0.45), inset -2px -2px 6px rgba(255,255,255,0.18); }
+  .btn-green {
+    background: linear-gradient(145deg, #1E9A50, #157A3E);
+    color: #fff;
+    box-shadow: 5px 5px 12px rgba(21,122,62,0.33), -5px -5px 12px var(--sh-light);
+  }
+  .btn-green:hover:not(:disabled) { color: #fff; filter: brightness(1.05); }
+  .btn-green:active:not(:disabled) { box-shadow: inset 3px 3px 7px rgba(10,70,35,0.45); }
+  .btn-sm { padding: 9px 16px; font-size: 14.5px; }
+  .btn-block { flex: 1; }
+
+  /* ── 진행 상태 ── */
+  .progress-card { display: none; }
+  .progress-card.show { display: block; }
+  .progress-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .progress-bar-wrap {
+    height: 14px;
+    border-radius: 99px;
+    overflow: hidden;
+    margin: 14px 0 12px;
+    box-shadow: var(--inset);
+    padding: 3px;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #6A80EA, var(--accent));
+    border-radius: 99px;
+    transition: width .4s ease;
+    width: 0%;
+  }
+  .progress-text { font-size: 15px; color: var(--text-sub); }
+
+  /* ── 결과 ── */
+  .result-section { display: none; }
+  .result-section.show { display: block; }
+  .result-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .stat-row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 18px; margin-bottom: 26px; }
+  .stat-box { padding: 20px 14px; border-radius: var(--radius-md); text-align: center; box-shadow: var(--raise-sm); }
+  .stat-num { font-size: 34px; font-weight: 700; line-height: 1.1; }
+  .stat-box.green .stat-num { color: var(--green); }
+  .stat-box.yellow .stat-num { color: var(--yellow); }
+  .stat-box.red .stat-num { color: var(--red); }
+  .stat-box.gray .stat-num { color: var(--gray); }
+  .stat-label { font-size: 14.5px; color: var(--text-sub); margin-top: 6px; font-weight: 600; }
+
+  .result-filter-bar { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; align-items: center; }
+  .filter-label { font-size: 15px; color: var(--text-sub); font-weight: 600; margin-right: 4px; }
+  .filter-chip {
+    padding: 7px 16px; border-radius: 999px; font-size: 14.5px; font-weight: 600;
+    border: none; background: var(--bg); cursor: pointer; color: var(--text-sub);
+    box-shadow: var(--raise-xs);
+    transition: box-shadow .15s, color .15s;
+  }
+  .filter-chip.active { color: var(--accent); box-shadow: var(--inset-sm); }
+
+  .result-list { display: flex; flex-direction: column; gap: 18px; }
+  .result-card {
+    border-radius: var(--radius-md);
+    box-shadow: var(--raise-sm);
+    overflow: hidden;
+    position: relative;
+  }
+  .result-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+    background: var(--text-light);
+  }
+  .result-card.v-주의::before { background: var(--red); }
+  .result-card.v-경미::before { background: #D9A514; }
+  .result-card.v-정상::before { background: var(--green); }
+
+  .result-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px 18px 26px;
+    cursor: pointer;
+    gap: 14px;
+  }
+  .result-card-meta { display: flex; align-items: flex-start; gap: 14px; flex: 1; min-width: 0; }
+  .result-card-head .caret { align-self: flex-start; margin-top: 4px; }
+  .verdict-badge {
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-size: 14.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    line-height: 1.4;
+    margin-top: 1px;
+    color: #fff;
+    background: var(--gray);
+  }
+  .v-주의 .verdict-badge { background: var(--red); }
+  .v-경미 .verdict-badge { background: #C08A06; }
+  .v-정상 .verdict-badge { background: var(--green); }
+  .result-name { font-size: 16.5px; font-weight: 700; }
+  .result-name .field { font-weight: 400; color: var(--text-sub); font-size: 15px; }
+  .result-reason { font-size: 14.5px; color: var(--text-sub); }
+  .result-card.open .caret { transform: rotate(180deg); }
+
+  .result-card-body { display: none; padding: 4px 22px 22px 26px; }
+  .result-card.open .result-card-body { display: block; }
+
+  .criteria-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .group-tag { padding: 6px 13px; border-radius: 10px; font-size: 14.5px; font-weight: 700; box-shadow: var(--inset-sm); }
+  .group-tag.정상 { color: var(--green); }
+  .group-tag.경미 { color: var(--yellow); }
+  .group-tag.주의 { color: var(--red); }
+  .type-chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .type-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 999px; font-size: 14px; font-weight: 500;
+    color: var(--text-sub); box-shadow: var(--raise-xs);
+  }
+  .type-chip .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  .divider { height: 1px; background: var(--line); margin: 16px 0; }
+
+  .item-results { display: flex; flex-direction: column; gap: 16px; }
+  .item-result { padding: 16px 18px; border-radius: var(--radius-sm); box-shadow: var(--inset-sm); }
+  .item-result-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .item-result-num { font-size: 14px; font-weight: 700; color: var(--accent); }
+  .item-result-verdict { font-size: 13.5px; font-weight: 700; padding: 2px 10px; border-radius: 999px; margin-left: auto; }
+  .item-result-verdict.정상 { background: var(--green-soft); color: var(--green); }
+  .item-result-verdict.경미 { background: var(--yellow-soft); color: var(--yellow); }
+  .item-result-verdict.주의 { background: var(--red-soft); color: var(--red); }
+  .item-result-q { font-size: 15.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
+  .item-result-reason { font-size: 14.5px; color: var(--text-sub); margin-bottom: 6px; }
+  .item-char { font-size: 13.5px; color: var(--text-sub); font-variant-numeric: tabular-nums; }
+
+  .answer-box { border-radius: 10px; padding: 12px 14px; margin-top: 6px; background: #EDF0F6; }
+  .answer-text { font-size: 15.5px; color: var(--text-main); line-height: 1.85; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; }
+  .hl { border-radius: 4px; padding: 1px 3px; cursor: help; }
+  .hl-legend { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13.5px; }
+  .hl-legend-item { display: flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 6px; }
+
+  /* 안내 상자 */
+  .info-box {
+    padding: 16px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-sub);
+    box-shadow: var(--inset-sm);
+  }
+  .info-box b, .info-box strong { color: var(--text-main); }
+  .info-box .ib-line { display: flex; align-items: flex-start; gap: 8px; }
+  .info-box .ib-line + .ib-line { margin-top: 8px; }
+  .info-box .ib-ic { flex-shrink: 0; width: 1.4em; text-align: center; }
+  .info-box a { color: var(--accent); font-weight: 600; text-decoration: none; }
+
+  /* ── 탐지 조건 설정 ── */
+  .setting-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 22px; margin-bottom: 20px; }
+  .setting-item { display: flex; flex-direction: column; gap: 9px; }
+  .setting-item.full { grid-column: 1 / -1; }
+  .setting-label { font-size: 15px; font-weight: 600; color: var(--text-main); display: flex; align-items: flex-start; gap: 6px; line-height: 1.45; }
+  .setting-label .sl-ic { flex-shrink: 0; width: 1.3em; text-align: center; }
+  .setting-label .req { color: var(--red); font-style: normal; }
+  .setting-desc { font-size: 14px; color: var(--text-sub); font-weight: 400; }
+
+  .step-block + .step-block { margin-top: 34px; }
+  .step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .step-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    color: var(--accent);
+    border-radius: 50%; font-size: 15px; font-weight: 700;
+    box-shadow: var(--raise-xs);
+    flex-shrink: 0;
+  }
+  .step-label { font-size: 17px; font-weight: 700; }
+
+  .criteria-builder { margin: 16px 0 18px; display: flex; flex-direction: column; gap: 16px; }
+  .criteria-group { border-radius: var(--radius-md); box-shadow: var(--raise-sm); overflow: hidden; }
+  .criteria-group-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .criteria-group-head .cg-label { font-size: 16px; font-weight: 700; flex: 1; }
+  .criteria-group-head .cg-count { font-size: 13.5px; color: var(--text-sub); padding: 2px 10px; border-radius: 999px; box-shadow: var(--inset-sm); }
+  .criteria-group.collapsed .caret { transform: rotate(-90deg); }
+  .criteria-group.blind .cg-label { color: #B4441B; }
+  .criteria-group.insincere .cg-label { color: #94620A; }
+  .criteria-group.etc .cg-label { color: #6040C8; }
+  .criteria-group-body { padding: 0 20px 18px; }
+  .criteria-group.collapsed .criteria-group-body { display: none; }
+
+  .criteria-item { border-top: 1px solid var(--line); padding: 14px 0; }
+  .criteria-item-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .criteria-item-name {
+    font-size: 15.5px; font-weight: 600; flex: 1; min-width: 120px;
+    color: var(--text-main);
+  }
+  /* 이름을 고칠 수 없는 항목은 일반 글자처럼, 고칠 수 있는 항목은 입력칸처럼 보이게 구분 */
+  .criteria-item-name.fixed { padding: 4px 0; }
+  .criteria-item-name[readonly] { cursor: default; background: transparent; border: none; padding: 4px 0; outline: none; }
+  .criteria-item-name.editable {
+    padding: 6px 12px; border: 1.5px solid var(--input-border); border-radius: 9px;
+    background: var(--input-bg); box-shadow: inset 1px 1px 3px rgba(152,167,191,0.35); outline: none;
+  }
+  .criteria-item-name.editable:hover { border-color: var(--input-border-hover); }
+  .criteria-item-name.editable:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 4px var(--input-focus-ring); }
+  .criteria-auto-note { font-size: 14px; color: var(--text-sub); margin: 6px 0 0 56px; }
+
+  /* 켜기/끄기 스위치 */
+  .switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; display: inline-block; }
+  .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .slider {
+    position: absolute; inset: 0; border-radius: 99px; cursor: pointer;
+    background: #C9D0DC; border: 1.5px solid var(--input-border);
+    box-shadow: inset 1px 1px 3px rgba(100,115,140,0.35); transition: background .2s, border-color .2s;
+  }
+  .slider::before {
+    content: ''; position: absolute; top: 2px; left: 2px; width: 19px; height: 19px; border-radius: 50%;
+    background: #fff; box-shadow: 1px 1px 3px rgba(60,70,90,0.35);
+    transition: transform .2s;
+  }
+  .switch input:checked + .slider { background: var(--accent); border-color: var(--accent); }
+  .switch input:checked + .slider::before { transform: translateX(20px); }
+  .switch input:focus-visible + .slider { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .judge-badge { font-size: 13px; font-weight: 600; padding: 3px 11px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; box-shadow: var(--inset-sm); }
+  .judge-badge.auto   { color: var(--green); }
+  .judge-badge.ai     { color: var(--accent); }
+  .judge-badge.hybrid { color: var(--yellow); }
+
+  .criteria-toggle-detail {
+    font-size: 13.5px; color: var(--accent); background: var(--bg); border: none; cursor: pointer;
+    padding: 5px 12px; border-radius: 999px; flex-shrink: 0; font-weight: 600; box-shadow: var(--raise-xs);
+  }
+  .criteria-toggle-detail:active { box-shadow: var(--inset-sm); }
+
+  .criteria-detail-fields { display: none; flex-direction: column; gap: 14px; margin: 16px 0 4px 56px; }
+  .criteria-item.open .criteria-detail-fields { display: flex; }
+  .cdf-label { font-size: 13.5px; font-weight: 700; color: var(--text-sub); margin-bottom: 7px; }
+  .cdf-label.good { color: var(--red); }
+  .cdf-label.excl { color: var(--green); }
+  .cdf-textarea { font-size: 14.5px; line-height: 1.7; resize: vertical; padding: 11px 14px; }
+  .cdf-compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .criteria-add-form { display: flex; gap: 12px; margin-top: 14px; }
+  .criteria-add-form .field { flex: 1; font-size: 15px; padding: 10px 14px; }
+
+  .prompt-status { font-size: 13.5px; padding: 4px 12px; border-radius: 999px; font-weight: 700; box-shadow: var(--inset-sm); white-space: nowrap; }
+  .prompt-status.draft { color: var(--text-sub); }
+  .prompt-status.stale { color: var(--yellow); }
+  .prompt-status.confirmed { color: var(--green); }
+
+  .prompt-editor {
+    min-height: 240px;
+    font-size: 14.5px;
+    font-family: 'JetBrains Mono', 'Noto Sans KR', monospace;
+    line-height: 1.75;
+    resize: vertical;
+    padding: 16px 18px;
+  }
+
+  /* ── 미리보기 표 ── */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); box-shadow: var(--inset-sm); padding: 6px; }
+  .sample-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .sample-table th { color: var(--text-sub); padding: 10px 14px; text-align: center; font-weight: 700; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  .sample-table td { padding: 10px 14px; color: var(--text-main); vertical-align: top; text-align: center; border-bottom: 1px solid var(--line); }
+  .sample-table tr:last-child td { border-bottom: none; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .preview-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .ok-pill { font-size: 13.5px; color: var(--green); padding: 3px 12px; border-radius: 999px; font-weight: 700; box-shadow: var(--inset-sm); }
+  .muted { font-size: 14.5px; color: var(--text-sub); }
+
+  .empty-note { text-align: center; padding: 30px 10px; color: var(--text-light); font-size: 15.5px; }
+
+  /* ── 알림 ── */
+  .toast-wrap { position: fixed; top: 86px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: min(360px, calc(100vw - 40px)); }
+  .toast {
+    background: #2F3747; color: #fff;
+    padding: 13px 17px; border-radius: var(--radius-sm);
+    font-size: 15px; line-height: 1.55;
+    box-shadow: 6px 6px 16px rgba(40,50,70,0.35);
+    opacity: 0; transform: translateY(-6px);
+    transition: opacity .25s, transform .25s;
+    white-space: pre-line;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.warn { background: #9A5B05; }
+  .toast.error { background: var(--red); }
+  .toast.success { background: var(--green); }
+
+  /* ── 1단계: 모델 고르기 카드 ── */
+  .model-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .model-opt { position: relative; display: block; cursor: pointer; }
+  .model-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .mo-box {
+    display: flex; flex-direction: column; gap: 4px; height: 100%;
+    padding: 16px 18px; border-radius: var(--radius-md);
+    border: 2px solid transparent; box-shadow: var(--raise-sm);
+    transition: box-shadow .15s, border-color .15s;
+  }
+  .model-opt:hover .mo-box { border-color: var(--line); }
+  .model-opt input:checked + .mo-box { border-color: var(--accent); box-shadow: var(--inset-sm); }
+  .model-opt input:focus-visible + .mo-box { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .mo-tag { font-size: 13.5px; font-weight: 700; color: var(--accent); }
+  .mo-name { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 600; color: var(--text-main); }
+  .mo-desc { font-size: 14px; color: var(--text-sub); line-height: 1.6; }
+  .mo-check { position: absolute; top: 12px; right: 14px; font-size: 15px; color: var(--accent); font-weight: 700; opacity: 0; transition: opacity .15s; }
+  .model-opt input:checked + .mo-box .mo-check { opacity: 1; }
+
+  /* ── 2단계: 세부 단계 표시 ── */
+  .substepper { list-style: none; display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+  .ss-dot {
+    width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 10px 4px 9px; border: none; border-radius: var(--radius-sm); background: var(--bg);
+    cursor: pointer; color: var(--text-sub); font-size: 13.5px; font-weight: 600; line-height: 1.3;
+    box-shadow: var(--raise-xs); transition: box-shadow .15s, color .15s;
+  }
+  .ss-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13.5px; font-weight: 700; line-height: 1; box-shadow: var(--inset-sm);
+  }
+  .ss-dot.current { color: var(--accent); box-shadow: var(--inset-sm); }
+  .ss-dot.current .ss-num { background: var(--accent); color: #fff; box-shadow: none; }
+  .ss-dot.done .ss-num { background: var(--accent-soft); color: var(--accent); }
+  .ss-caption { text-align: center; font-size: 14.5px; color: var(--text-sub); margin-top: 14px; }
+  .ss-caption b { color: var(--accent); }
+
+  .substep { display: none; }
+  .substep.active { display: block; animation: pageIn .25s ease; }
+
+  .quick-start {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap;
+    padding: 16px 20px; border-radius: var(--radius-md); box-shadow: var(--inset-sm);
+    font-size: 15px; color: var(--text-sub);
+  }
+  .quick-start b { color: var(--text-main); }
+
+  .preset-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 22px; }
+  .preset-label { font-size: 14.5px; font-weight: 700; color: var(--text-sub); margin-right: 2px; }
+  .preset-chip {
+    padding: 7px 16px; border-radius: 999px; font-size: 14.5px; font-weight: 600;
+    border: none; background: var(--bg); cursor: pointer; color: var(--text-sub);
+    box-shadow: var(--raise-xs); transition: box-shadow .15s, color .15s;
+  }
+  .preset-chip small { font-weight: 500; opacity: .85; margin-left: 4px; }
+  .preset-chip.active { color: var(--accent); box-shadow: var(--inset-sm); }
+
+  .num-unit { display: flex; align-items: center; gap: 10px; }
+  .num-unit .setting-input { flex: 1; }
+  .num-unit .unit { font-size: 15px; font-weight: 600; color: var(--text-sub); }
+  .range { width: 100%; accent-color: var(--accent); cursor: pointer; }
+  .setting-input.invalid { border-color: var(--red); box-shadow: 0 0 0 4px var(--red-soft); }
+  .field-error { display: none; margin: -6px 0 18px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--red-soft); color: var(--red); font-size: 14.5px; font-weight: 600; }
+  .field-error.show { display: block; }
+
+  .scale-title { font-size: 14.5px; font-weight: 700; color: var(--text-sub); margin-bottom: 10px; }
+  .scale { display: flex; gap: 4px; padding: 4px; border-radius: 14px; box-shadow: var(--inset-sm); }
+  .scale-seg {
+    min-width: 0; padding: 8px 10px; border-radius: 10px; text-align: center;
+    font-size: 14px; font-weight: 700; line-height: 1.4; transition: flex-grow .3s;
+  }
+  .scale-seg small { display: block; font-size: 13px; font-weight: 500; }
+  .scale-seg.red { background: var(--red-soft); color: var(--red); }
+  .scale-seg.yellow { background: var(--yellow-soft); color: var(--yellow); }
+  .scale-seg.green { background: var(--green-soft); color: var(--green); }
+  .scale-seg.gray { background: transparent; color: var(--text-sub); font-weight: 500; }
+
+  .tag-input {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    min-height: 52px; padding: 8px 10px; cursor: text;
+    border: 1.5px solid var(--input-border); border-radius: var(--radius-sm);
+    background: var(--input-bg); box-shadow: inset 2px 2px 4px rgba(152,167,191,0.35);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .tag-input:hover { border-color: var(--input-border-hover); }
+  .tag-input:focus-within { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 4px var(--input-focus-ring); }
+  .tag-input input { flex: 1; min-width: 180px; border: none; outline: none; background: transparent; font-size: 16px; padding: 4px 6px; color: var(--text-main); }
+  .tag {
+    display: inline-flex; align-items: center; gap: 2px;
+    padding: 3px 4px 3px 12px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent-deep); font-size: 14.5px; font-weight: 600;
+  }
+  .tag button {
+    width: 24px; height: 24px; border: none; border-radius: 50%; background: transparent;
+    color: inherit; font-size: 17px; line-height: 1; cursor: pointer;
+  }
+  .tag button:hover { background: rgba(58,82,201,0.15); }
+
+  .group-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 18px 0 6px; }
+  .group-tools .btn-row { margin-top: 0; gap: 10px; }
+  .criteria-list .criteria-item:first-child { border-top: none; }
+  .criteria-list.insincere .criteria-item-name { color: var(--text-main); }
+
+  .summary-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .summary-list li { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); box-shadow: var(--inset-sm); }
+  .sm-k { font-size: 15px; font-weight: 700; color: var(--text-main); min-width: 150px; display: flex; gap: 8px; }
+  .sm-v { flex: 1; min-width: 0; font-size: 15px; color: var(--text-sub); }
+  .link-btn { border: none; background: none; color: var(--accent); font-size: 14.5px; font-weight: 700; cursor: pointer; padding: 4px 6px; border-radius: 8px; white-space: nowrap; }
+  .link-btn:hover { background: var(--accent-soft); }
+
+  .advanced { margin-top: 22px; border-radius: var(--radius-md); box-shadow: var(--raise-sm); }
+  .advanced > summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 16px 20px; cursor: pointer; font-size: 16px; font-weight: 700; }
+  .advanced > summary::-webkit-details-marker { display: none; }
+  .advanced[open] > summary .caret { transform: rotate(180deg); }
+  .advanced-body { padding: 0 20px 20px; }
+
+  /* ── 3단계: 적용 조건 요약줄 · 글자 수 실시간 판정 ── */
+  .cond-strip {
+    display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap;
+    padding: 14px 20px; border-radius: var(--radius-md); box-shadow: var(--inset-sm);
+    font-size: 14.5px; color: var(--text-sub);
+  }
+  .cond-strip b { color: var(--text-main); }
+  .cond-strip .cs-sep { color: var(--text-light); }
+  .cond-strip .link-btn { margin-left: auto; }
+  .cc-v { font-weight: 700; margin-left: 8px; }
+  .cc-v.정상 { color: var(--green); }
+  .cc-v.경미 { color: var(--yellow); }
+  .cc-v.주의 { color: var(--red); }
+
+  /* ── 4단계: 결과 검색 ── */
+  .result-search { margin-left: auto; width: 240px; padding: 8px 14px; font-size: 15px; }
+
+  @media (max-width: 640px) {
+    .layout { padding: 22px 16px 64px; gap: 26px; }
+    .header { padding: 14px 16px 10px; }
+    .header h1 { font-size: 19px; }
+    .header-icon { width: 36px; height: 36px; font-size: 18px; }
+    .sd-num { width: 34px; height: 34px; font-size: 14.5px; }
+    .stepper li + li::before { top: 16px; right: calc(50% + 22px); left: calc(-50% + 22px); }
+    .sd-label { font-size: 12.5px; }
+    .page-title h2 { font-size: 21px; }
+    .flow-list { grid-template-columns: 1fr; }
+    .wizard-nav .btn { flex: 1; min-width: 0; }
+    .result-actions { width: 100%; }
+    .result-actions .btn { flex: 1 1 100%; }
+    .stat-box { padding: 16px 6px; }
+    .card-body, .tab-content { padding-left: 18px; padding-right: 18px; }
+    .card-header { padding: 18px; }
+    .tabs-wrap { padding: 18px 18px 0; }
+    .setting-grid, .cdf-compare-grid { grid-template-columns: 1fr; }
+    .criteria-detail-fields, .criteria-auto-note { margin-left: 0; }
+    .stat-row { gap: 12px; }
+    .stat-num { font-size: 26px; }
+    select { min-width: 0; width: 100%; }
+    .model-options { grid-template-columns: 1fr; }
+    .substepper { gap: 6px; }
+    .ss-dot { padding: 8px 2px; }
+    .ss-label { display: none; }
+    .summary-list li { flex-wrap: wrap; }
+    .sm-k { min-width: 0; width: 100%; }
+    .result-search { width: 100%; margin-left: 0; }
+    .cond-strip .link-btn { margin-left: 0; }
+    .criteria-add-form { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-row">
+    <span class="header-icon" aria-hidden="true">🔍</span>
+    <h1>자기소개서 불성실 탐지</h1>
+  </div>
+  <p class="subtitle">인공지능 기반 자동 검토 서비스 · 내부 시험용</p>
+</header>
+
+<!-- 단계 표시줄 -->
+<nav class="stepper-wrap" aria-label="진행 단계">
+  <ol class="stepper" id="stepper">
+    <li><button type="button" class="step-dot" data-step="1" onclick="goToStep(1)"><span class="sd-num">1</span><span class="sd-label">시작하기</span></button></li>
+    <li><button type="button" class="step-dot" data-step="2" onclick="goToStep(2)"><span class="sd-num">2</span><span class="sd-label">탐지 조건 설정</span></button></li>
+    <li><button type="button" class="step-dot" data-step="3" onclick="goToStep(3)"><span class="sd-num">3</span><span class="sd-label">자기소개서 입력</span></button></li>
+    <li><button type="button" class="step-dot" data-step="4" onclick="goToStep(4)"><span class="sd-num">4</span><span class="sd-label">결과 확인</span></button></li>
+  </ol>
+</nav>
+
+<main class="layout">
+
+  <!-- ════════ 1단계: 시작하기 ════════ -->
+  <div class="step-page active" data-page="1">
+    <div class="page-title">
+      <span class="pt-step">1단계</span>
+      <h2>시작하기</h2>
+      <p>서비스 내용과 유의사항을 확인하고, 사용할 인공지능 모델을 고릅니다.</p>
+    </div>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-icon" aria-hidden="true">📌</span><h3>서비스 소개</h3>
+      </div>
+      <div class="card-body">
+        <p class="body-text">
+          채용 담당자가 자기소개서의 <b>블라인드 채용 위배</b>(성명·출신 지역·가족관계·혼인 및 출산·성별·종교·출신 학교·나이 등)와
+          <b>불성실 기입</b>(글자 수 부족, 항목 간 복사·붙여넣기, 답변 공란, 의미 없는 반복, 다른 기관명 기재 등)을 자동으로 찾아 주는 도구입니다.
+        </p>
+        <p class="body-text" style="margin-top:10px;">
+          정답이 분명한 항목(글자 수·항목 간 유사도·공란)은 프로그램이 정해진 규칙대로 판정해 결과가 늘 같고,
+          문맥 판단이 필요한 항목은 인공지능이 2단계에서 설정한 기준과 예시를 참고해 판정합니다.
+          모든 결과는 <b>참고용 초안</b>이며, 최종 판단은 반드시 담당자가 직접 검토해야 합니다.
+        </p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-icon" aria-hidden="true">📝</span><h3>이용 순서</h3>
+      </div>
+      <div class="card-body">
+        <ol class="flow-list">
+          <li><span class="fl-num">1</span><div><b>시작하기</b><span>유의사항을 읽고 인공지능 모델을 고릅니다.</span></div></li>
+          <li><span class="fl-num">2</span><div><b>탐지 조건 설정</b><span>한 화면에 한두 가지씩, 7개의 짧은 화면을 차례로 넘기며 정합니다. 추천값 그대로 건너뛸 수도 있습니다.</span></div></li>
+          <li><span class="fl-num">3</span><div><b>자기소개서 입력</b><span>직접 입력하거나 엑셀 파일을 올린 뒤 탐지를 시작합니다.</span></div></li>
+          <li><span class="fl-num">4</span><div><b>결과 확인</b><span>근거 구절을 확인하고 엑셀·개별 보고서로 내려받습니다.</span></div></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <span class="card-icon" aria-hidden="true">⚠️</span><h3>유의사항</h3>
+      </div>
+      <div class="card-body">
+        <ul class="note-list">
+          <li>모든 결과는 참고용 초안입니다. 특히 <b>"주의"</b> 항목은 반드시 답변 원문을 직접 확인하세요.</li>
+          <li>이 화면은 <b>내부 시험용</b>으로, 오픈에이아이(OpenAI) 접속 키가 파일 안에 들어 있습니다. 외부에 공개된 주소나 저장소에 올리지 마세요.</li>
+          <li>인공지능 판정 시 오픈에이아이 계정 기준으로 비용이 발생합니다. 대량 처리 전에 소량으로 먼저 시험하세요.</li>
+          <li>인공지능 판정 항목을 켜면 자기소개서 내용이 오픈에이아이로 전송됩니다. 기관의 개인정보 처리 방침에 따라 사용 여부를 판단하세요.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="card-icon" aria-hidden="true">🤖</span><h3>인공지능 모델 고르기</h3></div>
+        <span class="key-status" id="keyStatus"><span class="dot"></span><span id="keyStatusText">확인 중</span></span>
+      </div>
+      <div class="card-body">
+        <div class="model-options" role="radiogroup" aria-label="인공지능 모델">
+          <label class="model-opt">
+            <input type="radio" name="model" value="gpt-4.1">
+            <span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">⚡ 빠르고 저렴함</span><span class="mo-name">gpt-4.1</span><span class="mo-desc">많은 인원을 빠르게 한 번 훑어볼 때 알맞습니다.</span></span>
+          </label>
+          <label class="model-opt">
+            <input type="radio" name="model" value="gpt-5" checked>
+            <span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">👍 기본 권장</span><span class="mo-name">gpt-5</span><span class="mo-desc">속도와 정확도가 균형 잡혀 있어 대부분의 경우에 맞습니다.</span></span>
+          </label>
+          <label class="model-opt">
+            <input type="radio" name="model" value="gpt-5.4">
+            <span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">🎯 정확도 우선</span><span class="mo-name">gpt-5.4</span><span class="mo-desc">판단이 까다로운 소수 인원을 꼼꼼히 볼 때 씁니다.</span></span>
+          </label>
+        </div>
+        <div class="hint-line" id="keyHint"></div>
+        <div class="hint-line">💡 고른 모델은 이 브라우저에 기억되어 다음에 열 때도 그대로 선택됩니다.</div>
+      </div>
+    </section>
+
+    <div class="wizard-nav">
+      <span></span>
+      <button type="button" class="btn btn-primary" onclick="goToStep(2)">다음: 탐지 조건 설정 <span aria-hidden="true">→</span></button>
+    </div>
+  </div>
+
+  <!-- ════════ 2단계: 탐지 조건 설정 ════════ -->
+  <div class="step-page" data-page="2" id="promptBody">
+    <div class="page-title">
+      <span class="pt-step">2단계</span>
+      <h2>탐지 조건 설정</h2>
+      <p>한 화면에 한두 가지씩 차례로 정합니다. 각 화면의 값은 추천값으로 미리 채워져 있어, 처음이라면 그대로 넘겨도 됩니다.</p>
+    </div>
+
+    <nav aria-label="탐지 조건 세부 단계">
+      <ol class="substepper" id="substepper"></ol>
+      <p class="ss-caption" id="ssCaption"></p>
+    </nav>
+
+    <div class="quick-start" id="quickStart">
+      <span>⚡ <b>처음이신가요?</b> 추천 설정 그대로 바로 자기소개서 입력으로 넘어갈 수 있습니다.</span>
+      <button type="button" class="btn btn-sm" onclick="skipToInput()">추천 설정으로 건너뛰기 <span aria-hidden="true">→</span></button>
+    </div>
+
+    <!-- 2-1. 글자 수 기준 -->
+    <section class="card substep" data-sub="1">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="sub-badge">1</span><h3>📏 글자 수 기준</h3></div>
+        <button type="button" class="btn btn-sm" onclick="resetSub(1)">↩️ 추천값으로</button>
+      </div>
+      <div class="card-body">
+        <div class="info-box" style="margin-bottom:20px;">
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">💡</span><span>답변이 너무 짧으면 성의 없이 쓴 것으로 봅니다. <b>공백을 뺀 글자 수</b>로 따지며, 아래 두 숫자로 정상·경미·주의를 나눕니다.</span></div>
+        </div>
+        <div class="preset-row" id="charPresets">
+          <span class="preset-label">빠른 선택</span>
+          <button type="button" class="preset-chip" data-min="30" data-warn="15">짧은 문항<small>30 / 15자</small></button>
+          <button type="button" class="preset-chip" data-min="50" data-warn="25">추천<small>50 / 25자</small></button>
+          <button type="button" class="preset-chip" data-min="100" data-warn="50">긴 문항<small>100 / 50자</small></button>
+        </div>
+        <div class="setting-grid">
+          <div class="setting-item">
+            <label class="setting-label" for="cfg_minChar"><span class="sl-ic" aria-hidden="true">🟢</span><span>"정상"으로 볼 최소 글자 수 <em class="req">*</em></span></label>
+            <div class="num-unit"><input class="setting-input" id="cfg_minChar" type="number" value="50" min="1" placeholder="예: 50"><span class="unit">자</span></div>
+            <span class="setting-desc">이 글자 수 이상이면 "정상"입니다.</span>
+          </div>
+          <div class="setting-item">
+            <label class="setting-label" for="cfg_warnChar"><span class="sl-ic" aria-hidden="true">🟡</span><span>"경미"로 볼 최소 글자 수</span></label>
+            <div class="num-unit"><input class="setting-input" id="cfg_warnChar" type="number" value="25" min="1" placeholder="예: 25"><span class="unit">자</span></div>
+            <span class="setting-desc">이보다 적으면 "주의"입니다. 위 숫자보다 작거나 같아야 합니다.</span>
+          </div>
+        </div>
+        <div class="field-error" id="err_sub1" role="alert"></div>
+        <div class="scale-title">미리 보기 — 이 기준이면 답변은 이렇게 판정됩니다</div>
+        <div class="scale" id="charScale"></div>
+      </div>
+    </section>
+
+    <!-- 2-2. 복사·붙여넣기 기준 -->
+    <section class="card substep" data-sub="2">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="sub-badge">2</span><h3>📄 복사·붙여넣기 기준</h3></div>
+        <button type="button" class="btn btn-sm" onclick="resetSub(2)">↩️ 추천값으로</button>
+      </div>
+      <div class="card-body">
+        <div class="info-box" style="margin-bottom:20px;">
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">💡</span><span>한 지원자의 항목끼리 답변을 비교해, 같은 글을 복사해 붙였는지 <b>프로그램이 직접 계산</b>합니다. 공백·문장부호를 뺀 20자 미만의 짧은 답변은 비교하지 않습니다.</span></div>
+        </div>
+        <div class="preset-row" id="simPresets">
+          <span class="preset-label">빠른 선택</span>
+          <button type="button" class="preset-chip" data-warn="65" data-minor="40">엄격하게<small>65 / 40%</small></button>
+          <button type="button" class="preset-chip" data-warn="75" data-minor="50">추천<small>75 / 50%</small></button>
+          <button type="button" class="preset-chip" data-warn="85" data-minor="65">느슨하게<small>85 / 65%</small></button>
+        </div>
+        <div class="setting-grid">
+          <div class="setting-item">
+            <label class="setting-label" for="cfg_simWarn"><span class="sl-ic" aria-hidden="true">🔴</span><span>"주의"로 볼 유사도</span></label>
+            <div class="num-unit"><input class="setting-input" id="cfg_simWarn" type="number" value="75" min="1" max="100" placeholder="예: 75"><span class="unit">%</span></div>
+            <input class="range" type="range" min="1" max="100" value="75" data-for="cfg_simWarn" aria-label='"주의" 유사도 조절'>
+            <span class="setting-desc">두 답변이 이만큼 이상 비슷하면 "주의"입니다.</span>
+          </div>
+          <div class="setting-item">
+            <label class="setting-label" for="cfg_simMinor"><span class="sl-ic" aria-hidden="true">🟡</span><span>"경미"로 볼 유사도</span></label>
+            <div class="num-unit"><input class="setting-input" id="cfg_simMinor" type="number" value="50" min="1" max="100" placeholder="예: 50"><span class="unit">%</span></div>
+            <input class="range" type="range" min="1" max="100" value="50" data-for="cfg_simMinor" aria-label='"경미" 유사도 조절'>
+            <span class="setting-desc">위 숫자보다 작거나 같아야 합니다.</span>
+          </div>
+        </div>
+        <div class="field-error" id="err_sub2" role="alert"></div>
+        <div class="scale-title">미리 보기 — 두 답변의 유사도에 따른 판정</div>
+        <div class="scale" id="simScale"></div>
+      </div>
+    </section>
+
+    <!-- 2-3. 기관 정보 -->
+    <section class="card substep" data-sub="3">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="sub-badge">3</span><h3>🏛️ 기관 정보와 추가 단어</h3></div>
+        <button type="button" class="btn btn-sm" onclick="resetSub(3)">↩️ 비우기</button>
+      </div>
+      <div class="card-body">
+        <div class="info-box" style="margin-bottom:20px;">
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">💡</span><span>두 칸 모두 <b>선택 사항</b>입니다. 비워 두어도 탐지는 정상적으로 진행됩니다.</span></div>
+        </div>
+        <div class="setting-grid">
+          <div class="setting-item full">
+            <label class="setting-label" for="cfg_orgName"><span class="sl-ic" aria-hidden="true">🏛️</span><span>우리 기관명</span></label>
+            <input class="setting-input" id="cfg_orgName" type="text" placeholder="지원 기관의 정식 명칭 (예: 한국○○공단)">
+            <span class="setting-desc">다른 곳에 냈던 자기소개서를 고쳐 쓰다가 <b>다른 기관명이 남아 있는지</b> 판단할 때 씁니다.</span>
+          </div>
+          <div class="setting-item full">
+            <label class="setting-label" for="blindWordInput"><span class="sl-ic" aria-hidden="true">🚫</span><span>블라인드 추가 탐지 단어</span></label>
+            <div class="tag-input" id="blindTagBox" onclick="if(event.target===this) document.getElementById('blindWordInput').focus()">
+              <input id="blindWordInput" type="text" placeholder="단어를 쓰고 Enter (예: ○○대학교)" autocomplete="off">
+            </div>
+            <input type="hidden" id="cfg_blindWords" value="">
+            <span class="setting-desc">답변에 이 단어가 나오면 "기타 블라인드 위배" 항목에서 바로 "주의"로 처리합니다. Enter나 쉼표(,)로 여러 개를 넣고, 붙여 넣은 목록도 쉼표 기준으로 나뉩니다.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2-4 ~ 2-6. 탐지 항목 (묶음별로 한 화면씩) -->
+    <section class="card substep" data-sub="4">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="sub-badge">4</span><h3>😐 불성실 기입 항목</h3><span class="cg-count badge" id="cnt-insincere"></span></div>
+        <button type="button" class="btn btn-sm" onclick="resetSub(4)">↩️ 기본 항목으로</button>
+      </div>
+      <div class="card-body">
+        <div class="info-box">
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">⚙️</span><span><b>규칙 판정</b> 항목(글자 수 부족·복사·붙여넣기 의심·답변 공란)은 앞 화면의 기준대로 <b>프로그램이 판정</b>하므로 결과가 늘 같습니다.</span></div>
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">🤖</span><span><b>인공지능 판정</b> 항목은 <b>세부 설정</b>에서 판정 기준과 예시를 고치면 그대로 반영됩니다.</span></div>
+        </div>
+        <div class="group-tools">
+          <span class="muted">필요 없는 항목은 스위치를 끄세요.</span>
+          <div class="btn-row"><button type="button" class="btn btn-sm" onclick="setGroupAll('불성실', true)">모두 켜기</button><button type="button" class="btn btn-sm" onclick="setGroupAll('불성실', false)">모두 끄기</button></div>
+        </div>
+        <div class="criteria-list insincere" id="cg-insincere"></div>
+      </div>
+    </section>
+
+    <section class="card substep" data-sub="5">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="sub-badge">5</span><h3>🚫 블라인드 채용 위배 항목</h3><span class="cg-count badge" id="cnt-blind"></span></div>
+        <button type="button" class="btn btn-sm" onclick="resetSub(5)">↩️ 기본 항목으로</button>
+      </div>
+      <div class="card-body">
+        <div class="info-box">
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">⚠️</span><span>블라인드 위배가 하나라도 나오면 정도와 상관없이 <b>종합 판정이 "주의"</b>로 올라갑니다.</span></div>
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">⚙️</span><span><b>병행 판정</b> 항목은 학교명·지역·나이 같은 뚜렷한 표현을 프로그램이 먼저 찾고, 인공지능이 문맥을 한 번 더 봅니다.</span></div>
+        </div>
+        <div class="group-tools">
+          <span class="muted">필요 없는 항목은 스위치를 끄세요.</span>
+          <div class="btn-row"><button type="button" class="btn btn-sm" onclick="setGroupAll('블라인드', true)">모두 켜기</button><button type="button" class="btn btn-sm" onclick="setGroupAll('블라인드', false)">모두 끄기</button></div>
+        </div>
+        <div class="criteria-list blind" id="cg-blind"></div>
+      </div>
+    </section>
+
+    <section class="card substep" data-sub="6">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="sub-badge">6</span><h3>📌 기타 항목 (직무 적합성 등)</h3><span class="cg-count badge" id="cnt-etc"></span></div>
+        <button type="button" class="btn btn-sm" onclick="resetSub(6)">↩️ 기본 항목으로</button>
+      </div>
+      <div class="card-body">
+        <div class="info-box">
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">➕</span><span>기관 고유의 기준이 있다면 아래 <b>새 탐지 항목 추가</b>로 직접 만들 수 있습니다. 이름만 넣어도 되고, 세부 설정에 기준과 예시를 적으면 더 정확해집니다.</span></div>
+        </div>
+        <div class="group-tools">
+          <span class="muted">필요 없는 항목은 스위치를 끄세요.</span>
+          <div class="btn-row"><button type="button" class="btn btn-sm" onclick="setGroupAll('기타', true)">모두 켜기</button><button type="button" class="btn btn-sm" onclick="setGroupAll('기타', false)">모두 끄기</button></div>
+        </div>
+        <div class="criteria-list etc" id="cg-etc"></div>
+      </div>
+    </section>
+
+    <!-- 2-7. 설정 확인 -->
+    <section class="card substep" data-sub="7">
+      <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+        <div class="ch-left"><span class="sub-badge">7</span><h3>✅ 설정 확인</h3></div>
+        <button type="button" class="btn btn-sm" onclick="resetConditions()" title="기본 기준·탐지 항목·세부 판정 기준·판정 지시문을 모두 처음 상태로 되돌립니다">↩️ 조건 전체 초기화</button>
+      </div>
+      <div class="card-body">
+        <p class="body-text" style="margin-bottom:16px;">지금까지 정한 조건입니다. 고칠 곳이 있으면 <b>수정</b>을 누르세요. 조건은 이 브라우저에 저장되어 다음에 열 때도 그대로 쓰입니다.</p>
+        <ul class="summary-list" id="condSummary"></ul>
+        <div class="info-box" id="aiNotice" style="margin-top:16px;"></div>
+
+        <details class="advanced" id="promptAdvanced">
+          <summary>
+            <span class="card-icon" aria-hidden="true">🛠️</span>
+            <span style="flex:1;">고급: 판정 지시문 직접 수정 <span class="muted" style="font-weight:500;">(선택)</span></span>
+            <span class="prompt-status draft" id="promptStatus">자동 생성 사용</span>
+            <span class="caret" aria-hidden="true">▾</span>
+          </summary>
+          <div class="advanced-body">
+            <div class="info-box" style="margin-bottom:16px;">
+              <div class="ib-line"><span class="ib-ic" aria-hidden="true">💡</span><span>손대지 않으면 위 조건으로 <b>자동 생성한 지시문</b>을 씁니다. 이 지시문은 <b>인공지능 판정 항목에만</b> 적용됩니다.</span></div>
+              <div class="ib-line"><span class="ib-ic" aria-hidden="true">✅</span><span>고친 뒤에는 반드시 <b>확정</b>을 눌러야 반영됩니다.</span></div>
+              <div class="ib-line"><span class="ib-ic" aria-hidden="true">🔖</span><span>각 기준 앞의 <b>[대괄호 식별자]</b>는 결과를 연결하는 데 쓰이니 지우거나 바꾸지 마세요.</span></div>
+            </div>
+            <div class="btn-row" style="margin-top:0;" id="promptGenRow">
+              <button type="button" class="btn btn-sm" onclick="generatePrompt()">✨ 판정 지시문 초안 만들기</button>
+            </div>
+            <div id="promptEditorSection" style="display:none;">
+              <textarea class="field prompt-editor" id="promptEditor" spellcheck="false" aria-label="판정 지시문"></textarea>
+              <div class="btn-row">
+                <button type="button" class="btn btn-primary btn-sm" onclick="confirmPrompt()">✅ 이 지시문으로 확정</button>
+                <button type="button" class="btn btn-sm" onclick="generatePrompt()">🔄 초안 다시 만들기</button>
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <div class="wizard-nav">
+      <button type="button" class="btn" id="subPrevBtn" onclick="subPrev()"><span aria-hidden="true">←</span> 이전</button>
+      <button type="button" class="btn btn-primary" id="subNextBtn" onclick="subNext()">다음 <span aria-hidden="true">→</span></button>
+    </div>
+  </div>
+
+  <!-- ════════ 3단계: 자기소개서 입력 ════════ -->
+  <div class="step-page" data-page="3">
+    <div class="page-title">
+      <span class="pt-step">3단계</span>
+      <h2>자기소개서 입력</h2>
+      <p>한 명은 직접 입력으로, 여러 명은 엑셀 파일로 한꺼번에 검토할 수 있습니다.</p>
+    </div>
+
+    <div class="cond-strip" id="condStrip"></div>
+
+    <section class="card">
+      <div class="tabs-wrap">
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab active" data-tab="text" role="tab">✏️ 직접 입력</button>
+          <button type="button" class="tab" data-tab="excel" role="tab">📊 엑셀 올리기</button>
+        </div>
+      </div>
+
+      <!-- 직접 입력 -->
+      <div id="tab-text" class="tab-content active">
+        <div class="setting-grid">
+          <div class="setting-item">
+            <label class="setting-label" for="txt_applicantNo"><span class="sl-ic" aria-hidden="true">🆔</span><span>수험번호 (선택)</span></label>
+            <input class="setting-input" id="txt_applicantNo" type="text" placeholder="예: 2024-001">
+          </div>
+          <div class="setting-item">
+            <label class="setting-label" for="txt_applicantField"><span class="sl-ic" aria-hidden="true">🏢</span><span>지원 직무 분야 (선택)</span></label>
+            <input class="setting-input" id="txt_applicantField" type="text" placeholder="예: 행정직, 연구직">
+          </div>
+        </div>
+        <div class="info-box" style="margin-bottom:20px;">
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">💡</span><span>각 자기소개서 항목(질문과 답변)을 입력하세요. 항목은 최대 10개까지 추가할 수 있습니다.</span></div>
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">📏</span><span>답변 아래 글자 수 옆에 2단계 기준으로 본 <b>글자 수 판정</b>이 바로 표시됩니다.</span></div>
+        </div>
+        <div class="items-list" id="itemsList"></div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-sm" onclick="addItem()">➕ 항목 추가</button>
+          <button type="button" class="btn btn-sm" onclick="clearAll()">🗑️ 전체 삭제</button>
+          <button type="button" class="btn btn-sm" onclick="fillExample()" title="여러 문제가 섞인 예시 답변으로 서비스를 미리 시험해 봅니다">🧪 예시 답변 넣어 보기</button>
+        </div>
+        <div class="divider" style="margin:24px 0 4px;"></div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" id="analyzeTextBtn" onclick="analyzeText()">🔍 불성실 탐지 시작</button>
+          <span class="hint-inline" id="textHint"></span>
+        </div>
+      </div>
+
+      <!-- 엑셀 올리기 -->
+      <div id="tab-excel" class="tab-content">
+        <div class="excel-guide">
+          <div class="excel-guide-head">
+            <strong>📋 엑셀 열 구성 (1행: 제목 / 2행부터: 자료)</strong>
+            <div class="btn-row" style="margin-top:0;">
+              <button type="button" class="btn btn-sm" onclick="downloadSample()">⬇️ 입력 양식 내려받기</button>
+              <button type="button" class="btn btn-sm" onclick="downloadSampleResult()">📊 결과 예시 내려받기</button>
+            </div>
+          </div>
+          <div class="col-list">
+            <span class="col-badge"><b>A</b>면접번호</span>
+            <span class="col-badge"><b>B</b>이름</span>
+            <span class="col-badge"><b>C</b>모집 분야</span>
+            <span class="col-badge"><b>D</b>전형 단계</span>
+            <span class="col-badge"><b>E</b>질문</span>
+            <span class="col-badge"><b>F</b>답변</span>
+          </div>
+          <p class="muted" style="margin-top:10px;">면접번호(A열)가 같은 행들은 한 지원자의 여러 항목으로 묶입니다.</p>
+        </div>
+
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('excelFile').click()">
+          <div class="upload-icon" aria-hidden="true">📂</div>
+          <p><strong>눌러서 고르거나</strong> 파일을 끌어다 놓으세요</p>
+          <p style="margin-top:4px; font-size:14.5px;">.xlsx / .xls 파일 지원</p>
+          <input type="file" id="excelFile" accept=".xlsx,.xls" onchange="handleExcel(this)">
+        </div>
+
+        <div id="excelPreview" style="display:none;">
+          <div class="preview-head">
+            <div class="ch-left">
+              <span style="font-size:16px; font-weight:700;">📋 불러온 자료 확인</span>
+              <span class="ok-pill" id="previewBadge"></span>
+            </div>
+            <button type="button" class="btn btn-sm" onclick="resetExcel()">✕ 파일 다시 고르기</button>
+          </div>
+          <div class="table-wrap">
+            <table class="sample-table">
+              <thead><tr><th>면접번호</th><th>이름</th><th>모집 분야</th><th>전형 단계</th><th>항목 수</th></tr></thead>
+              <tbody id="previewBody"></tbody>
+            </table>
+          </div>
+          <p class="muted" style="margin-top:10px;" id="previewNote">위 목록이 실제 분석에 사용됩니다. 잘못 불러왔다면 파일을 다시 고르세요.</p>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" id="analyzeExcelBtn" onclick="analyzeExcel()" disabled>🔍 일괄 탐지 시작</button>
+          <span class="hint-inline" id="excelHint"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 진행 상태 -->
+    <section class="card progress-card" id="progressCard">
+      <div class="card-body">
+        <div class="progress-top">
+          <span style="font-size:16px; font-weight:700;" id="progressTitle">분석 중</span>
+          <div class="ch-left">
+            <span style="font-size:15px;" class="mono" id="progressCount"></span>
+            <button type="button" class="btn btn-sm" id="cancelBtn" onclick="requestCancel()" style="display:none;">⏹ 분석 중단</button>
+          </div>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="progress-text" id="progressText">자기소개서를 검토하고 있습니다.</div>
+      </div>
+    </section>
+
+    <div class="wizard-nav">
+      <button type="button" class="btn" onclick="goToStep(2)"><span aria-hidden="true">←</span> 이전</button>
+      <button type="button" class="btn" id="toResultBtn" onclick="goToStep(4)" style="display:none;">지난 결과 보기 <span aria-hidden="true">→</span></button>
+    </div>
+  </div>
+
+  <!-- ════════ 4단계: 결과 확인 ════════ -->
+  <div class="step-page" data-page="4">
+    <div class="page-title">
+      <span class="pt-step">4단계</span>
+      <h2>결과 확인</h2>
+      <p>판정 결과를 확인하고, 필요하면 엑셀이나 개별 보고서로 내려받습니다.</p>
+    </div>
+
+    <section class="result-section" id="resultSection">
+      <div class="card">
+        <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
+          <div class="ch-left"><span class="card-icon" aria-hidden="true">📊</span><h3>탐지 결과</h3></div>
+          <div class="result-actions">
+            <button type="button" class="btn btn-sm" id="reportZipBtn" onclick="downloadReportsZip()" style="display:none;">📁 개별 보고서 (압축 파일)</button>
+            <button type="button" class="btn btn-sm btn-green" id="downloadBtn" onclick="downloadExcel()" style="display:none;">⬇️ 엑셀로 내려받기</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="stat-row" id="statRow"></div>
+          <div class="result-filter-bar" id="resultFilterBar" style="display:none;">
+            <span class="filter-label">걸러 보기</span>
+            <button type="button" class="filter-chip active" data-f="all" onclick="setResultFilter('all')">전체</button>
+            <button type="button" class="filter-chip" data-f="주의" onclick="setResultFilter('주의')">🔴 주의</button>
+            <button type="button" class="filter-chip" data-f="경미" onclick="setResultFilter('경미')">🟡 경미</button>
+            <button type="button" class="filter-chip" data-f="정상" onclick="setResultFilter('정상')">🟢 정상</button>
+            <button type="button" class="filter-chip" data-f="오류" onclick="setResultFilter('오류')" id="errChip" style="display:none;">⚪ 오류</button>
+            <input class="field result-search" id="resultSearch" type="search" placeholder="🔎 이름·면접번호 검색" aria-label="이름이나 면접번호로 검색" oninput="renderResultList()">
+          </div>
+          <div class="result-list" id="resultList"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="wizard-nav">
+      <button type="button" class="btn" onclick="goToStep(3)"><span aria-hidden="true">←</span> 입력 화면으로</button>
+      <button type="button" class="btn" onclick="goToStep(2)">탐지 조건 바꾸기</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- SheetJS (올린 엑셀 파일 읽기) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- ExcelJS (서식이 들어간 엑셀 파일 만들기) -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<!-- JSZip (개별 보고서 압축) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script>
+// ══════════════════════════════════════════
+// ★ 내장 접속 키 (내부 시험용)
+//   아래 따옴표 안에 오픈에이아이 접속 키(sk-로 시작)를 붙여 넣으세요.
+//   ※ 이 파일을 받은 사람은 누구나 소스 보기로 키를 볼 수 있습니다.
+//     공개 저장소·공개 웹 주소에 올리지 말고, 오픈에이아이 관리 화면에서 사용 한도를 꼭 설정하세요.
+// ══════════════════════════════════════════
+const EMBEDDED_API_KEY = '';
+
+// 동시에 처리할 지원자 수 (엑셀 일괄 탐지). 요청 제한 오류가 잦으면 1~2로 낮추세요.
+const CONCURRENCY = 3;
+
+// ──────────────────────────────────────────
+// 상태
+// ──────────────────────────────────────────
+let itemCount = 0;
+let allResults = [];
+let excelGroups = null;
+let sortedResults = [];
+let resultFilter = 'all';
+let cancelRequested = false;
+let confirmedPrompt = null;   // null이면 자동 생성 지시문 사용
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// 브라우저 저장소 접근이 막힌 환경(사생활 보호 창 등)에서도 오류 없이 동작하도록 감쌈
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+// 이전 버전에서 브라우저에 저장해 둔 접속 키가 남아 있지 않도록 정리
+lsDel('jasoReview_apiKey_v1');
+
+// ──────────────────────────────────────────
+// 알림
+// ──────────────────────────────────────────
+function toast(msg, type) {
+  type = type || 'info';
+  let wrap = document.querySelector('.toast-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'toast-wrap';
+    wrap.setAttribute('role', 'status');
+    document.body.appendChild(wrap);
+  }
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, type === 'error' ? 7000 : 4500);
+}
+
+// ──────────────────────────────────────────
+// 단계별 화면 이동
+// ──────────────────────────────────────────
+let currentStep = 1;
+function hasResults() { return allResults.length > 0; }
+function isBusy() { return document.getElementById('progressCard').classList.contains('show'); }
+
+function goToStep(n) {
+  if (n === currentStep) return;
+  if (isBusy()) { toast('분석이 진행 중입니다. 끝난 뒤에 이동할 수 있습니다.', 'warn'); return; }
+  if (n === 4 && !hasResults()) { toast('아직 결과가 없습니다. 3단계에서 탐지를 먼저 시작하세요.', 'warn'); return; }
+  // 탐지 조건 단계에서 앞으로 넘어갈 때 입력값을 먼저 확인하고, 문제가 있는 세부 화면으로 안내
+  if (currentStep === 2 && n > 2) {
+    commitBlindInput();
+    const bad = firstInvalidSub();
+    if (bad) { showSub(bad.sub); toast(bad.err, 'warn'); return; }
+  }
+  currentStep = n;
+  if (n === 2) showSub(currentSub);
+  if (n === 3) { renderCondStrip(); refreshCharCounts(); }
+  document.querySelectorAll('.step-page').forEach(pg => pg.classList.toggle('active', Number(pg.dataset.page) === n));
+  updateStepper();
+  document.querySelectorAll('.q-input').forEach(autoGrow);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateStepper() {
+  document.querySelectorAll('#stepper li').forEach(li => {
+    const btn = li.querySelector('.step-dot');
+    const k = Number(btn.dataset.step);
+    li.classList.toggle('current', k === currentStep);
+    li.classList.toggle('done', k < currentStep);
+    btn.disabled = (k === 4 && !hasResults());
+    if (k === currentStep) btn.setAttribute('aria-current', 'step'); else btn.removeAttribute('aria-current');
+    li.querySelector('.sd-num').textContent = k < currentStep ? '✓' : String(k);
+  });
+  document.getElementById('toResultBtn').style.display = hasResults() ? '' : 'none';
+}
+updateStepper();
+
+// ──────────────────────────────────────────
+// 내장 키 상태 표시 · 모델 선택 기억
+// ──────────────────────────────────────────
+function getApiKey() { return EMBEDDED_API_KEY.trim(); }
+function hasApiKey() { return getApiKey().startsWith('sk-'); }
+
+(function initKeyStatus() {
+  const box = document.getElementById('keyStatus');
+  const txt = document.getElementById('keyStatusText');
+  const hint = document.getElementById('keyHint');
+  if (hasApiKey()) {
+    // 보안상 키의 일부(앞·끝자리 포함)도 화면에 표시하지 않음
+    box.classList.add('ok');
+    txt.textContent = '내장 키 연결됨';
+    hint.innerHTML = '🔒 이 화면은 파일 안에 넣어 둔 접속 키로 오픈에이아이에 직접 요청합니다. 별도로 키를 입력할 필요가 없습니다.';
+  } else {
+    box.classList.add('missing');
+    txt.textContent = '내장 키 없음';
+    hint.innerHTML = '⚠️ 파일 안의 <code>EMBEDDED_API_KEY</code> 값이 비어 있습니다. 관리자가 키를 넣어야 인공지능 판정 항목을 쓸 수 있습니다. 규칙 판정 항목만 켜면 키 없이도 분석됩니다.';
+  }
+})();
+
+const MODEL_LS_KEY = 'jasoReview_model_v2';
+function getModel() {
+  const el = document.querySelector('input[name="model"]:checked');
+  return el ? el.value : 'gpt-5';
+}
+(function initModel() {
+  const radios = [...document.querySelectorAll('input[name="model"]')];
+  const saved = lsGet(MODEL_LS_KEY);
+  const hit = radios.find(r => r.value === saved);
+  if (hit) hit.checked = true;
+  radios.forEach(r => r.addEventListener('change', () => lsSet(MODEL_LS_KEY, getModel())));
+})();
+
+// ──────────────────────────────────────────
+// 탭 전환
+// ──────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ──────────────────────────────────────────
+// 직접 입력 항목
+// ──────────────────────────────────────────
+function addItem(q, a) {
+  q = q || ''; a = a || '';
+  if (itemCount >= 10) { toast('항목은 최대 10개까지 추가할 수 있습니다.', 'warn'); return; }
+  itemCount++;
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.innerHTML = `
+    <div class="item-header">
+      <span class="item-num">항목 ${itemCount}</span>
+      <button type="button" class="icon-btn" onclick="removeItem(this)" title="이 항목 삭제" aria-label="이 항목 삭제">×</button>
+    </div>
+    <div class="item-inputs">
+      <textarea class="field q-input" rows="1" placeholder="질문을 입력하세요 (예: 지원 동기를 작성하시오)" aria-label="질문" oninput="autoGrow(this)">${escHtml(q)}</textarea>
+      <textarea class="field a-input" placeholder="답변을 입력하세요" aria-label="답변" oninput="updateCharCount(this)">${escHtml(a)}</textarea>
+      <div class="char-count">0자 (공백 제외)</div>
+    </div>`;
+  document.getElementById('itemsList').appendChild(div);
+  if (a) updateCharCount(div.querySelector('.a-input'));
+  requestAnimationFrame(() => autoGrow(div.querySelector('.q-input')));
+  updateHint();
+}
+// 질문 칸은 내용 길이에 맞춰 높이가 늘어나 긴 질문도 잘리지 않게 함
+function autoGrow(ta) { if (!ta || ta.offsetParent === null) return; ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+window.addEventListener('resize', () => document.querySelectorAll('.q-input').forEach(autoGrow));
+
+function updateCharCount(ta) {
+  const count = ta.value.replace(/\s/g, '').length;
+  const el = ta.closest('.item-row').querySelector('.char-count');
+  if (!ta.value.trim()) { el.textContent = '0자 (공백 제외)'; return; }
+  const minChar = numOr('cfg_minChar', 50), warnChar = numOr('cfg_warnChar', 25);
+  const v = judgeCharCount(count, { minChar, warnChar });
+  const tip = v === '정상' ? '🟢 글자 수 정상' : `${v === '경미' ? '🟡' : '🔴'} 글자 수 ${v} · 정상 기준까지 ${minChar - count}자 부족`;
+  el.innerHTML = `${count}자 (공백 제외)<span class="cc-v ${v}">${tip}</span>`;
+}
+function refreshCharCounts() { document.querySelectorAll('.a-input').forEach(updateCharCount); }
+function removeItem(btn) {
+  btn.closest('.item-row').remove();
+  document.querySelectorAll('.item-row').forEach((el, i) => {
+    el.querySelector('.item-num').textContent = '항목 ' + (i + 1);
+  });
+  itemCount = document.querySelectorAll('.item-row').length;
+  updateHint();
+}
+function clearAll() {
+  if (!confirm('모든 항목을 삭제할까요?')) return;
+  document.getElementById('itemsList').innerHTML = '';
+  itemCount = 0;
+  updateHint();
+}
+function updateHint() {
+  document.getElementById('textHint').textContent = itemCount ? `${itemCount}개 항목 준비됨` : '';
+}
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escText(s) { return escHtml(s); }
+
+addItem('성장 과정 및 지원 동기를 기술하시오.', '');
+addItem('입사 후 포부를 기술하시오.', '');
+
+// ══════════════════════════════════════════
+// 탐지 항목(CRITERIA)
+//   묶음(불성실/블라인드/기타)별로 추가·삭제·수정할 수 있습니다.
+//   id는 인공지능 응답과 결과를 연결하는 고유 식별자이므로 영문·숫자·밑줄만 씁니다.
+// ══════════════════════════════════════════
+const CRITERIA_GROUPS = [
+  { key:'불성실', label:'😐 불성실 기입', cls:'insincere' },
+  { key:'블라인드', label:'🚫 블라인드 채용 위배', cls:'blind' },
+  { key:'기타', label:'📌 기타 (직무 적합성 등)', cls:'etc' },
+];
+
+function defaultCriteria() {
+  return [
+    // ── 불성실 · 규칙 판정 ──
+    { id:'def_char',  name:'글자 수 부족', group:'불성실', judge:'auto', engine:'charcount', core:true, enabled:true, rule:'', good:'', excl:'' },
+    { id:'def_sim',   name:'항목 간 복사·붙여넣기 의심', group:'불성실', judge:'auto', engine:'similarity', core:true, enabled:true, rule:'', good:'', excl:'' },
+    { id:'def_blank', name:'답변 공란', group:'불성실', judge:'auto', engine:'blank', core:true, enabled:true, rule:'', good:'', excl:'' },
+    // ── 불성실 · 인공지능 판정 ──
+    { id:'def_repeat', name:'의미 없는 반복', group:'불성실', judge:'ai', core:false, enabled:true,
+      rule:'- 같은 단어·구절이 3회 이상 연달아 반복되거나, 문장 없이 단어만 나열된 경우 → 주의\n- 같은 문장·표현이 답변 곳곳에서 되풀이되어 실제 내용이 빈약한 경우 → 경미\n- 강조를 위한 자연스러운 반복(2회 이내)이나 정상적인 문단 구성은 정상',
+      good:'"연구 연구 연구 열심히 하겠습니다"처럼 실제 내용 없이 단어만 나열',
+      excl:'"최선을 다해… 최선을 다하는 자세로"처럼 문맥 안에서 자연스럽게 강조하는 반복' },
+    { id:'def_orgname', name:'다른 기관명 기재', group:'불성실', judge:'ai', core:false, enabled:true,
+      rule:'- 지원 기관을 가리킬 때 위의 "우리 기관명"과 다른 기관명을 쓴 경우 → 주의\n- 우리 기관명과 3글자 이상 겹치면 단순 오타로 보고 제외',
+      good:'지원 기관이 아닌 다른 기관·회사 이름이 답변에 그대로 남아 있는 경우 (예: 다른 곳에 냈던 지원서를 고쳐 쓰다 남은 경우)',
+      excl:'우리 기관명을 띄어쓰기만 다르게 쓰거나 정식 명칭 대신 널리 쓰이는 짧은 명칭으로 쓴 경우' },
+    { id:'def_etcinsin', name:'기타 불성실 기입', group:'불성실', judge:'ai', core:false, enabled:true,
+      rule:'- 글자 수를 채우려는 의미 없는 문자·숫자·기호 나열 (예: ㅋㅋㅋ, 123123)\n- 질문과 전혀 관계없는 정형화된 문구를 그대로 옮겨 붙인 것으로 보이는 경우',
+      good:'"ㅁㄴㅇㄹㅁㄴㅇㄹ" 또는 "123123123123"처럼 의미 없는 문자 나열',
+      excl:'맞춤법이 다소 서툴지만 뜻이 통하는 문장' },
+    // ── 기타 · 인공지능 판정 ──
+    { id:'def_job', name:'직무와 무관한 내용', group:'기타', judge:'ai', core:false, enabled:true,
+      rule:'- 답변 전체가 질문·지원 직무와 전혀 관계없는 내용(무관한 취미 나열, 다른 직무 이야기 등) → 주의\n- 직무와의 연결이 약하고 어느 직무에나 쓸 수 있는 일반론뿐인 경우 → 경미\n- 성장 과정·가치관처럼 질문 특성상 직무와 간접적으로만 이어지는 답변은 정상\n- 질문이 직무와 무관한 주제(예: 취미)를 물었다면 그 주제에 충실한 답변은 정상',
+      good:'지원 직무·질문과 상관없이 반려동물 자랑만 길게 늘어놓은 경우',
+      excl:'"성장 과정" 질문에 가치관이 생긴 배경을 답하는 등 질문 취지에 맞는 간접 서술' },
+    // ── 블라인드 · 인공지능 판정 (일부는 규칙 탐지 병행) ──
+    { id:'def_name', name:'성명', group:'블라인드', judge:'ai', core:false, enabled:true,
+      rule:'- 본인·가족·지인의 실명을 적은 경우 → 주의',
+      good:'"제 이름은 홍길동이며..."처럼 본인 실명을 직접 적은 경우',
+      excl:'"저는", "본인은" 등 가리키는 말만 쓰고 실명은 언급하지 않은 경우' },
+    { id:'def_region', name:'출신 지역', group:'블라인드', judge:'ai', assist:'region', core:false, enabled:true,
+      rule:'- 본인의 출생지(고향), 연고지, 거주 지역·주소를 적은 경우 → 주의\n- 여행지·근무지 같은 단순 지역명 언급은 제외',
+      good:'"고향인 전주에서 나고 자라며..."',
+      excl:'"전국 각지의 지사를 다니며 근무했습니다"처럼 업무 맥락의 지역 언급' },
+    { id:'def_family', name:'가족관계', group:'블라인드', judge:'ai', assist:'family', core:false, enabled:true,
+      rule:'- 가족의 직업·재산·학력 등을 짐작할 수 있는 내용을 적은 경우 → 주의',
+      good:'"공무원이신 아버지를 보며 공직에 뜻을 품었습니다"',
+      excl:'"부모님의 가르침 덕분에..."처럼 직업을 특정하지 않는 경우' },
+    { id:'def_marriage', name:'혼인 및 출산', group:'블라인드', judge:'ai', core:false, enabled:true,
+      rule:'- 결혼·출산 사실, "엄마로서"·"아빠로서" 같은 호칭, 자녀·배우자 관련 내용을 적은 경우 → 주의',
+      good:'"두 아이의 엄마로서 시간 관리 능력을 키웠습니다"', excl:'' },
+    { id:'def_gender', name:'성별', group:'블라인드', judge:'ai', assist:'gender', core:false, enabled:true,
+      rule:'- 성별을 직간접적으로 짐작할 수 있는 표현(여성/남성, 병역 의무 복무, 경력 단절 여성 등) → 주의\n- 단, 장교·부사관 등 군 경력 자체를 적은 것은 허용',
+      good:'"여자로서 이 분야에 도전한다는 것은..."',
+      excl:'"학군장교로 복무하며 익힌 리더십"처럼 군 경력 자체를 언급하는 경우' },
+    { id:'def_religion', name:'종교', group:'블라인드', judge:'ai', core:false, enabled:true,
+      rule:'- 본인의 종교 관련 사항(모태신앙, 미사, 불공, 교회 활동 등)을 적은 경우 → 주의',
+      good:'"교회 활동을 하며 얻은 봉사 정신을 바탕으로..."',
+      excl:'종교적 맥락 없이 단순히 "봉사활동"만 언급하는 경우' },
+    { id:'def_school', name:'출신 학교', group:'블라인드', judge:'ai', assist:'school', core:false, enabled:true,
+      rule:'- 학교 이름, 학교 전자우편 주소, "○○ 소재 국립대학교" 등 출신 학교를 짐작할 수 있는 표현 → 주의\n- 단, 학교가 현재 또는 과거의 직장(근무지)인 경우는 제외',
+      good:'"서울대학교 재학 시절 과제를 진행하며..."',
+      excl:'"○○대학교 산학협력단에서 근무하며..."처럼 직장으로서 언급하는 경우' },
+    { id:'def_age', name:'나이 및 연령대', group:'블라인드', judge:'ai', assist:'age', core:false, enabled:true,
+      rule:'- 20대·30대, "불혹" 같은 나이 표현, 특정 연도 출생, 특정 사건이 있던 해에 태어남 등 나이를 짐작할 수 있는 표현 → 주의\n- 단, 직무 경험이나 경력 기간만 적은 것은 제외',
+      good:'"올해 서른이 되며 새로운 도전을 결심했습니다"',
+      excl:'"10년간 재무 업무를 담당하며..."처럼 경력 기간만 언급하는 경우' },
+    { id:'def_etcblind', name:'기타 블라인드 위배', group:'블라인드', judge:'ai', assist:'custom', core:false, enabled:true,
+      rule:'- 채용·직무와 관계없고 편견을 일으킬 수 있는 기타 내용(쓴 사람의 의도와 상관없이 편견을 부를 수 있는 내용 포함) → 주의\n- "기본 기준"의 "블라인드 추가 탐지 단어"가 답변에 들어 있으면 이 항목에 자동 반영됩니다.',
+      good:'특정 정치 성향이나 신체 조건을 드러내는 서술', excl:'' },
+  ];
+}
+
+let CRITERIA = defaultCriteria();
+let __critUidCounter = 0;
+function newCritId() { return 'c' + (++__critUidCounter) + '_' + Date.now().toString(36); }
+
+const RANK = { 정상: 0, 경미: 1, 주의: 2 };
+function worseOf(a, b) { return (RANK[a] ?? 0) >= (RANK[b] ?? 0) ? a : b; }
+
+const HL_PALETTE = [
+  { bg:'#FEF08A', fg:'#713F12' }, { bg:'#FCA5A5', fg:'#7F1D1D' },
+  { bg:'#C4B5FD', fg:'#3B0764' }, { bg:'#FDBA74', fg:'#431407' },
+  { bg:'#93C5FD', fg:'#1E3A8A' }, { bg:'#6EE7B7', fg:'#064E3B' },
+  { bg:'#F9A8D4', fg:'#831843' }, { bg:'#FDE68A', fg:'#78350F' },
+];
+function colorForType(name) {
+  let h = 0;
+  const s = String(name || '');
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return HL_PALETTE[h % HL_PALETTE.length];
+}
+
+// ──────────────────────────────────────────
+// 2단계 화면 그리기
+// ──────────────────────────────────────────
+function renderCriteriaBuilder() {
+  CRITERIA_GROUPS.forEach(g => {
+    const wrap = document.getElementById('cg-' + g.cls);
+    if (!wrap) return;
+    const items = CRITERIA.filter(c => c.group === g.key);
+    wrap.innerHTML = `
+      ${items.length ? items.map(c => renderCriteriaItem(c)).join('') : '<div class="empty-note">이 묶음에는 탐지 항목이 없습니다. 아래에서 추가하세요.</div>'}
+      <div class="criteria-add-form">
+        <input class="field" type="text" placeholder="새 탐지 항목 이름 (예: 특정 종교 시설명 언급)" id="addname_${g.key}" aria-label="새 탐지 항목 이름" onkeydown="if(event.key==='Enter'){event.preventDefault(); addCriteria('${g.key}');}">
+        <button type="button" class="btn btn-sm" onclick="addCriteria('${g.key}')">➕ 새 탐지 항목 추가</button>
+      </div>`;
+  });
+  updateGroupCounts();
+}
+
+function updateGroupCounts() {
+  CRITERIA_GROUPS.forEach(g => {
+    const wrap = document.getElementById('cg-' + g.cls);
+    const cnt = document.getElementById('cnt-' + g.cls);
+    if (!wrap || !cnt) return;
+    const total = wrap.querySelectorAll('.criteria-item').length;
+    const on = wrap.querySelectorAll('.criteria-check:checked').length;
+    cnt.textContent = `${on}/${total} 사용 중`;
+  });
+}
+
+function renderCriteriaItem(c) {
+  const judgeBadge = c.judge === 'auto'
+    ? `<span class="judge-badge auto">⚙️ 규칙 판정</span>`
+    : (c.assist ? `<span class="judge-badge hybrid">⚙️+🤖 병행 판정</span>` : `<span class="judge-badge ai">🤖 인공지능 판정</span>`);
+  const nameField = (c.core || c.judge === 'auto')
+    ? `<span class="criteria-item-name fixed">${escText(c.name)}</span>`
+    : `<input class="criteria-item-name editable" value="${escHtml(c.name)}" title="눌러서 항목 이름 수정" aria-label="탐지 항목 이름">`;
+  const detailToggle = c.judge === 'ai'
+    ? `<button type="button" class="criteria-toggle-detail" onclick="toggleCriteriaDetail(this)">세부 설정 ▾</button>` : '';
+  const delBtn = !c.core
+    ? `<button type="button" class="icon-btn" onclick="removeCriteria('${c.id}')" title="이 항목 삭제" aria-label="이 항목 삭제">×</button>` : '';
+  const notes = {
+    charcount: '1번 화면 "글자 수 기준"대로 자동 판정합니다.',
+    similarity: '2번 화면 "복사·붙여넣기 기준"대로 항목끼리 비슷한 정도를 자동 계산합니다.',
+    blank: '답변이 비어 있으면 이유와 상관없이 "주의"로 처리합니다.',
+  };
+  const autoNote = c.engine ? `<div class="criteria-auto-note">${notes[c.engine]}</div>` : '';
+  const detailFields = c.judge === 'ai' ? `
+    <div class="criteria-detail-fields">
+      <div>
+        <div class="cdf-label">📐 판정 기준</div>
+        <textarea class="field cdf-textarea cdf-rule" rows="3" placeholder="예: 답변에 특정 정당·정치인을 지지하는 표현이 있으면 주의">${escHtml(c.rule || '')}</textarea>
+      </div>
+      <div class="cdf-compare-grid">
+        <div>
+          <div class="cdf-label good">✅ 탐지 사례 (위반 예시)</div>
+          <textarea class="field cdf-textarea cdf-good" rows="3" placeholder="예: 저는 ○○당을 지지하며...">${escHtml(c.good || '')}</textarea>
+        </div>
+        <div>
+          <div class="cdf-label excl">⛔ 제외 사례 (위반 아님)</div>
+          <textarea class="field cdf-textarea cdf-excl" rows="3" placeholder="예: 단순한 시사 문제 언급, 정치와 무관한 사회 문제 서술">${escHtml(c.excl || '')}</textarea>
+        </div>
+      </div>
+    </div>` : '';
+
+  return `
+  <div class="criteria-item" data-cid="${c.id}">
+    <div class="criteria-item-row">
+      <label class="switch" title="사용 여부"><input class="criteria-check" type="checkbox" ${c.enabled ? 'checked' : ''} onchange="onCriteriaToggle(this)"><span class="slider"></span></label>
+      ${nameField}
+      ${judgeBadge}
+      ${detailToggle}
+      ${delBtn}
+    </div>
+    ${autoNote}
+    ${detailFields}
+  </div>`;
+}
+
+function toggleCriteriaDetail(btn) {
+  const item = btn.closest('.criteria-item');
+  item.classList.toggle('open');
+  btn.textContent = item.classList.contains('open') ? '세부 설정 ▴' : '세부 설정 ▾';
+}
+function onCriteriaToggle(chk) { updateGroupCounts(); }
+
+function syncCriteriaFromDom() {
+  document.querySelectorAll('.criteria-item').forEach(el => {
+    const item = CRITERIA.find(c => c.id === el.dataset.cid);
+    if (!item) return;
+    const chk = el.querySelector('.criteria-check');
+    if (chk) item.enabled = chk.checked;
+    const nameInput = el.querySelector('.criteria-item-name');
+    if (nameInput && nameInput.tagName === 'INPUT') {
+      const v = nameInput.value.trim();
+      if (v) item.name = v;
+    }
+    if (item.judge === 'ai') {
+      const r = el.querySelector('.cdf-rule'), g = el.querySelector('.cdf-good'), x = el.querySelector('.cdf-excl');
+      if (r) item.rule = r.value;
+      if (g) item.good = g.value;
+      if (x) item.excl = x.value;
+    }
+  });
+}
+
+function addCriteria(groupKey) {
+  syncCriteriaFromDom();
+  const input = document.getElementById('addname_' + groupKey);
+  const name = (input.value || '').trim();
+  if (!name) { toast('추가할 탐지 항목의 이름을 입력하세요.', 'warn'); return; }
+  if (CRITERIA.some(c => c.name === name)) { toast(`"${name}" 항목이 이미 있습니다. 다른 이름을 쓰세요.`, 'warn'); return; }
+  const item = { id:newCritId(), name, group:groupKey, judge:'ai', core:false, enabled:true, rule:'', good:'', excl:'' };
+  CRITERIA.push(item);
+  renderCriteriaBuilder();
+  markPromptStale();
+  saveConditions();
+  const el = document.querySelector(`.criteria-item[data-cid="${item.id}"]`);
+  if (el) {
+    el.classList.add('open');
+    const t = el.querySelector('.criteria-toggle-detail'); if (t) t.textContent = '세부 설정 ▴';
+    el.scrollIntoView({ behavior:'smooth', block:'center' });
+    const r = el.querySelector('.cdf-rule'); if (r) r.focus();
+  }
+}
+
+function removeCriteria(id) {
+  syncCriteriaFromDom();
+  const item = CRITERIA.find(c => c.id === id);
+  if (!item) return;
+  if (!confirm(`"${item.name}" 탐지 항목을 삭제할까요?`)) return;
+  CRITERIA = CRITERIA.filter(c => c.id !== id);
+  renderCriteriaBuilder();
+  markPromptStale();
+  saveConditions();
+}
+
+// 조건이 바뀌면 확정해 둔 지시문을 풀어, 예전 조건으로 판정되는 일을 막음
+function markPromptStale() {
+  if (!confirmedPrompt) return;
+  confirmedPrompt = null;
+  setPromptStatus('stale');
+  toast('탐지 조건이 바뀌어 확정한 지시문을 해제했습니다.\n지시문을 다시 확정하거나, 그대로 탐지하면 바뀐 조건으로 자동 생성한 지시문을 씁니다.', 'warn');
+}
+document.getElementById('promptBody').addEventListener('change', e => {
+  if (e.target.closest('.criteria-item') || e.target.id === 'cfg_orgName') markPromptStale();
+});
+
+// 화면 설정을 한 번에 읽어오기
+function numOr(id, dflt) {
+  const v = parseInt(document.getElementById(id).value, 10);
+  return Number.isFinite(v) && v > 0 ? v : dflt;
+}
+function getAnalysisConfig() {
+  syncCriteriaFromDom();
+  const minChar  = numOr('cfg_minChar', 50);
+  const warnChar = numOr('cfg_warnChar', Math.floor(minChar / 2));
+  const simWarn  = Math.min(100, numOr('cfg_simWarn', 75)) / 100;
+  const simMinor = Math.min(100, numOr('cfg_simMinor', 50)) / 100;
+  const blindWords = document.getElementById('cfg_blindWords').value.split(',').map(t => t.trim()).filter(Boolean);
+  const enabled = CRITERIA.filter(c => c.enabled);
+  return {
+    minChar, warnChar, simWarn, simMinor, blindWords, enabled,
+    orgName: document.getElementById('cfg_orgName').value.trim(),
+    aiCriteria: enabled.filter(c => c.judge === 'ai'),
+  };
+}
+function validateConfig(cfg) {
+  if (!cfg.enabled.length) return '탐지 항목을 하나 이상 켜 주세요. (4~6번 화면)';
+  if (cfg.warnChar > cfg.minChar) return '"경미 최소 글자 수"는 "정상 최소 글자 수"보다 작거나 같아야 합니다.';
+  if (cfg.simMinor > cfg.simWarn) return '복사·붙여넣기 "경미" 유사도는 "주의" 유사도보다 작거나 같아야 합니다.';
+  return null;
+}
+
+function generatePrompt() {
+  const cfg = getAnalysisConfig();
+  const err = validateConfig(cfg);
+  if (err) { toast(err, 'warn'); return; }
+  if (!cfg.aiCriteria.length) {
+    toast('인공지능 판정 항목이 하나도 켜져 있지 않습니다.\n규칙 판정 항목만으로 분석할 때는 지시문이 필요하지 않습니다.', 'warn');
+    return;
+  }
+  document.getElementById('promptEditor').value = buildSystemPrompt(cfg);
+  document.getElementById('promptEditorSection').style.display = '';
+  confirmedPrompt = null;
+  setPromptStatus('draft');
+  document.getElementById('promptEditorSection').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function confirmPrompt() {
+  const txt = document.getElementById('promptEditor').value.trim();
+  if (!txt) { toast('지시문을 먼저 만들거나 입력하세요.', 'warn'); return; }
+  const cfg = getAnalysisConfig();
+  const missing = cfg.aiCriteria.filter(c => !txt.includes(`[${c.id}]`));
+  if (missing.length) {
+    toast(`지시문에서 다음 항목의 식별자를 찾을 수 없습니다: ${missing.map(c => c.name).join(', ')}\n"초안 다시 만들기"로 새로 만든 뒤 고쳐 주세요.`, 'warn');
+    return;
+  }
+  confirmedPrompt = txt;
+  setPromptStatus('confirmed');
+  toast('판정 지시문을 확정했습니다.', 'success');
+}
+
+function resetConditions() {
+  if (!confirm('모든 탐지 조건(기본 기준·탐지 항목·세부 판정 기준·판정 지시문)을 처음 상태로 되돌릴까요?')) return;
+  document.getElementById('cfg_minChar').value = '50';
+  document.getElementById('cfg_warnChar').value = '25';
+  document.getElementById('cfg_simWarn').value = '75';
+  document.getElementById('cfg_simMinor').value = '50';
+  document.getElementById('cfg_orgName').value = '';
+  setBlindWords([]);
+  CRITERIA = defaultCriteria();
+  renderCriteriaBuilder();
+  confirmedPrompt = null;
+  document.getElementById('promptEditor').value = '';
+  document.getElementById('promptEditorSection').style.display = 'none';
+  setPromptStatus('draft');
+  lsDel(COND_LS_KEY);
+  syncAllSubViews();
+  toast('탐지 조건을 처음 상태로 되돌렸습니다.', 'success');
+}
+
+function setPromptStatus(state) {
+  const el = document.getElementById('promptStatus');
+  const map = {
+    confirmed: ['✅ 확정됨', 'confirmed'],
+    stale: ['⚠️ 다시 확정 필요', 'stale'],
+    draft: ['자동 생성 사용', 'draft'],
+  };
+  const [t, c] = map[state] || map.draft;
+  el.textContent = t;
+  el.className = 'prompt-status ' + c;
+}
+
+// ──────────────────────────────────────────
+// 판정 지시문 (인공지능 판정 항목 전용)
+// ──────────────────────────────────────────
+function formatCriteriaSection(title, list) {
+  if (!list.length) return '';
+  const lines = list.map(c => {
+    let s = `- [${c.id}] ${c.name}: ${c.rule && c.rule.trim() ? c.rule.trim() : '(판정 기준 미입력 — 항목 이름과 상식적인 기준으로 신중하게 판단)'}`;
+    if (c.good && c.good.trim()) s += `\n  · 탐지 사례(위반): ${c.good.trim()}`;
+    if (c.excl && c.excl.trim()) s += `\n  · 제외 사례(위반 아님): ${c.excl.trim()}`;
+    return s;
+  }).join('\n');
+  return `[${title}]\n${lines}`;
+}
+
+function buildSystemPrompt(cfg) {
+  cfg = cfg || getAnalysisConfig();
+  const ai = cfg.aiCriteria;
+  if (!ai.length) return '';
+  const insinTitle = '불성실 기입 판단 기준' + (cfg.orgName ? ` (우리 기관명: ${cfg.orgName} — 3글자 이상 겹치면 다른 기관명 기재에서 제외)` : '');
+  const sections = [
+    formatCriteriaSection('블라인드 채용 위배 판단 기준', ai.filter(c => c.group === '블라인드')),
+    formatCriteriaSection(insinTitle, ai.filter(c => c.group === '불성실')),
+    formatCriteriaSection('기타 판단 기준', ai.filter(c => c.group === '기타')),
+  ].filter(Boolean).join('\n\n');
+
+  return `당신은 채용 자기소개서가 블라인드 채용 원칙을 어겼는지, 불성실하게 작성되었는지를 가려내는 전문 평가자입니다.
+
+각 자기소개서 항목을 아래 기준으로만 평가하십시오. 글자 수 부족, 항목 간 복사·붙여넣기, 답변 공란은 별도 프로그램이 판정하므로 다루지 마십시오.
+
+반드시 다음 순서로 판단하십시오.
+1) 답변 원문에서 문제가 되는 구절을 고치지 말고 그대로 옮겨 "evidence"에 먼저 기록합니다.
+2) 기록한 근거만을 바탕으로 각 기준을 정상·경미·주의 중 하나로 판정합니다.
+3) 원문에서 근거를 찾지 못한 기준은 반드시 "정상"으로 판정합니다. 추측이나 확대 해석은 금지합니다.
+4) 각 기준의 "제외 사례"와 비슷한 경우는 위반으로 판정하지 않습니다. "탐지 사례"와 비슷할수록 위반을 적극적으로 검토합니다.
+
+각 기준 앞의 대괄호 안 글자는 응답에 쓰는 식별자입니다.
+
+${sections}
+
+응답 작성 규칙
+- "no"에는 사용자가 보낸 항목 번호([1], [2] …)를 그대로 넣습니다.
+- 각 기준 식별자(${ai.map(c => c.id).join(', ')}) 칸에는 정상·경미·주의 중 하나를 넣습니다.
+- "evidence"의 "text"는 답변 원문에 실제로 있는 연속된 글을 그대로 복사합니다(요약·수정 금지, 40자 이내). "type"에는 해당 기준의 식별자를 넣습니다. 한 항목당 최대 5개이며, 근거가 없으면 빈 배열로 둡니다.
+- "reason"에는 판정 이유를 한 문장으로 적습니다. 문제가 없으면 빈 문자열로 둡니다.`;
+}
+
+// 응답 형식을 스키마로 강제 (속성 이름은 영문 식별자로 통일해 안정성을 높임)
+function buildResponseSchema(aiCriteria) {
+  const ids = aiCriteria.map(c => c.id);
+  const props = {
+    no: { type: 'integer', description: '항목 번호 (1부터 시작)' },
+    evidence: {
+      type: 'array',
+      description: '판정 전에 원문에서 그대로 옮긴 문제 구절 목록',
+      items: {
+        type: 'object',
+        properties: {
+          text: { type: 'string', description: '원문 구절 (수정 금지, 40자 이내)' },
+          type: { type: 'string', enum: ids, description: '해당 기준의 식별자' },
+        },
+        required: ['text', 'type'],
+        additionalProperties: false,
+      },
+    },
+  };
+  aiCriteria.forEach(c => {
+    props[c.id] = { type: 'string', enum: ['정상', '경미', '주의'], description: `${c.name} 판정` };
+  });
+  props.reason = { type: 'string', description: '판정 이유 한 문장 (문제가 없으면 빈 문자열)' };
+
+  return {
+    name: 'self_intro_review',
+    strict: true,
+    schema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          items: { type: 'object', properties: props, required: Object.keys(props), additionalProperties: false },
+        },
+      },
+      required: ['items'],
+      additionalProperties: false,
+    },
+  };
+}
+
+// 추론형 모델(gpt-5 계열, o 계열)은 temperature 값을 지원하지 않으므로 구분해서 보냄
+function isReasoningModel(model) { return /^(gpt-5|o\d)/.test(model); }
+
+// 오픈에이아이 호출 — 요청 제한·서버 오류는 자동으로 다시 시도, 키·모델 오류는 즉시 중단
+async function callOpenAI(model, userMsg, cfg) {
+  const body = {
+    model,
+    response_format: { type: 'json_schema', json_schema: buildResponseSchema(cfg.aiCriteria) },
+    messages: [
+      { role: 'system', content: confirmedPrompt || buildSystemPrompt(cfg) },
+      { role: 'user', content: userMsg },
+    ],
+  };
+  if (isReasoningModel(model)) body.reasoning_effort = 'low';
+  else body.temperature = 0;
+
+  let lastErr = null;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (attempt > 0) await sleep(1000 * Math.pow(2, attempt - 1));
+    let res;
+    try {
+      res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getApiKey()}` },
+        body: JSON.stringify(body),
+      });
+    } catch (e) {
+      lastErr = new Error('네트워크 연결 오류입니다. 인터넷 연결이나 사내 차단 여부를 확인하세요.');
+      continue;
+    }
+    let data = null;
+    try { data = await res.json(); } catch (e) {}
+
+    if (res.ok && data && data.choices && data.choices[0]) {
+      const msg = data.choices[0].message || {};
+      if (msg.refusal) throw new Error('모델이 응답을 거부했습니다: ' + msg.refusal);
+      try { return JSON.parse(msg.content); }
+      catch (e) { lastErr = new Error('모델 응답을 해석하지 못했습니다.'); continue; }
+    }
+
+    const raw = (data && data.error && data.error.message) || `응답 코드 ${res.status}`;
+    const err = new Error(friendlyApiError(res.status, raw));
+    err.status = res.status;
+    if (res.status === 429 || res.status >= 500) { lastErr = err; continue; }
+    err.fatal = [401, 403, 404].includes(res.status);
+    throw err;
+  }
+  throw lastErr || new Error('알 수 없는 오류가 발생했습니다.');
+}
+function friendlyApiError(status, raw) {
+  if (status === 401) return '내장 접속 키가 올바르지 않거나 만료되었습니다. (' + raw + ')';
+  if (status === 403) return '이 키로는 해당 모델을 쓸 권한이 없습니다. (' + raw + ')';
+  if (status === 404) return '선택한 모델을 찾을 수 없습니다. 다른 모델을 고르세요. (' + raw + ')';
+  if (status === 429) return '요청 한도를 넘었거나 사용 금액 한도에 도달했습니다. (' + raw + ')';
+  if (status === 400) return '요청 형식 오류입니다. 모델을 바꿔 다시 시도해 보세요. (' + raw + ')';
+  return raw;
+}
+
+// ──────────────────────────────────────────
+// 규칙 판정: 글자 수
+// ──────────────────────────────────────────
+function judgeCharCount(n, cfg) {
+  return n >= cfg.minChar ? '정상' : (n >= cfg.warnChar ? '경미' : '주의');
+}
+
+// ──────────────────────────────────────────
+// 규칙 판정: 항목 간 유사도 (두 글자 단위 다이스 계수)
+// ──────────────────────────────────────────
+function normForSim(s) { return String(s).replace(/[\s.,!?~'"‘’“”()\[\]·\-‧]/g, ''); }
+function bigramSet(s) {
+  const set = new Set();
+  for (let i = 0; i < s.length - 1; i++) set.add(s.substr(i, 2));
+  return set;
+}
+function diceSim(a, b) {
+  const A = bigramSet(a), B = bigramSet(b);
+  if (!A.size || !B.size) return 0;
+  let inter = 0;
+  A.forEach(g => { if (B.has(g)) inter++; });
+  return 2 * inter / (A.size + B.size);
+}
+function judgeSimilarity(items, cfg) {
+  const norm = items.map(x => normForSim(x.답변));
+  return items.map((_, i) => {
+    let best = 0, bestJ = -1;
+    for (let j = 0; j < items.length; j++) {
+      if (i === j) continue;
+      if (norm[i].length < 20 || norm[j].length < 20) continue; // 아주 짧은 답변은 제외
+      const s = diceSim(norm[i], norm[j]);
+      if (s > best) { best = s; bestJ = j; }
+    }
+    const v = best >= cfg.simWarn ? '주의' : (best >= cfg.simMinor ? '경미' : '정상');
+    return { verdict: v, note: v !== '정상' ? `항목${bestJ + 1}과 유사도 ${Math.round(best * 100)}%` : '' };
+  });
+}
+
+// ──────────────────────────────────────────
+// 규칙 판정: 블라인드 명시 위반 탐색 (인공지능 판정 보조)
+// ──────────────────────────────────────────
+function blindRuleScan(text, cfg) {
+  const cats = { school: [], region: [], gender: [], age: [], family: [], custom: [] };
+  const pats = {
+    school: [
+      /[가-힣A-Za-z]{2,10}(대학교|대학원|고등학교|여자고등학교|외국어고등학교|과학고|국제고|마이스터고)/g,
+      /(서울대|연세대|고려대|성균관대|한양대|중앙대|경희대|서강대|이화여대|숙명여대|한국외대|시립대|부산대|경북대|전남대|충남대|충북대|전북대|카이스트|KAIST|포스텍|POSTECH|유니스트|UNIST|지스트|GIST)(?![가-힣])/g,
+    ],
+    region: [
+      /(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청|충북|충남|전라|전북|전남|경상|경북|경남|제주)[가-힣]{0,4}\s*(출신|토박이)/g,
+      /고향[은이]?\s*[가-힣]{2,8}|[가-힣]{2,6}에서\s*(태어나|태어났|나고\s*자랐)/g,
+    ],
+    gender: [/(남자|여자|남성|여성)(로서|으로서|이기\s*때문|이라서|라서)/g],
+    age: [/(저는|올해|현재|만)\s*[1-9]\d\s*(살|세)|[1-9]\d\s*(살|세)(입니다|이며|로서)/g],
+    family: [/(아버지|어머니|아빠|엄마|부모님|형|누나|오빠|언니)[은는이가께서]{0,2}\s*[가-힣A-Za-z\s]{0,8}(공무원|의사|교사|교수|경찰|군인|판사|검사|변호사|약사|간호사|사업|대표|임원)/g],
+  };
+  const collect = (cat, re) => {
+    const seen = new Set(cats[cat]);
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const phrase = m[0].trim();
+      if (phrase && !seen.has(phrase)) { seen.add(phrase); cats[cat].push(phrase); }
+      if (m.index === re.lastIndex) re.lastIndex++;
+    }
+  };
+  Object.entries(pats).forEach(([cat, list]) => list.forEach(re => collect(cat, re)));
+  if (cfg.blindWords.length) {
+    const esc = cfg.blindWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    collect('custom', new RegExp('(' + esc + ')', 'g'));
+  }
+  return cats;
+}
+
+// ──────────────────────────────────────────
+// 최종 병합: 규칙 판정 + 인공지능 판정 → 항목 판정 / 종합 판정
+// ──────────────────────────────────────────
+function emptyRowGroup() {
+  return { 블라인드: { v:'정상', types:[], ev:[] }, 불성실: { v:'정상', types:[], ev:[] }, 기타: { v:'정상', types:[], ev:[] } };
+}
+
+function buildFinalResult(items, llm, cfg) {
+  const enabled = cfg.enabled;
+  const simEnabled = enabled.some(c => c.engine === 'similarity');
+  const simRes = simEnabled ? judgeSimilarity(items, cfg) : null;
+  const critById = {}, critByName = {};
+  enabled.forEach(c => { critById[c.id] = c; critByName[c.name] = c; });
+
+  // 인공지능 응답을 순서가 아닌 항목 번호(no)로 연결 — 순서가 어긋나도 안전
+  const byNo = {};
+  ((llm && llm.items) || []).forEach((x, k) => {
+    const n = Number(x && x.no) || (k + 1);
+    if (!byNo[n]) byNo[n] = x;
+  });
+
+  const perItem = items.map((it, idx) => {
+    const answer = it.답변 || '';
+    const n = answer.replace(/\s/g, '').length;
+    const row = { 번호: idx + 1, 글자수: n, 문제구절: [], values: {} };
+    const reasons = [];
+    const ai = byNo[idx + 1] || {};
+    const hits = blindRuleScan(answer, cfg);
+
+    enabled.forEach(c => {
+      let v = '정상';
+      if (c.engine === 'charcount') {
+        v = judgeCharCount(n, cfg);
+        if (v !== '정상' && answer.trim()) reasons.push(`글자 수 ${n}자 (정상 기준 ${cfg.minChar}자)`);
+      } else if (c.engine === 'similarity') {
+        const sr = simRes[idx];
+        v = sr.verdict;
+        if (sr.note) reasons.push(sr.note);
+      } else if (c.engine === 'blank') {
+        v = answer.trim() ? '정상' : '주의';
+        if (v !== '정상') reasons.push('답변 공란');
+      } else {
+        const aiV = ['정상','경미','주의'].includes(ai[c.id]) ? ai[c.id] : '정상';
+        let ruleV = '정상';
+        if (c.assist && hits[c.assist] && hits[c.assist].length) {
+          ruleV = '주의';
+          reasons.push(`${c.name} 규칙 탐지 ${hits[c.assist].length}건`);
+          hits[c.assist].slice(0, 5).forEach(h => row.문제구절.push({ 구절: h, 유형: c.name }));
+        }
+        v = worseOf(ruleV, aiV);
+      }
+      row.values[c.name] = v;
+    });
+
+    // 인공지능 근거 구절 병합 (원문에 실제로 있는 것만, 중복 제거)
+    (ai.evidence || []).forEach(p => {
+      const crit = p && critById[p.type];
+      const t = p && p.text ? String(p.text).trim() : '';
+      if (!crit || !t || !answer.includes(t)) return;
+      if (!row.문제구절.some(x => x.구절 === t && x.유형 === crit.name)) row.문제구절.push({ 구절: t, 유형: crit.name });
+    });
+    if (ai.reason) reasons.push(ai.reason);
+
+    let v = '정상';
+    Object.values(row.values).forEach(vv => { v = worseOf(v, vv); });
+    row.항목판정 = v;
+    row.사유 = reasons.join(' / ') || (v === '정상' ? '특이사항 없음' : '');
+
+    row.rowGroup = emptyRowGroup();
+    enabled.forEach(c => {
+      const vv = row.values[c.name];
+      if (!vv || vv === '정상') return;
+      const g = row.rowGroup[c.group];
+      g.v = worseOf(g.v, vv);
+      if (!g.types.includes(c.name)) g.types.push(c.name);
+    });
+    row.문제구절.forEach(p => {
+      const crit = critByName[p.유형];
+      const g = row.rowGroup[crit ? crit.group : '기타'];
+      if (p.구절) g.ev.push(p.구절);
+    });
+    return row;
+  });
+
+  const groupVerdict = { 블라인드: '정상', 불성실: '정상', 기타: '정상' };
+  const groupTypes = { 블라인드: [], 불성실: [], 기타: [] };
+  const groupEvidence = { 블라인드: [], 불성실: [], 기타: [] };
+  perItem.forEach(row => {
+    enabled.forEach(c => {
+      const v = row.values[c.name];
+      if (!v || v === '정상') return;
+      groupVerdict[c.group] = worseOf(groupVerdict[c.group], v);
+      const label = `항목${row.번호} ${c.name}(${v})`;
+      if (!groupTypes[c.group].includes(label)) groupTypes[c.group].push(label);
+    });
+    Object.keys(row.rowGroup).forEach(g => groupEvidence[g].push(...row.rowGroup[g].ev));
+  });
+
+  // 블라인드 위배는 경중과 상관없이 즉시 확인이 필요하므로 종합 판정을 "주의"로 올림
+  let overall = '정상';
+  perItem.forEach(row => { overall = worseOf(overall, row.항목판정); });
+  if (groupVerdict.블라인드 !== '정상') overall = '주의';
+
+  const parts = [];
+  ['블라인드', '불성실', '기타'].forEach(g => {
+    if (groupVerdict[g] !== '정상') parts.push(`[${g}] ${groupTypes[g].join(', ')}`);
+  });
+
+  return { 항목: perItem, 종합판정: overall, 종합사유: parts.join(' | ') || '모든 기준 정상',
+           그룹판정: groupVerdict, 그룹유형: groupTypes, 그룹근거: groupEvidence };
+}
+
+function buildUserMsg(items, contextLines) {
+  const ctx = contextLines.filter(Boolean).join('\n');
+  return (ctx ? ctx + '\n\n' : '') + items.map((x, i) =>
+    `[${i+1}] 질문: ${x.질문}\n답변(공백 제외 ${x.답변.replace(/\s/g,'').length}자): ${x.답변 || '(공란)'}`
+  ).join('\n\n');
+}
+
+function preflight(cfg) {
+  const err = validateConfig(cfg);
+  if (err) { toast(err, 'warn'); return false; }
+  if (cfg.aiCriteria.length && !hasApiKey()) {
+    toast('내장 접속 키가 설정되지 않아 인공지능 판정을 할 수 없습니다.\n관리자에게 키 설정을 요청하거나, 인공지능 판정 항목을 모두 끄고 규칙 판정만 실행하세요.', 'error');
+    return false;
+  }
+  return true;
+}
+
+// ──────────────────────────────────────────
+// 직접 입력 분석
+// ──────────────────────────────────────────
+async function analyzeText() {
+  const cfg = getAnalysisConfig();
+  if (!preflight(cfg)) return;
+
+  const rows = document.querySelectorAll('.item-row');
+  if (!rows.length) { toast('분석할 항목을 하나 이상 추가하세요.', 'warn'); return; }
+
+  const items = [...rows].map(row => ({
+    질문: row.querySelector('.q-input').value.trim() || '(질문 없음)',
+    답변: row.querySelector('.a-input').value.trim(),
+  }));
+  if (items.every(x => !x.답변)) { toast('답변이 모두 비어 있습니다. 답변을 입력하세요.', 'warn'); return; }
+
+  const applicantNo = document.getElementById('txt_applicantNo').value.trim();
+  const applicantField = document.getElementById('txt_applicantField').value.trim();
+  const userMsg = buildUserMsg(items, [
+    applicantNo ? `수험번호: ${applicantNo}` : '',
+    applicantField ? `지원 직무 분야: ${applicantField}` : '',
+  ]);
+
+  setProgress(true, '분석 중', '', 5, false);
+  document.getElementById('analyzeTextBtn').disabled = true;
+  try {
+    let llm = null;
+    if (cfg.aiCriteria.length) {
+      updateProgress(40, '🤖 인공지능이 자기소개서를 검토하고 있습니다.');
+      llm = await callOpenAI(getModel(), userMsg, cfg);
+    }
+    updateProgress(85, '⚙️ 규칙 판정과 결과 집계를 하고 있습니다.');
+    const result = buildFinalResult(items, llm, cfg);
+    updateProgress(100, '✅ 분석을 마쳤습니다.');
+    allResults = [{ name: applicantNo || '지원자', field: applicantField, stage: '', 면접번호: applicantNo, result, items }];
+    setTimeout(() => { setProgress(false); renderResults(allResults); }, 400);
+  } catch (e) {
+    setProgress(false);
+    toast('오류: ' + e.message, 'error');
+  } finally {
+    document.getElementById('analyzeTextBtn').disabled = false;
+  }
+}
+
+// ──────────────────────────────────────────
+// 엑셀 처리
+// ──────────────────────────────────────────
+function handleExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (typeof XLSX === 'undefined') { toast('엑셀 읽기 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.', 'error'); return; }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      if (data.length < 2) { toast('자료가 없습니다. 1행은 제목, 2행부터 자료를 넣어 주세요.', 'warn'); return; }
+
+      const groups = {};
+      let skipped = 0;
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const key = String(row[0] ?? '').trim();
+        if (!key) { if (row.some(v => String(v).trim())) skipped++; continue; }
+        if (!groups[key]) {
+          groups[key] = { 면접번호: key, 이름: String(row[1] ?? '').trim(), 모집분야: String(row[2] ?? '').trim(), 전형단계: String(row[3] ?? '').trim(), 항목: [] };
+        }
+        groups[key].항목.push({ 질문: String(row[4] ?? '').trim() || '(질문 없음)', 답변: String(row[5] ?? '').trim() });
+      }
+
+      const list = Object.values(groups);
+      if (!list.length) { toast('A열(면접번호)에 자료가 없습니다. 파일 구성을 확인하세요.', 'error'); return; }
+      excelGroups = groups;
+
+      const tbody = document.getElementById('previewBody');
+      tbody.innerHTML = list.map(g => `
+        <tr>
+          <td class="mono">${escText(g.면접번호)}</td>
+          <td><strong>${escText(g.이름 || '-')}</strong></td>
+          <td>${escText(g.모집분야 || '-')}</td>
+          <td>${escText(g.전형단계 || '-')}</td>
+          <td style="font-weight:700; color:var(--accent);">${g.항목.length}개</td>
+        </tr>`).join('');
+
+      const totalItems = list.reduce((s, g) => s + g.항목.length, 0);
+      document.getElementById('previewBadge').textContent = `총 ${list.length}명 · ${totalItems}개 항목`;
+      document.getElementById('previewNote').textContent = skipped
+        ? `⚠️ 면접번호가 비어 있는 ${skipped}개 행은 제외했습니다. 위 목록이 실제 분석에 사용됩니다.`
+        : '위 목록이 실제 분석에 사용됩니다. 잘못 불러왔다면 파일을 다시 고르세요.';
+      document.getElementById('excelPreview').style.display = '';
+      document.getElementById('uploadZone').style.display = 'none';
+      document.getElementById('analyzeExcelBtn').disabled = false;
+      document.getElementById('excelHint').textContent = `${list.length}명 분석 준비 완료` + estimateText(list.length);
+    } catch (err) {
+      toast('엑셀 파일을 읽는 중 오류가 발생했습니다.\n' + err.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function resetExcel() {
+  excelGroups = null;
+  document.getElementById('excelFile').value = '';
+  document.getElementById('excelPreview').style.display = 'none';
+  document.getElementById('uploadZone').style.display = '';
+  document.getElementById('analyzeExcelBtn').disabled = true;
+  document.getElementById('excelHint').textContent = '';
+  document.getElementById('previewBody').innerHTML = '';
+}
+
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const input = document.getElementById('excelFile');
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    handleExcel(input);
+  }
+});
+
+function requestCancel() {
+  cancelRequested = true;
+  const btn = document.getElementById('cancelBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 진행 중인 건만 마무리';
+}
+
+async function analyzeExcel() {
+  const cfg = getAnalysisConfig();
+  if (!preflight(cfg)) return;
+  if (!excelGroups) { toast('엑셀 파일을 먼저 올려 주세요.', 'warn'); return; }
+
+  const model = getModel();
+  const entries = Object.values(excelGroups);
+  const total = entries.length;
+  const results = new Array(total);
+  let next = 0, done = 0, fatalError = null;
+  cancelRequested = false;
+
+  document.getElementById('analyzeExcelBtn').disabled = true;
+  setProgress(true, `${total}명 분석 중`, `0 / ${total}`, 0, true);
+  const poolSize = cfg.aiCriteria.length ? Math.max(1, Math.min(CONCURRENCY, total)) : 1;
+  const startedAt = Date.now();
+
+  async function analyzeOne(c) {
+    const userMsg = buildUserMsg(c.항목, [
+      c.모집분야 ? `모집 분야: ${c.모집분야}` : '',
+      c.전형단계 ? `전형 단계: ${c.전형단계}` : '',
+    ]);
+    let result;
+    try {
+      const llm = cfg.aiCriteria.length ? await callOpenAI(model, userMsg, cfg) : null;
+      result = buildFinalResult(c.항목, llm, cfg);
+    } catch (e) {
+      if (e.fatal && !fatalError) { fatalError = e; cancelRequested = true; }
+      result = { 종합판정: '오류', 종합사유: e.message, 항목: [], 그룹판정:{}, 그룹유형:{}, 그룹근거:{} };
+    }
+    return { name: c.이름 || c.면접번호, field: c.모집분야, stage: c.전형단계, 면접번호: c.면접번호, result, items: c.항목 };
+  }
+
+  async function worker() {
+    while (!cancelRequested) {
+      const i = next++;
+      if (i >= total) return;
+      updateProgress(Math.round((done / total) * 100), `${entries[i].이름 || entries[i].면접번호} 님을 분석하고 있습니다.`);
+      results[i] = await analyzeOne(entries[i]);
+      done++;
+      document.getElementById('progressCount').textContent = `${done} / ${total}`;
+      const left = total - done;
+      const perOne = (Date.now() - startedAt) / done;
+      const eta = left ? ` · 남은 시간 약 ${formatDuration(perOne * left / poolSize)}` : '';
+      updateProgress(Math.round((done / total) * 100), `${done}명 완료${eta}`);
+    }
+  }
+
+  await Promise.all(Array.from({ length: poolSize }, worker));
+
+  allResults = results.filter(Boolean);
+  updateProgress(100, cancelRequested ? '⏹ 분석을 중단했습니다.' : '✅ 전체 분석을 마쳤습니다.');
+  setTimeout(() => {
+    setProgress(false);
+    if (allResults.length) renderResults(allResults);
+    document.getElementById('analyzeExcelBtn').disabled = false;
+    if (fatalError) toast('분석을 멈췄습니다.\n' + fatalError.message, 'error');
+    else if (cancelRequested) toast(`분석을 중단했습니다. 끝난 ${allResults.length}명의 결과만 표시합니다.`, 'warn');
+    const errN = allResults.filter(r => r.result.종합판정 === '오류').length;
+    if (!fatalError && errN) toast(`${errN}명은 오류로 판정하지 못했습니다. "오류"로 걸러 보면 이유를 볼 수 있습니다.`, 'warn');
+  }, 400);
+}
+
+// ──────────────────────────────────────────
+// 진행 상태
+// ──────────────────────────────────────────
+function setProgress(show, title, count, pct, cancellable) {
+  document.getElementById('progressCard').classList.toggle('show', show);
+  if (!show) return;
+  if (title) document.getElementById('progressTitle').textContent = title;
+  document.getElementById('progressCount').textContent = count || '';
+  document.getElementById('progressBar').style.width = (pct || 0) + '%';
+  const btn = document.getElementById('cancelBtn');
+  btn.style.display = cancellable ? '' : 'none';
+  btn.disabled = false;
+  btn.textContent = '⏹ 분석 중단';
+  document.getElementById('progressCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function updateProgress(pct, text) {
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressText').textContent = text;
+}
+
+// ──────────────────────────────────────────
+// 결과 화면
+// ──────────────────────────────────────────
+function renderResults(results) {
+  const sec = document.getElementById('resultSection');
+  sec.classList.add('show');
+
+  const counts = { 정상: 0, 경미: 0, 주의: 0, 오류: 0 };
+  results.forEach(r => { const v = r.result.종합판정 || '오류'; counts[v] = (counts[v] || 0) + 1; });
+
+  document.getElementById('statRow').innerHTML = `
+    <div class="stat-box red"><div class="stat-num">${counts.주의}</div><div class="stat-label">🔴 주의</div></div>
+    <div class="stat-box yellow"><div class="stat-num">${counts.경미}</div><div class="stat-label">🟡 경미</div></div>
+    <div class="stat-box green"><div class="stat-num">${counts.정상}</div><div class="stat-label">🟢 정상</div></div>
+    ${counts.오류 ? `<div class="stat-box gray"><div class="stat-num">${counts.오류}</div><div class="stat-label">⚪ 오류</div></div>` : ''}`;
+
+  const order = { 주의: 0, 경미: 1, 정상: 2, 오류: 3 };
+  sortedResults = [...results].sort((a, b) => (order[a.result.종합판정] ?? 3) - (order[b.result.종합판정] ?? 3));
+
+  const filterBar = document.getElementById('resultFilterBar');
+  filterBar.style.display = results.length > 1 ? 'flex' : 'none';
+  document.getElementById('errChip').style.display = counts.오류 ? '' : 'none';
+  resultFilter = 'all';
+  document.getElementById('resultSearch').value = '';
+  filterBar.querySelectorAll('.filter-chip').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
+  renderResultList();
+
+  // 직접 입력 결과도 엑셀·개별 보고서로 내려받을 수 있음
+  document.getElementById('downloadBtn').style.display = 'inline-flex';
+  const flaggedCount = results.filter(r => ['주의','경미'].includes(r.result.종합판정)).length;
+  const zipBtn = document.getElementById('reportZipBtn');
+  zipBtn.style.display = flaggedCount > 0 ? 'inline-flex' : 'none';
+  zipBtn.textContent = `📁 개별 보고서 ${flaggedCount}건 (압축 파일)`;
+
+  // 한 명만 분석했다면 결과를 바로 펼쳐 보여 줌
+  if (results.length === 1) { const c = document.getElementById('rc-0'); if (c) c.classList.add('open'); }
+  goToStep(4);
+  updateStepper();
+}
+
+function setResultFilter(f) {
+  resultFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+  renderResultList();
+}
+
+function highlightText(text, phrases) {
+  if (!phrases || !phrases.length) return escText(text);
+  const positions = [];
+  for (const p of phrases) {
+    const q = p.구절 || '';
+    if (!q) continue;
+    let start = 0;
+    while (true) {
+      const k = text.indexOf(q, start);
+      if (k === -1) break;
+      positions.push({ start: k, end: k + q.length, 유형: p.유형 || '' });
+      start = k + 1;
+    }
+  }
+  if (!positions.length) return escText(text);
+  positions.sort((a, b) => a.start - b.start || (b.end - a.end));
+  const merged = [];
+  for (const pos of positions) {
+    if (merged.length && pos.start < merged[merged.length - 1].end) continue;
+    merged.push(pos);
+  }
+  let out = '', cursor = 0;
+  for (const pos of merged) {
+    out += escText(text.slice(cursor, pos.start));
+    const col = colorForType(pos.유형);
+    out += `<mark class="hl" style="background:${col.bg};color:${col.fg}" title="${escHtml(pos.유형)}">${escText(text.slice(pos.start, pos.end))}</mark>`;
+    cursor = pos.end;
+  }
+  return out + escText(text.slice(cursor));
+}
+
+function legendHtmlFor(phrases, itemCls) {
+  const usedTypes = [...new Set((phrases || []).map(p => p.유형).filter(Boolean))];
+  if (!usedTypes.length) return '';
+  return `<div class="${itemCls}-legend">` + usedTypes.map(t => {
+    const col = colorForType(t);
+    return `<span class="${itemCls}-legend-item" style="background:${col.bg};color:${col.fg}">● ${escText(t)}</span>`;
+  }).join('') + `</div>`;
+}
+
+function renderResultList() {
+  const q = (document.getElementById('resultSearch').value || '').trim().toLowerCase();
+  const filtered = sortedResults
+    .filter(r => resultFilter === 'all' || (r.result.종합판정 || '오류') === resultFilter)
+    .filter(r => !q || [r.name, r.면접번호, r.field].some(s => String(s || '').toLowerCase().includes(q)));
+
+  if (!filtered.length) {
+    document.getElementById('resultList').innerHTML = `<div class="empty-note">해당하는 결과가 없습니다.</div>`;
+    return;
+  }
+
+  document.getElementById('resultList').innerHTML = filtered.map(r => {
+    const i = sortedResults.indexOf(r);
+    const v = r.result.종합판정 || '오류';
+    const perItem = r.result.항목 || [];
+    const gv = r.result.그룹판정 || {};
+
+    const groupTagsHtml = v === '오류' ? '' : ['블라인드', '불성실', '기타'].map(g => {
+      const x = gv[g] || '정상';
+      return `<span class="group-tag ${x}">${g} ${x}</span>`;
+    }).join('');
+
+    const flagged = new Set();
+    perItem.forEach(row => Object.entries(row.values || {}).forEach(([name, val]) => { if (val && val !== '정상') flagged.add(name); }));
+    const typeChipsHtml = [...flagged].map(name => {
+      const col = colorForType(name);
+      return `<span class="type-chip"><span class="dot" style="background:${col.bg}"></span>${escText(name)}</span>`;
+    }).join('');
+
+    const itemsHtml = r.items.map((item, idx) => {
+      const row = perItem[idx] || {};
+      const iv = row.항목판정 || '';
+      const phrases = row.문제구절 || [];
+      const charCount = row.글자수 ?? item.답변.replace(/\s/g, '').length;
+      return `
+        <div class="item-result">
+          <div class="item-result-head">
+            <span class="item-result-num">항목 ${idx + 1}</span>
+            <span class="item-char">${charCount}자</span>
+            ${iv ? `<span class="item-result-verdict ${iv}">${iv}</span>` : ''}
+          </div>
+          <div class="item-result-q">${escText(item.질문 || '(질문 없음)')}</div>
+          ${row.사유 ? `<div class="item-result-reason">💬 ${escText(row.사유)}</div>` : ''}
+          ${item.답변 ? `<div class="answer-box">${legendHtmlFor(phrases, 'hl')}<div class="answer-text">${highlightText(item.답변, phrases)}</div></div>` : ''}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="result-card v-${v}" id="rc-${i}">
+        <div class="result-card-head" onclick="toggleCard(${i})">
+          <div class="result-card-meta">
+            <span class="verdict-badge">${v}</span>
+            <div style="min-width:0;">
+              <div class="result-name">${escText(r.name || '지원자')} ${r.field ? `<span class="field">(${escText(r.field)})</span>` : ''}</div>
+              <div class="result-reason">${escText(r.result.종합사유 || '')}</div>
+            </div>
+          </div>
+          <span class="caret">▾</span>
+        </div>
+        <div class="result-card-body">
+          ${groupTagsHtml ? `<div class="criteria-grid">${groupTagsHtml}</div>` : ''}
+          ${typeChipsHtml ? `<div class="type-chip-row">${typeChipsHtml}</div>` : ''}
+          <div class="divider"></div>
+          <div class="item-results">${itemsHtml}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleCard(i) { document.getElementById('rc-' + i).classList.toggle('open'); }
+
+// ══════════════════════════════════════════
+// 엑셀 만들기 공통 도구 (ExcelJS)
+// ══════════════════════════════════════════
+const ROW_FILL = { 주의: 'FFFFC7CE', 경미: 'FFFFEB9C' }; // 빨강(블라인드 위배) · 노랑(불성실)
+
+function ensureExcelJS() {
+  if (typeof ExcelJS === 'undefined') {
+    toast('엑셀 만들기 도구를 불러오지 못했습니다.\n인터넷 연결이나 사내 차단 여부를 확인하세요.', 'error');
+    return false;
+  }
+  return true;
+}
+function styleHeaderAndFreeze(ws) {
+  const header = ws.getRow(1);
+  header.height = 26;
+  header.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4A63D8' } };
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  });
+  ws.views = [{ state: 'frozen', ySplit: 1 }];
+  ws.autoFilter = { from: 'A1', to: `${ws.getColumn(ws.columnCount).letter}1` };
+}
+function estimateRowHeight(texts, colWidths) {
+  let maxLines = 1;
+  texts.forEach((t, i) => {
+    const s = String(t || '');
+    const w = Math.max(8, colWidths[i] || 20);
+    const lines = s.split('\n').reduce((acc, seg) => acc + Math.max(1, Math.ceil(seg.length * 1.8 / w)), 0);
+    if (lines > maxLines) maxLines = lines;
+  });
+  return Math.min(400, Math.max(20, maxLines * 15 + 8));
+}
+function fillRow(row, verdict) {
+  const argb = ROW_FILL[verdict];
+  if (!argb) return;
+  row.eachCell({ includeEmpty: true }, cell => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb } }; });
+}
+function wrapAllCells(row) {
+  row.eachCell({ includeEmpty: true }, cell => { cell.alignment = { ...(cell.alignment || {}), wrapText: true, vertical: 'top' }; });
+}
+function triggerDownload(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+async function saveWorkbook(wb, filename) {
+  const buf = await wb.xlsx.writeBuffer();
+  triggerDownload(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), filename);
+}
+function dateStamp() {
+  const now = new Date();
+  return `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+}
+// 행 색: 블라인드 위배 → 빨강, 불성실·기타 → 노랑
+function rowFillVerdict(blindYes, otherYes) { return blindYes ? '주의' : (otherYes ? '경미' : null); }
+
+const DETAIL_HEADERS = ['면접번호','이름','모집 분야','전형 단계','질문','답변',
+  '블라인드 위배 여부','블라인드 위배 유형','블라인드 위배 근거',
+  '불성실 여부','불성실 유형','불성실 근거',
+  '기타 위배 유형','기타 근거',
+  '검토 의견','항목 판정','지원자 종합 판정','지원자 종합 사유'];
+const DETAIL_WIDTHS = [12,10,10,10,26,42,14,18,26,12,18,26,16,20,30,10,14,34];
+
+// ──────────────────────────────────────────
+// 예시 자료
+// ──────────────────────────────────────────
+const SAMPLE_APPLICANTS = [
+  { no:'2024-001', name:'홍길동', field:'행정직', stage:'서류 전형', items:[
+    { q:'지원 동기를 기술하시오.', a:'저는 오랫동안 공공행정 분야에 관심을 가져왔으며, 특히 시민 서비스 개선에 기여하고 싶어 지원하게 되었습니다. 대학에서 행정학을 전공하며 쌓은 이론적 기반을 실무에 적용하고 싶습니다.' },
+    { q:'본인의 강점과 약점을 기술하시오.', a:'저의 강점은 꼼꼼한 업무 처리 능력입니다. 항상 세부사항까지 확인하는 습관이 있어 오류를 최소화합니다. 반면 약점은 완벽주의 성향으로 인해 일정이 촉박할 때 스트레스를 받는 편입니다.' },
+    { q:'입사 후 포부를 기술하시오.', a:'입사 후에는 맡은 업무에 최선을 다하겠습니다. 지속적인 자기계발을 통해 전문성을 높이고, 조직에 기여하는 인재가 되겠습니다.' },
+  ]},
+  { no:'2024-002', name:'김영희', field:'기술직', stage:'서류 전형', items:[
+    { q:'지원 동기를 기술하시오.', a:'기술직 전문가로 성장하기 위해 지원하였습니다. 전공 분야에서 쌓은 역량을 바탕으로 귀 기관의 기술 발전에 이바지하고 싶습니다.' },
+    { q:'본인의 강점과 약점을 기술하시오.', a:'강점은 문제 해결 능력입니다. 어려운 상황에서도 침착하게 대안을 찾아 해결해 왔습니다. 약점은 발표 등 대중 앞에서의 의사소통이 다소 어색한 편이며, 이를 극복하기 위해 발표 모임에 참여하고 있습니다.' },
+  ]},
+  { no:'2024-003', name:'이철수', field:'연구직', stage:'서류 전형', items:[
+    { q:'지원 동기를 기술하시오.', a:'연구 연구 연구 연구 연구 연구 연구 열심히' },
+    { q:'입사 후 포부를 기술하시오.', a:'최선을 다하겠습니다.' },
+  ]},
+];
+
+async function downloadSample() {
+  if (!ensureExcelJS()) return;
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('자기소개서');
+  const widths = [12, 10, 12, 12, 30, 60];
+  ws.columns = ['면접번호','이름','모집 분야','전형 단계','질문','답변'].map((h, i) => ({ header: h, width: widths[i] }));
+  SAMPLE_APPLICANTS.forEach(app => app.items.forEach(it => {
+    const vals = [app.no, app.name, app.field, app.stage, it.q, it.a];
+    const row = ws.addRow(vals);
+    wrapAllCells(row);
+    row.height = estimateRowHeight(vals, widths);
+  }));
+  styleHeaderAndFreeze(ws);
+  await saveWorkbook(wb, '자기소개서_입력양식.xlsx');
+}
+
+async function downloadSampleResult() {
+  if (!ensureExcelJS()) return;
+  const A = SAMPLE_APPLICANTS;
+  const ok = ['아니오','','', '아니오','','', '','', '특이사항 없음','정상','정상','모든 기준 정상'];
+  const summary3 = '[불성실] 항목1 글자 수 부족(주의), 항목1 의미 없는 반복(주의), 항목2 글자 수 부족(주의)';
+  const exampleRows = [
+    ['2024-001','홍길동','행정직','서류 전형', A[0].items[0].q, A[0].items[0].a, ...ok],
+    ['2024-001','홍길동','행정직','서류 전형', A[0].items[1].q, A[0].items[1].a, ...ok],
+    ['2024-001','홍길동','행정직','서류 전형', A[0].items[2].q, A[0].items[2].a, ...ok],
+    ['2024-002','김영희','기술직','서류 전형', A[1].items[0].q, A[1].items[0].a, ...ok],
+    ['2024-002','김영희','기술직','서류 전형', A[1].items[1].q, A[1].items[1].a, ...ok],
+    ['2024-003','이철수','연구직','서류 전형', A[2].items[0].q, A[2].items[0].a,
+      '아니오','','', '예','글자 수 부족, 의미 없는 반복','연구 연구 연구 연구 연구 연구 연구 열심히', '','',
+      '글자 수 18자 (정상 기준 50자) / 내용 없이 단어만 반복 나열','주의','주의', summary3],
+    ['2024-003','이철수','연구직','서류 전형', A[2].items[1].q, A[2].items[1].a,
+      '아니오','','', '예','글자 수 부족','', '','',
+      '글자 수 9자 (정상 기준 50자)','주의','주의', summary3],
+  ];
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('탐지 결과 예시');
+  ws.columns = DETAIL_HEADERS.map((h, i) => ({ header: h, width: DETAIL_WIDTHS[i] }));
+  exampleRows.forEach(r => {
+    const row = ws.addRow(r);
+    wrapAllCells(row);
+    row.height = estimateRowHeight(r, DETAIL_WIDTHS);
+    fillRow(row, rowFillVerdict(r[6] === '예', r[9] === '예' || !!r[12]));
+  });
+  styleHeaderAndFreeze(ws);
+
+  const noteWs = wb.addWorksheet('안내');
+  noteWs.columns = [{ width: 90 }];
+  [
+    '이 파일은 실제 분석 없이 만든 "탐지 결과 예시"입니다.',
+    '실제 분석 후 "엑셀로 내려받기"를 누르면 이와 같은 형식의 결과 파일을 받을 수 있습니다.',
+    '',
+    '색상 안내',
+    '  - 빨간색 행: 블라인드 위배가 발견된 행 (즉시 확인 필요)',
+    '  - 노란색 행: 불성실 기입 또는 기타 위배가 발견된 행',
+    '  - 흰색 행: 정상',
+    '',
+    '열 안내',
+    '  - 위배 유형: 어떤 세부 항목(예: 출신 학교, 의미 없는 반복)에서 걸렸는지',
+    '  - 위배 근거: 답변 원문에서 실제로 문제가 된 구절',
+    '  - 항목 판정: 해당 질문 1건에 대한 판정',
+    '  - 지원자 종합 판정·사유: 그 지원자의 모든 항목을 종합한 최종 판정',
+  ].forEach((line, i) => {
+    const row = noteWs.addRow([line]);
+    if (i === 0) row.font = { bold: true, size: 12 };
+    if (line === '색상 안내' || line === '열 안내') row.font = { bold: true };
+  });
+  await saveWorkbook(wb, '자기소개서_탐지결과_예시.xlsx');
+}
+
+// ──────────────────────────────────────────
+// 실제 탐지 결과 엑셀
+// ──────────────────────────────────────────
+async function downloadExcel() {
+  if (!allResults.length) { toast('내려받을 결과가 없습니다.', 'warn'); return; }
+  if (!ensureExcelJS()) return;
+  const wb = new ExcelJS.Workbook();
+
+  const ws1 = wb.addWorksheet('상세 결과');
+  ws1.columns = DETAIL_HEADERS.map((h, i) => ({ header: h, width: DETAIL_WIDTHS[i] }));
+  allResults.forEach(r => {
+    const perItem = r.result.항목 || [];
+    r.items.forEach((item, idx) => {
+      const row = perItem[idx];
+      const rg = (row && row.rowGroup) || emptyRowGroup();
+      const blindYes = rg.블라인드.v !== '정상';
+      const insinYes = rg.불성실.v !== '정상';
+      const values = [
+        r.면접번호 || r.name, r.name, r.field || '', r.stage || '',
+        item.질문, item.답변,
+        blindYes ? '예' : '아니오', rg.블라인드.types.join(', '), rg.블라인드.ev.join(' / '),
+        insinYes ? '예' : '아니오', rg.불성실.types.join(', '), rg.불성실.ev.join(' / '),
+        rg.기타.types.join(', '), rg.기타.ev.join(' / '),
+        (row && row.사유) || (r.result.종합판정 === '오류' ? '분석 오류' : ''),
+        (row && row.항목판정) || '',
+        r.result.종합판정 || '', r.result.종합사유 || '',
+      ];
+      const xrow = ws1.addRow(values);
+      wrapAllCells(xrow);
+      xrow.height = estimateRowHeight(values, DETAIL_WIDTHS);
+      fillRow(xrow, rowFillVerdict(blindYes, insinYes || rg.기타.v !== '정상'));
+    });
+  });
+  styleHeaderAndFreeze(ws1);
+
+  const sHeaders = ['면접번호','이름','모집 분야','전형 단계','블라인드 위배 여부','블라인드 위배 유형','불성실 여부','불성실 유형','기타 위배 유형','종합 판정','종합 사유'];
+  const sWidths = [12,10,10,10,14,24,12,24,18,10,40];
+  const ws2 = wb.addWorksheet('요약 결과');
+  ws2.columns = sHeaders.map((h, i) => ({ header: h, width: sWidths[i] }));
+  allResults.forEach(r => {
+    const g = r.result.그룹판정 || {};
+    const gt = r.result.그룹유형 || {};
+    const blindYes = !!g.블라인드 && g.블라인드 !== '정상';
+    const insinYes = !!g.불성실 && g.불성실 !== '정상';
+    const values = [
+      r.면접번호 || r.name, r.name, r.field || '', r.stage || '',
+      blindYes ? '예' : '아니오', (gt.블라인드 || []).join(', '),
+      insinYes ? '예' : '아니오', (gt.불성실 || []).join(', '),
+      (gt.기타 || []).join(', '),
+      r.result.종합판정 || '', r.result.종합사유 || '',
+    ];
+    const row = ws2.addRow(values);
+    wrapAllCells(row);
+    row.height = estimateRowHeight(values, sWidths);
+    fillRow(row, rowFillVerdict(blindYes, insinYes || (!!g.기타 && g.기타 !== '정상')));
+  });
+  styleHeaderAndFreeze(ws2);
+
+  await saveWorkbook(wb, `자기소개서_불성실탐지결과_${dateStamp()}.xlsx`);
+}
+
+// ──────────────────────────────────────────
+// 개별 보고서(HTML) + 압축 파일
+// ──────────────────────────────────────────
+function buildIndividualReport(r) {
+  const v = r.result.종합판정 || '오류';
+  const perItem = r.result.항목 || [];
+  const gv = r.result.그룹판정 || {};
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const groupTagsHtml = ['블라인드', '불성실', '기타'].map(g => {
+    const x = gv[g] || '정상';
+    return `<span class="ctag ${x}">${g} <b>${x}</b></span>`;
+  }).join('');
+
+  const itemsHtml = r.items.map((item, idx) => {
+    const row = perItem[idx] || {};
+    const iv = row.항목판정 || '';
+    const phrases = row.문제구절 || [];
+    const charCount = row.글자수 ?? item.답변.replace(/\s/g, '').length;
+    return `
+    <div class="item ${iv === '주의' || iv === '경미' ? 'flagged' : ''}">
+      <div class="item-head">
+        <span class="item-num">항목 ${idx + 1}</span>
+        <span class="item-char">${charCount}자</span>
+        ${iv ? `<span class="badge ${iv}">${iv}</span>` : ''}
+      </div>
+      <div class="item-q">${escText(item.질문 || '(질문 없음)')}</div>
+      ${row.사유 ? `<div class="item-reason">💬 ${escText(row.사유)}</div>` : ''}
+      ${item.답변 ? `<div class="answer">${legendHtmlFor(phrases, 'lg')}<div class="answer-text">${highlightText(item.답변, phrases)}</div></div>` : ''}
+    </div>`;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>불성실 탐지 보고서 - ${escText(r.name || '지원자')}</title>
+<style>
+  :root { --bg:#E6EAF1; --text-main:#262D3A; --text-sub:#545F72;
+    --green:#15803D; --green-soft:#DCF3E4; --yellow:#A16207; --yellow-soft:#F8EFCF; --red:#C62828; --red-soft:#F8DEDE;
+    --sh-dark:rgba(152,167,191,0.6); --sh-light:rgba(255,255,255,0.92); }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; background:var(--bg); color:var(--text-main);
+    padding:36px 16px; line-height:1.7; word-break:keep-all; overflow-wrap:break-word; }
+  .wrap { max-width:820px; margin:0 auto; }
+  .report { background:var(--bg); border-radius:22px; box-shadow:8px 8px 18px var(--sh-dark), -8px -8px 18px var(--sh-light); overflow:hidden; }
+  .rp-head { padding:28px 30px 22px; }
+  .rp-head h1 { font-size:22px; }
+  .rp-meta { font-size:15.5px; color:var(--text-sub); display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:8px; }
+  .verdict-line { margin-top:16px; padding:14px 18px; border-radius:14px; font-size:16.5px;
+    box-shadow:inset 3px 3px 7px var(--sh-dark), inset -3px -3px 7px var(--sh-light); }
+  .badge { display:inline-block; padding:2px 11px; border-radius:999px; font-size:14.5px; font-weight:700; }
+  .badge.주의 { background:var(--red-soft); color:var(--red); }
+  .badge.경미 { background:var(--yellow-soft); color:var(--yellow); }
+  .badge.정상 { background:var(--green-soft); color:var(--green); }
+  .rp-body { padding:6px 30px 26px; }
+  .sec-title { font-size:15px; font-weight:700; color:var(--text-sub); margin:22px 0 12px; }
+  .ctags { display:flex; flex-wrap:wrap; gap:8px; }
+  .ctag { font-size:14.5px; padding:5px 12px; border-radius:10px; color:var(--green);
+    box-shadow:inset 2px 2px 5px var(--sh-dark), inset -2px -2px 5px var(--sh-light); }
+  .ctag.경미 { color:var(--yellow); } .ctag.주의 { color:var(--red); }
+  .item { border-radius:16px; padding:16px 18px; margin-bottom:16px; box-shadow:4px 4px 9px var(--sh-dark), -4px -4px 9px var(--sh-light); border-left:5px solid var(--green); }
+  .item.flagged { border-left-color:var(--red); }
+  .item-head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .item-num { font-size:14.5px; font-weight:700; color:#4A63D8; }
+  .item-char { font-size:13.5px; color:var(--text-sub); font-variant-numeric:tabular-nums; }
+  .item-head .badge { margin-left:auto; }
+  .item-q { font-size:16.5px; font-weight:700; margin-bottom:6px; }
+  .item-reason { font-size:15px; color:var(--text-sub); margin-bottom:8px; }
+  .answer { border-radius:10px; padding:12px 14px; background:#EDF0F6; }
+  .answer-text { font-size:15.5px; white-space:pre-wrap; word-break:keep-all; overflow-wrap:anywhere; }
+  .lg-legend { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+  .lg-legend-item { font-size:13.5px; padding:2px 9px; border-radius:6px; }
+  .hl { padding:1px 3px; border-radius:4px; }
+  .rp-foot { padding:16px 30px 22px; font-size:14px; color:var(--text-sub); border-top:1px solid rgba(152,167,191,0.32); }
+  @media print { body { background:#fff; padding:0; } .report, .item { box-shadow:none; } .item { border:1px solid #ddd; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="report">
+    <div class="rp-head">
+      <h1>자기소개서 불성실 탐지 보고서</h1>
+      <div class="rp-meta">
+        <span><b>이름</b> ${escText(r.name || '-')}</span>
+        <span><b>면접번호</b> ${escText(r.면접번호 || '-')}</span>
+        <span><b>모집 분야</b> ${escText(r.field || '-')}</span>
+        <span><b>작성 일시</b> ${dateStr}</span>
+      </div>
+      <div class="verdict-line">
+        종합 판정 <span class="badge ${v}">${v}</span>
+        ${r.result.종합사유 ? `<div style="margin-top:6px; font-size:15px; color:var(--text-sub);">${escText(r.result.종합사유)}</div>` : ''}
+      </div>
+    </div>
+    <div class="rp-body">
+      <div class="sec-title">기준별 판정</div><div class="ctags">${groupTagsHtml}</div>
+      <div class="sec-title">항목별 상세</div>
+      ${itemsHtml}
+    </div>
+    <div class="rp-foot">본 보고서는 자동 탐지 결과이며, 최종 판단은 담당자의 검토를 거쳐야 합니다. · 내부 검토용 문서 (외부 유출 금지)</div>
+  </div>
+</div>
+</body>
+</html>`;
+}
+
+function safeFileName(s) {
+  return String(s || '').replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '').slice(0, 40) || '미상';
+}
+
+async function downloadReportsZip() {
+  const flagged = allResults.filter(r => ['주의','경미'].includes(r.result.종합판정));
+  if (!flagged.length) { toast('불성실이 탐지된(경미·주의) 지원자가 없습니다.', 'warn'); return; }
+  if (typeof JSZip === 'undefined') { toast('압축 도구를 불러오지 못했습니다.\n인터넷 연결이나 사내 차단 여부를 확인하세요.', 'error'); return; }
+
+  const btn = document.getElementById('reportZipBtn');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ 보고서 만드는 중';
+  try {
+    const zip = new JSZip();
+    const order = { 주의: 0, 경미: 1 };
+    const sorted = [...flagged].sort((a, b) => (order[a.result.종합판정] ?? 2) - (order[b.result.종합판정] ?? 2));
+    const used = new Set();
+    sorted.forEach(r => {
+      const base = `[${r.result.종합판정}]_${safeFileName(r.면접번호 || r.name)}_${safeFileName(r.name)}`;
+      let fname = base + '.html', n = 2;
+      while (used.has(fname)) fname = `${base}_${n++}.html`;
+      used.add(fname);
+      zip.file(fname, buildIndividualReport(r));
+    });
+    const blob = await zip.generateAsync({ type: 'blob' });
+    triggerDownload(blob, `불성실탐지_개별보고서_${dateStamp()}.zip`);
+  } catch (e) {
+    toast('압축 파일을 만드는 중 오류가 발생했습니다.\n' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
+}
+
+// ══════════════════════════════════════════
+// 2단계 세부 화면 (한 화면에 설정 2개 이하)
+// ══════════════════════════════════════════
+const SUBSTEPS = [
+  { label: '글자 수',   title: '글자 수 기준' },
+  { label: '유사도',    title: '복사·붙여넣기 기준' },
+  { label: '기관 정보', title: '기관 정보와 추가 단어' },
+  { label: '불성실',    title: '불성실 기입 항목' },
+  { label: '블라인드',  title: '블라인드 채용 위배 항목' },
+  { label: '기타',      title: '기타 항목' },
+  { label: '확인',      title: '설정 확인' },
+];
+let currentSub = 1;
+
+function renderSubstepper() {
+  document.getElementById('substepper').innerHTML = SUBSTEPS.map((s, i) => {
+    const k = i + 1;
+    const cls = k === currentSub ? 'current' : (k < currentSub ? 'done' : '');
+    return `<li><button type="button" class="ss-dot ${cls}" onclick="showSub(${k}, true)" title="${k}. ${s.title}" ${k === currentSub ? 'aria-current="step"' : ''}>
+      <span class="ss-num">${k < currentSub ? '✓' : k}</span><span class="ss-label">${s.label}</span></button></li>`;
+  }).join('');
+  document.getElementById('ssCaption').innerHTML = `<b>${currentSub} / ${SUBSTEPS.length}</b> · ${SUBSTEPS[currentSub - 1].title}`;
+}
+
+// 앞으로 건너뛸 때는 지나치는 화면의 입력값을 먼저 확인
+function showSub(k, fromNav) {
+  if (fromNav && k > currentSub) {
+    commitBlindInput();
+    for (let s = currentSub; s < k; s++) {
+      const err = subError(s);
+      if (err) { k = s; toast(err, 'warn'); break; }
+    }
+  }
+  currentSub = k;
+  document.querySelectorAll('.substep').forEach(el => el.classList.toggle('active', Number(el.dataset.sub) === k));
+  document.getElementById('quickStart').style.display = k === 1 ? '' : 'none';
+  renderSubstepper();
+  if (k === 7) renderSummary();
+
+  const prev = document.getElementById('subPrevBtn');
+  const next = document.getElementById('subNextBtn');
+  prev.innerHTML = k === 1 ? '<span aria-hidden="true">←</span> 이전: 시작하기' : '<span aria-hidden="true">←</span> 이전';
+  next.innerHTML = k < SUBSTEPS.length
+    ? `다음: ${SUBSTEPS[k].title} <span aria-hidden="true">→</span>`
+    : '설정 완료 · 자기소개서 입력 <span aria-hidden="true">→</span>';
+  if (fromNav !== undefined) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function subPrev() { if (currentSub > 1) showSub(currentSub - 1, false); else goToStep(1); }
+function subNext() {
+  commitBlindInput();
+  const err = subError(currentSub);
+  if (err) { toast(err, 'warn'); return; }
+  if (currentSub < SUBSTEPS.length) showSub(currentSub + 1, false);
+  else goToStep(3);
+}
+function skipToInput() { goToStep(3); }
+
+function subError(k) {
+  const cfg = getAnalysisConfig();
+  if (k === 1 && cfg.warnChar > cfg.minChar) return '"경미" 글자 수는 "정상" 글자 수보다 작거나 같아야 합니다.';
+  if (k === 2 && cfg.simMinor > cfg.simWarn) return '"경미" 유사도는 "주의" 유사도보다 작거나 같아야 합니다.';
+  if (k === 6 && !cfg.enabled.length) return '탐지 항목이 모두 꺼져 있습니다. 4~6번 화면에서 하나 이상 켜 주세요.';
+  return null;
+}
+function firstInvalidSub() {
+  for (let k = 1; k <= 6; k++) {
+    const err = subError(k);
+    if (err) return { sub: k === 6 ? 4 : k, err };
+  }
+  return null;
+}
+
+// 입력 칸에서 Enter를 누르면 다음 화면으로
+document.querySelectorAll('.substep .setting-input').forEach(inp => {
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); subNext(); } });
+});
+
+// ──────────────────────────────────────────
+// 빠른 선택 · 미리 보기 막대
+// ──────────────────────────────────────────
+function setVal(id, v) {
+  const el = document.getElementById(id);
+  el.value = v;
+  const r = document.querySelector(`.range[data-for="${id}"]`);
+  if (r) r.value = v;
+}
+document.querySelectorAll('#charPresets .preset-chip').forEach(b => b.addEventListener('click', () => {
+  setVal('cfg_minChar', b.dataset.min); setVal('cfg_warnChar', b.dataset.warn);
+  syncAllSubViews(); saveConditions();
+}));
+document.querySelectorAll('#simPresets .preset-chip').forEach(b => b.addEventListener('click', () => {
+  setVal('cfg_simWarn', b.dataset.warn); setVal('cfg_simMinor', b.dataset.minor);
+  syncAllSubViews(); saveConditions();
+}));
+document.querySelectorAll('.range[data-for]').forEach(r => {
+  r.addEventListener('input', () => { document.getElementById(r.dataset.for).value = r.value; syncAllSubViews(); });
+  r.addEventListener('change', saveConditions);
+});
+['cfg_minChar', 'cfg_warnChar', 'cfg_simWarn', 'cfg_simMinor'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const r = document.querySelector(`.range[data-for="${id}"]`);
+    if (r) r.value = document.getElementById(id).value;
+    syncAllSubViews();
+  });
+});
+
+function scaleSeg(cls, title, sub, grow) {
+  return `<div class="scale-seg ${cls}" style="flex:${Math.max(grow, 0.9)} 1 0">${title}<small>${sub}</small></div>`;
+}
+function renderCharScale() {
+  const min = numOr('cfg_minChar', 50), warn = numOr('cfg_warnChar', Math.floor(min / 2));
+  const el = document.getElementById('charScale');
+  const bad = warn > min;
+  document.getElementById('cfg_warnChar').classList.toggle('invalid', bad);
+  const errEl = document.getElementById('err_sub1');
+  errEl.textContent = bad ? `⚠️ "경미" 글자 수(${warn}자)가 "정상" 글자 수(${min}자)보다 큽니다. 더 작은 숫자로 고쳐 주세요.` : '';
+  errEl.classList.toggle('show', bad);
+  if (bad) { el.innerHTML = scaleSeg('gray', '숫자를 바로잡으면 미리 보기가 나타납니다', '', 1); return; }
+  const total = min * 1.4;
+  let html = scaleSeg('red', '🔴 주의', `0 ~ ${warn - 1}자`, warn / total * 3);
+  if (warn < min) html += scaleSeg('yellow', '🟡 경미', `${warn} ~ ${min - 1}자`, (min - warn) / total * 3);
+  html += scaleSeg('green', '🟢 정상', `${min}자 이상`, 0.4 * min / total * 3);
+  el.innerHTML = html;
+}
+function renderSimScale() {
+  const w = Math.min(100, numOr('cfg_simWarn', 75)), m = Math.min(100, numOr('cfg_simMinor', 50));
+  const el = document.getElementById('simScale');
+  const bad = m > w;
+  document.getElementById('cfg_simMinor').classList.toggle('invalid', bad);
+  const errEl = document.getElementById('err_sub2');
+  errEl.textContent = bad ? `⚠️ "경미" 유사도(${m}%)가 "주의" 유사도(${w}%)보다 큽니다. 더 작은 숫자로 고쳐 주세요.` : '';
+  errEl.classList.toggle('show', bad);
+  if (bad) { el.innerHTML = scaleSeg('gray', '숫자를 바로잡으면 미리 보기가 나타납니다', '', 1); return; }
+  let html = scaleSeg('green', '🟢 정상', `${m - 1}% 이하`, m / 100 * 3);
+  if (m < w) html += scaleSeg('yellow', '🟡 경미', `${m} ~ ${w - 1}%`, (w - m) / 100 * 3);
+  html += scaleSeg('red', '🔴 주의', `${w}% 이상`, (101 - w) / 100 * 3);
+  el.innerHTML = html;
+}
+function markActivePresets() {
+  const min = document.getElementById('cfg_minChar').value, warn = document.getElementById('cfg_warnChar').value;
+  document.querySelectorAll('#charPresets .preset-chip').forEach(b => b.classList.toggle('active', b.dataset.min === min && b.dataset.warn === warn));
+  const sw = document.getElementById('cfg_simWarn').value, sm = document.getElementById('cfg_simMinor').value;
+  document.querySelectorAll('#simPresets .preset-chip').forEach(b => b.classList.toggle('active', b.dataset.warn === sw && b.dataset.minor === sm));
+}
+function syncAllSubViews() {
+  renderCharScale();
+  renderSimScale();
+  markActivePresets();
+  if (currentSub === 7) renderSummary();
+}
+
+// ──────────────────────────────────────────
+// 블라인드 추가 탐지 단어 (꼬리표 입력)
+// ──────────────────────────────────────────
+function getBlindWords() {
+  return document.getElementById('cfg_blindWords').value.split(',').map(t => t.trim()).filter(Boolean);
+}
+function setBlindWords(list) {
+  const uniq = [...new Set(list.map(t => t.trim()).filter(Boolean))];
+  document.getElementById('cfg_blindWords').value = uniq.join(', ');
+  const box = document.getElementById('blindTagBox');
+  box.querySelectorAll('.tag').forEach(t => t.remove());
+  const input = document.getElementById('blindWordInput');
+  uniq.forEach((w, i) => {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.innerHTML = `${escText(w)}<button type="button" aria-label="${escHtml(w)} 지우기" title="지우기">×</button>`;
+    tag.querySelector('button').addEventListener('click', () => {
+      setBlindWords(getBlindWords().filter((_, k) => k !== i));
+      saveConditions();
+      input.focus();
+    });
+    box.insertBefore(tag, input);
+  });
+  if (currentSub === 7) renderSummary();
+}
+function commitBlindInput() {
+  const input = document.getElementById('blindWordInput');
+  const parts = input.value.split(',').map(t => t.trim()).filter(Boolean);
+  if (!parts.length) { input.value = ''; return; }
+  input.value = '';
+  setBlindWords(getBlindWords().concat(parts));
+  saveConditions();
+}
+(function initBlindInput() {
+  const input = document.getElementById('blindWordInput');
+  input.addEventListener('keydown', e => {
+    if (e.isComposing) return;   // 한글 조합 중 Enter는 무시
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); commitBlindInput(); }
+    else if (e.key === 'Backspace' && !input.value) {
+      const list = getBlindWords();
+      if (list.length) { list.pop(); setBlindWords(list); saveConditions(); }
+    }
+  });
+  input.addEventListener('input', () => { if (input.value.includes(',')) commitBlindInput(); });
+  input.addEventListener('blur', commitBlindInput);
+})();
+
+// ──────────────────────────────────────────
+// 묶음별 일괄 켜기/끄기 · 화면별 기본값
+// ──────────────────────────────────────────
+function setGroupAll(groupKey, on) {
+  syncCriteriaFromDom();
+  CRITERIA.forEach(c => { if (c.group === groupKey) c.enabled = on; });
+  renderCriteriaBuilder();
+  markPromptStale();
+  saveConditions();
+}
+function resetSub(k) {
+  if (k === 1) { setVal('cfg_minChar', 50); setVal('cfg_warnChar', 25); }
+  else if (k === 2) { setVal('cfg_simWarn', 75); setVal('cfg_simMinor', 50); }
+  else if (k === 3) {
+    document.getElementById('cfg_orgName').value = '';
+    document.getElementById('blindWordInput').value = '';
+    setBlindWords([]);
+    markPromptStale();
+  } else {
+    const groupKey = { 4: '불성실', 5: '블라인드', 6: '기타' }[k];
+    if (!confirm(`"${SUBSTEPS[k - 1].title}"을(를) 처음 상태로 되돌릴까요?\n직접 추가하거나 고친 내용은 사라집니다.`)) return;
+    syncCriteriaFromDom();
+    CRITERIA = CRITERIA.filter(c => c.group !== groupKey).concat(defaultCriteria().filter(c => c.group === groupKey));
+    renderCriteriaBuilder();
+    markPromptStale();
+  }
+  syncAllSubViews();
+  saveConditions();
+  toast(`${SUBSTEPS[k - 1].title}을(를) 기본값으로 되돌렸습니다.`, 'success');
+}
+
+// ──────────────────────────────────────────
+// 설정 확인 화면 · 3단계 요약줄
+// ──────────────────────────────────────────
+function renderSummary() {
+  const cfg = getAnalysisConfig();
+  const pct = v => Math.round(v * 100);
+  const byGroup = key => {
+    const all = CRITERIA.filter(c => c.group === key);
+    const on = all.filter(c => c.enabled);
+    return on.length ? `${all.length}개 중 <b>${on.length}개</b> 사용 (${on.map(c => escText(c.name)).join(', ')})` : '<b style="color:var(--red)">모두 꺼짐</b>';
+  };
+  const rows = [
+    ['📏', '글자 수', `정상 <b>${cfg.minChar}자</b> 이상 · 경미 ${cfg.warnChar}자 이상 · 그 미만은 주의`, 1],
+    ['📄', '복사·붙여넣기', `주의 <b>${pct(cfg.simWarn)}%</b> 이상 · 경미 ${pct(cfg.simMinor)}% 이상`, 2],
+    ['🏛️', '우리 기관명', cfg.orgName ? `<b>${escText(cfg.orgName)}</b>` : '입력 안 함', 3],
+    ['🚫', '추가 탐지 단어', cfg.blindWords.length ? `${cfg.blindWords.length}개 (${cfg.blindWords.map(escText).join(', ')})` : '없음', 3],
+    ['😐', '불성실 기입', byGroup('불성실'), 4],
+    ['🚫', '블라인드 위배', byGroup('블라인드'), 5],
+    ['📌', '기타', byGroup('기타'), 6],
+  ];
+  document.getElementById('condSummary').innerHTML = rows.map(([ic, k, v, sub]) => `
+    <li><span class="sm-k"><span aria-hidden="true">${ic}</span>${k}</span><span class="sm-v">${v}</span>
+    <button type="button" class="link-btn" onclick="showSub(${sub}, false)">수정</button></li>`).join('');
+
+  const notice = document.getElementById('aiNotice');
+  if (!cfg.enabled.length) {
+    notice.innerHTML = `<div class="ib-line"><span class="ib-ic">⛔</span><span>켜 둔 탐지 항목이 없습니다. 4~6번 화면에서 하나 이상 켜야 탐지할 수 있습니다.</span></div>`;
+  } else if (cfg.aiCriteria.length) {
+    notice.innerHTML = `<div class="ib-line"><span class="ib-ic">🤖</span><span>인공지능 판정 항목 <b>${cfg.aiCriteria.length}개</b>가 켜져 있어, 탐지할 때 자기소개서 내용이 오픈에이아이(<b>${escText(getModel())}</b>)로 전송되고 비용이 발생합니다.</span></div>`
+      + (hasApiKey() ? '' : `<div class="ib-line"><span class="ib-ic">⚠️</span><span>내장 접속 키가 없어 지금은 인공지능 판정을 할 수 없습니다. 인공지능 판정 항목을 모두 끄면 규칙 판정만으로 분석됩니다.</span></div>`);
+  } else {
+    notice.innerHTML = `<div class="ib-line"><span class="ib-ic">🔒</span><span>규칙 판정 항목만 켜져 있어 <b>외부 전송 없이</b> 이 브라우저 안에서만 분석합니다.</span></div>`;
+  }
+}
+
+function renderCondStrip() {
+  const cfg = getAnalysisConfig();
+  const aiN = cfg.aiCriteria.length;
+  document.getElementById('condStrip').innerHTML = `
+    <span>⚙️ 적용 조건</span><span class="cs-sep">|</span>
+    <span>정상 <b>${cfg.minChar}자</b> 이상</span><span class="cs-sep">·</span>
+    <span>복사 주의 <b>${Math.round(cfg.simWarn * 100)}%</b></span><span class="cs-sep">·</span>
+    <span>탐지 항목 <b>${cfg.enabled.length}개</b>${aiN ? ` (🤖 ${aiN}개)` : ''}</span>
+    ${aiN ? `<span class="cs-sep">·</span><span>모델 <b>${escText(getModel())}</b></span>` : ''}
+    <button type="button" class="link-btn" onclick="goToStep(2)">조건 바꾸기</button>`;
+}
+
+// ──────────────────────────────────────────
+// 탐지 조건 저장·불러오기 (이 브라우저에만 저장)
+// ──────────────────────────────────────────
+const COND_LS_KEY = 'jasoReview_conditions_v5';
+let saveTimer = null;
+function saveConditions() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    syncCriteriaFromDom();
+    const v = id => document.getElementById(id).value;
+    lsSet(COND_LS_KEY, JSON.stringify({
+      minChar: v('cfg_minChar'), warnChar: v('cfg_warnChar'),
+      simWarn: v('cfg_simWarn'), simMinor: v('cfg_simMinor'),
+      orgName: v('cfg_orgName'), blindWords: getBlindWords(),
+      criteria: CRITERIA,
+    }));
+  }, 300);
+}
+function loadConditions() {
+  let saved = null;
+  try { saved = JSON.parse(lsGet(COND_LS_KEY) || 'null'); } catch (e) {}
+  if (!saved || typeof saved !== 'object') return false;
+  const groups = CRITERIA_GROUPS.map(g => g.key);
+  const okCrit = Array.isArray(saved.criteria) && saved.criteria.length &&
+    saved.criteria.every(c => c && typeof c.id === 'string' && typeof c.name === 'string' && groups.includes(c.group));
+  ['minChar', 'warnChar', 'simWarn', 'simMinor'].forEach(k => {
+    const n = parseInt(saved[k], 10);
+    if (Number.isFinite(n) && n > 0) setVal('cfg_' + k, n);
+  });
+  if (typeof saved.orgName === 'string') document.getElementById('cfg_orgName').value = saved.orgName;
+  if (Array.isArray(saved.blindWords)) setBlindWords(saved.blindWords.map(String));
+  if (okCrit) CRITERIA = saved.criteria;
+  return true;
+}
+document.getElementById('promptBody').addEventListener('input', e => { if (e.target.id !== 'promptEditor') saveConditions(); });
+document.getElementById('promptBody').addEventListener('change', e => { if (e.target.id !== 'promptEditor') saveConditions(); });
+
+// ──────────────────────────────────────────
+// 3단계: 예시 답변 넣어 보기
+// ──────────────────────────────────────────
+function fillExample() {
+  const hasText = [...document.querySelectorAll('.a-input')].some(t => t.value.trim());
+  if (hasText && !confirm('입력한 내용을 지우고 예시 답변을 넣을까요?')) return;
+  document.getElementById('itemsList').innerHTML = '';
+  itemCount = 0;
+  const motive = '저는 공공 서비스의 신뢰를 높이는 일에 보람을 느껴 지원하게 되었습니다. 대학 시절 지역 복지관에서 민원 안내 봉사를 하며 주민의 불편을 직접 듣고 개선안을 정리해 전달한 경험이 있습니다. 이 경험을 바탕으로 국민의 목소리에 귀 기울이는 담당자가 되겠습니다.';
+  addItem('성장 과정 및 지원 동기를 기술하시오.', motive);
+  addItem('본인의 강점과 이를 직무에 활용할 방안을 기술하시오.', motive.replace('지원하게 되었습니다', '이 직무를 선택했습니다'));
+  addItem('갈등을 해결한 경험을 기술하시오.', '열심히 하겠습니다.');
+  addItem('입사 후 포부를 기술하시오.', '고향인 전주에서 나고 자라며 서울대학교에서 행정학을 전공했습니다. 공무원이신 아버지를 보며 공직에 뜻을 품었고, 입사 후에는 현장의 목소리를 정책에 반영하는 실무자가 되겠습니다.');
+  document.getElementById('txt_applicantNo').value = document.getElementById('txt_applicantNo').value || '예시-001';
+  toast('예시 답변을 넣었습니다.\n복사·붙여넣기, 글자 수 부족, 블라인드 위배가 섞여 있습니다.', 'success');
+}
+
+// ──────────────────────────────────────────
+// 시간 안내
+// ──────────────────────────────────────────
+function formatDuration(ms) {
+  const s = Math.max(1, Math.round(ms / 1000));
+  if (s < 60) return `${s}초`;
+  const m = Math.round(s / 60);
+  return m < 60 ? `${m}분` : `${Math.floor(m / 60)}시간 ${m % 60}분`;
+}
+function estimateText(n) {
+  const cfg = getAnalysisConfig();
+  if (!cfg.aiCriteria.length) return ' · 규칙 판정만 사용 (바로 끝남)';
+  const pool = Math.max(1, Math.min(CONCURRENCY, n));
+  return ` · 예상 소요 약 ${formatDuration(n * 12000 / pool)}`;
+}
+
+// ──────────────────────────────────────────
+// 시작
+// ──────────────────────────────────────────
+const restored = loadConditions();
+renderCriteriaBuilder();
+syncAllSubViews();
+showSub(1);
+if (restored) setTimeout(() => toast('지난번에 쓴 탐지 조건을 불러왔습니다.\n2단계 마지막 화면에서 확인하거나 초기화할 수 있습니다.', 'info'), 500);
+
+// 분석 중 창을 닫으려 하면 한 번 확인
+window.addEventListener('beforeunload', e => {
+  if (document.getElementById('progressCard').classList.contains('show')) { e.preventDefault(); e.returnValue = ''; }
+});
+</script>
+</body>
+</html>
