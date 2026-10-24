@@ -666,7 +666,17 @@
   .setting-input[readonly] { background-color: #EEF1F6; color: var(--text-sub); }
 
   /* ── 2단계: 모델(4종) · 답변 다양성 · 평가요소 ── */
-  .model-options.two { grid-template-columns: repeat(2, 1fr); }
+  .factor-list { display: flex; flex-direction: column; gap: 14px; }
+  .factor-row { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: var(--radius-md); box-shadow: var(--raise-sm); }
+  .fr-head { display: flex; align-items: center; gap: 10px; }
+  .fr-num {
+    width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent); color: #fff; font-size: 13px; font-weight: 700;
+  }
+  .fr-name { flex: 1; min-width: 0; font-weight: 600; }
+  .fr-def { min-height: 64px; font-size: 15px; line-height: 1.6; resize: vertical; }
+  .q-def { margin: -4px 0 10px; font-size: 13px; color: var(--text-sub); }
   .seg { display: inline-flex; flex-wrap: wrap; gap: 6px; padding: 6px; border-radius: 999px; box-shadow: var(--inset); }
   .seg button {
     min-width: 54px; padding: 8px 18px; border: none; border-radius: 999px; background: transparent;
@@ -789,7 +799,7 @@
     .card-header { padding: 18px; }
     .tabs-wrap { padding: 18px 18px 0; }
     .setting-grid { grid-template-columns: 1fr; }
-    .model-options, .model-options.two { grid-template-columns: 1fr; }
+    .model-options { grid-template-columns: 1fr; }
     .substepper { gap: 6px; }
     .ss-dot { padding: 8px 2px; }
     .ss-label { display: none; }
@@ -946,7 +956,7 @@
           <h4>이용 순서</h4>
           <ol class="flow-list">
             <li><span class="fl-num">1</span><div><b>시작하기</b><span>유의사항에 동의하고 접속 키를 등록합니다.</span></div></li>
-            <li><span class="fl-num">2</span><div><b>생성 설정</b><span>한 화면에 한두 가지씩, 4개의 짧은 화면을 넘기며 정합니다. 추천값 그대로 건너뛸 수도 있습니다.</span></div></li>
+            <li><span class="fl-num">2</span><div><b>생성 설정</b><span>모델·분석 방식, 보고서 로고, 평가요소와 정의·보조질문 수를 4개의 짧은 화면에서 정합니다. 추천값 그대로 건너뛸 수도 있습니다.</span></div></li>
             <li><span class="fl-num">3</span><div><b>자기소개서 입력</b><span>직접 입력하거나 엑셀 파일을 올린 뒤 생성을 시작합니다.</span></div></li>
             <li><span class="fl-num">4</span><div><b>결과 확인</b><span>질문을 확인·복사하고 엑셀·개별 보고서로 내려받습니다.</span></div></li>
           </ol>
@@ -978,29 +988,38 @@
     <!-- 2-1. 모델 · 답변 다양성 -->
     <section class="card substep" data-sub="1">
       <div class="card-header" style="justify-content:space-between; flex-wrap:wrap;">
-        <div class="ch-left"><span class="sub-badge">1</span><h3>인공지능 모델과 질문 다양성</h3></div>
+        <div class="ch-left"><span class="sub-badge">1</span><h3>인공지능 모델과 분석 방식</h3></div>
         <button type="button" class="btn btn-sm" onclick="resetSub(1)">↩️ 추천값으로</button>
       </div>
       <div class="card-body">
         <div class="setting-label" style="margin-bottom:12px;"><span>인공지능 모델</span></div>
-        <div class="model-options two" role="radiogroup" aria-label="인공지능 모델">
-          <label class="model-opt"><input type="radio" name="model" value="gpt-4.1-mini"><span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">👍 기본 권장</span><span class="mo-name">gpt-4.1-mini</span><span class="mo-desc">빠르고 저렴하면서 품질도 안정적입니다.</span></span></label>
-          <label class="model-opt"><input type="radio" name="model" value="gpt-4.1"><span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">🎯 품질 우선</span><span class="mo-name">gpt-4.1</span><span class="mo-desc">질문이 더 구체적이지만 비용이 늘어납니다.</span></span></label>
-          <label class="model-opt"><input type="radio" name="model" value="gpt-4o"><span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">🧩 이전 주력 모델</span><span class="mo-name">gpt-4o</span><span class="mo-desc">기존 결과와 비교해 볼 때 씁니다.</span></span></label>
-          <label class="model-opt"><input type="radio" name="model" value="gpt-4o-mini"><span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">💰 가장 저렴함</span><span class="mo-name">gpt-4o-mini</span><span class="mo-desc">많은 인원을 시험 삼아 돌려 볼 때 알맞습니다.</span></span></label>
+        <div class="model-options" role="radiogroup" aria-label="인공지능 모델">
+          <label class="model-opt"><input type="radio" name="model" value="gpt-4.1"><span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">빠르고 저렴함</span><span class="mo-name">gpt-4.1</span><span class="mo-desc">많은 인원을 빠르게 한 번 만들어 볼 때 알맞습니다.</span></span></label>
+          <label class="model-opt"><input type="radio" name="model" value="gpt-5" checked><span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">기본 권장</span><span class="mo-name">gpt-5</span><span class="mo-desc">질문의 구체성과 속도가 균형 잡혀 있어 대부분의 경우에 맞습니다.</span></span></label>
+          <label class="model-opt"><input type="radio" name="model" value="gpt-5.4"><span class="mo-box"><span class="mo-check" aria-hidden="true">✓</span><span class="mo-tag">품질 우선</span><span class="mo-name">gpt-5.4</span><span class="mo-desc">핵심 인원의 질문을 더 깊이 있게 다듬을 때 씁니다.</span></span></label>
         </div>
 
         <div class="divider" style="margin:26px 0 22px;"></div>
 
-        <label class="setting-label" for="temperature" style="margin-bottom:12px;"><span>질문 다양성 (온도)</span></label>
-        <div class="preset-row" id="tempPresets" style="margin-bottom:14px;">
-          <button type="button" class="preset-chip" data-temp="0.2">일관되게<small>0.2</small></button>
-          <button type="button" class="preset-chip" data-temp="0.4">균형 (추천)<small>0.4</small></button>
-          <button type="button" class="preset-chip" data-temp="0.8">다양하게<small>0.8</small></button>
+        <!-- gpt-5 계열: 분석 깊이 -->
+        <div id="effortBlock">
+          <div class="setting-label" style="margin-bottom:12px;"><span>분석 깊이</span></div>
+          <div class="seg" id="effortSeg" role="radiogroup" aria-label="분석 깊이"></div>
+          <p class="setting-desc" style="margin-top:12px;">깊게 분석할수록 자기소개서의 근거를 더 꼼꼼히 따져 질문을 만들지만, 시간과 비용이 늘어납니다.</p>
         </div>
-        <div class="num-unit" style="max-width:260px;"><input class="setting-input" id="temperature" type="number" min="0" max="1" step="0.1" value="0.4"><span class="unit">0 ~ 1</span></div>
-        <div class="field-error" id="err_sub1" role="alert" style="margin-top:12px;"></div>
-        <p class="setting-desc" style="margin-top:10px;">낮을수록 같은 자기소개서에 비슷한 질문이, 높을수록 매번 다른 질문이 나옵니다.</p>
+
+        <!-- gpt-4.1: 질문 다양성 (온도) -->
+        <div id="tempBlock">
+          <label class="setting-label" for="temperature" style="margin-bottom:12px;"><span>질문 다양성 (온도)</span></label>
+          <div class="preset-row" id="tempPresets" style="margin-bottom:14px;">
+            <button type="button" class="preset-chip" data-temp="0.2">일관되게<small>0.2</small></button>
+            <button type="button" class="preset-chip" data-temp="0.4">균형 (추천)<small>0.4</small></button>
+            <button type="button" class="preset-chip" data-temp="0.8">다양하게<small>0.8</small></button>
+          </div>
+          <div class="num-unit" style="max-width:260px;"><input class="setting-input" id="temperature" type="number" min="0" max="1" step="0.1" value="0.4"><span class="unit">0 ~ 1</span></div>
+          <div class="field-error" id="err_sub1" role="alert" style="margin-top:12px;"></div>
+          <p class="setting-desc" style="margin-top:10px;">낮을수록 같은 자기소개서에 비슷한 질문이, 높을수록 매번 다른 질문이 나옵니다.</p>
+        </div>
       </div>
     </section>
 
@@ -1036,15 +1055,18 @@
       <div class="card-body">
         <div class="info-box" style="margin-bottom:20px;">
           <div class="ib-line"><span class="ib-ic" aria-hidden="true">💡</span><span>평가요소마다 <b>주질문 1개</b>를 만들고, 주질문마다 답변을 깊이 확인하는 <b>보조질문</b>을 붙입니다.</span></div>
+          <div class="ib-line"><span class="ib-ic" aria-hidden="true">📝</span><span>평가요소마다 <b>정의</b>(이 요소로 무엇을 확인하려는지)를 적으면 질문이 그 정의에 맞춰 만들어집니다. 정의를 비워 두면 이름의 일반적인 뜻으로 판단합니다.</span></div>
         </div>
-        <label class="setting-label" for="factorInput" style="margin-bottom:12px;"><span>평가요소 <em class="req">*</em></span></label>
+        <div class="setting-label" style="margin-bottom:12px;"><span>평가요소와 정의 <em class="req">*</em></span></div>
         <div class="preset-row" id="factorPresets" style="margin-bottom:14px;">
           <span class="preset-label">빠른 선택</span>
         </div>
-        <div class="tag-input" id="factorTagBox" onclick="if(event.target===this) document.getElementById('factorInput').focus()">
-          <input id="factorInput" type="text" placeholder="평가요소를 쓰고 Enter (최대 8개)" autocomplete="off">
+        <div class="factor-list" id="factorList"></div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button type="button" class="btn btn-sm" id="addFactorBtn" onclick="addFactor()">➕ 평가요소 추가</button>
+          <span class="hint-inline" id="factorHint"></span>
         </div>
-        <p class="setting-desc" style="margin-top:9px;">보고서와 엑셀에 이 순서대로 나옵니다. × 를 눌러 지우고, Enter나 쉼표(,)로 추가합니다.</p>
+        <p class="setting-desc" style="margin-top:10px;">보고서와 엑셀에 이 순서대로 나옵니다. 최대 8개까지 넣을 수 있습니다.</p>
 
         <div class="divider" style="margin:26px 0 22px;"></div>
 
@@ -1135,7 +1157,7 @@
         <div class="divider" style="margin:24px 0 4px;"></div>
         <div class="btn-row">
           <button type="button" class="btn btn-primary" id="btnSingle" onclick="runSingle()">💬 면접질문 만들기</button>
-          <span class="hint-inline" id="singleHint">보통 10~30초 걸립니다.</span>
+          <span class="hint-inline" id="singleHint">모델과 분석 깊이에 따라 보통 10초~1분 걸립니다.</span>
         </div>
       </div>
 
@@ -1267,17 +1289,43 @@
 // ══════════════════════════════════════════
 // 기본값
 // ══════════════════════════════════════════
+const FACTOR_PRESETS = [
+  { label: '공공기관 5요소', factors: [
+    { name: '정신자세', def: '공직자로서의 사명감·책임감·성실성 등 직무를 대하는 기본 태도' },
+    { name: '전문지식', def: '지원 직무 수행에 필요한 전문 지식과 이를 실제 업무에 응용하는 능력' },
+    { name: '발표력', def: '자신의 생각을 논리적이고 명확하게 전달하는 표현력과 설득력' },
+    { name: '품행', def: '예의·협조성·규범 준수 등 조직 구성원으로서의 기본 자세' },
+    { name: '발전가능성', def: '창의력·의지력·자기계발 노력 등 앞으로 성장할 수 있는 가능성' },
+  ] },
+  { label: '직업기초능력', factors: [
+    { name: '의사소통능력', def: '상대의 말과 글을 정확히 이해하고 자신의 뜻을 효과적으로 전달하는 능력' },
+    { name: '문제해결능력', def: '문제 상황을 인식하고 원인을 분석해 적절한 해결책을 찾아 실행하는 능력' },
+    { name: '대인관계능력', def: '협력적인 관계를 유지하고 갈등을 원만하게 조정하는 능력' },
+    { name: '자기개발능력', def: '스스로를 관리하고 능력을 키우기 위해 꾸준히 노력하는 능력' },
+    { name: '직업윤리', def: '공정·책임·정직 등 직업인으로서 지켜야 할 윤리 의식과 태도' },
+  ] },
+  { label: '역량 중심', factors: [
+    { name: '직무전문성', def: '직무 수행에 필요한 지식·기술을 갖추고 실제 업무에 적용하는 능력' },
+    { name: '문제해결', def: '문제의 핵심을 파악하고 합리적인 대안을 찾아 실행하는 능력' },
+    { name: '협업', def: '공동의 목표를 위해 구성원과 협력하고 소통하는 능력' },
+    { name: '책임감', def: '맡은 일을 끝까지 완수하고 결과에 책임지는 태도' },
+  ] },
+];
 const DEFAULT_SETTINGS = {
-  model: 'gpt-4.1-mini',
+  model: 'gpt-5',
+  effort: 'medium',
   temp: 0.4,
-  factors: ['정신자세', '전문지식', '발표력', '품행', '발전가능성'],
+  factors: FACTOR_PRESETS[0].factors,
   subN: 3,
 };
-const FACTOR_PRESETS = [
-  { label: '공공기관 5요소', factors: ['정신자세', '전문지식', '발표력', '품행', '발전가능성'] },
-  { label: '직업기초능력', factors: ['의사소통능력', '문제해결능력', '대인관계능력', '자기개발능력', '직업윤리'] },
-  { label: '역량 중심', factors: ['직무전문성', '문제해결', '협업', '책임감'] },
+const MODELS = ['gpt-4.1', 'gpt-5', 'gpt-5.4'];
+const EFFORTS = [
+  { value: 'low', label: '빠르게' },
+  { value: 'medium', label: '균형 (추천)' },
+  { value: 'high', label: '꼼꼼하게' },
 ];
+// 추론형 모델(gpt-5 계열, o 계열)은 온도 값을 받지 않으므로 분석 깊이(reasoning_effort)로 조절
+function isReasoningModel(model) { return /^(gpt-5|o\d)/.test(model); }
 const MAX_FACTORS = 8;
 const SETTINGS_LS_KEY = 'iq_settings_v4';
 
@@ -1371,24 +1419,36 @@ function loadSettings() {
   let saved = null;
   try { saved = JSON.parse(store.get(SETTINGS_LS_KEY) || 'null'); } catch (e) {}
   if (!saved || typeof saved !== 'object') return s;
-  if (typeof saved.model === 'string') s.model = saved.model;
+  if (MODELS.includes(saved.model)) s.model = saved.model;
+  if (EFFORTS.some(e => e.value === saved.effort)) s.effort = saved.effort;
   if (Number.isFinite(saved.temp) && saved.temp >= 0 && saved.temp <= 1) s.temp = saved.temp;
-  if (Array.isArray(saved.factors) && saved.factors.length) s.factors = saved.factors.map(String).slice(0, MAX_FACTORS);
+  if (Array.isArray(saved.factors) && saved.factors.length) s.factors = saved.factors.slice(0, MAX_FACTORS).map(normFactor);
   if (Number.isInteger(saved.subN) && saved.subN >= 1 && saved.subN <= 5) s.subN = saved.subN;
   if (typeof saved.customPrompt === 'string' && saved.customPrompt.trim()) s.customPrompt = saved.customPrompt;
   s.restored = true;
   return s;
 }
+// 평가요소 한 개 = { name, def } (이전 버전은 이름 문자열만 저장했으므로 알려진 이름은 정의를 채워 넣음)
+function normFactor(f) {
+  if (f && typeof f === 'object') return { name: String(f.name || '').trim(), def: String(f.def || '').trim() };
+  const name = String(f || '').trim();
+  const known = FACTOR_PRESETS.flatMap(p => p.factors).find(x => x.name === name);
+  return { name, def: known ? known.def : '' };
+}
+function activeFactors() { return settings.factors.filter(f => f.name.trim()); }
+function factorDef(name) { const f = settings.factors.find(x => x.name === name); return f ? f.def : ''; }
+
 function saveSettings() {
   store.set(SETTINGS_LS_KEY, JSON.stringify({
-    model: settings.model, temp: settings.temp, factors: settings.factors, subN: settings.subN,
+    model: settings.model, effort: settings.effort, temp: settings.temp, factors: settings.factors, subN: settings.subN,
     customPrompt: customPrompt || '',
   }));
 }
 
 function buildPrompt(s) {
-  const n = s.factors.length;
-  const list = s.factors.map((f, i) => `${i + 1}. ${f}`).join('  ');
+  const factors = s.factors.filter(f => f.name.trim());
+  const n = factors.length;
+  const list = factors.map((f, i) => `${i + 1}. ${f.name}` + (f.def ? ` — ${f.def}` : '')).join('\n');
   const subs = Array.from({ length: s.subN }, () => '"..."').join(', ');
   return `당신은 공공기관 채용 면접 설계 전문가입니다.
 지원자의 자기소개서와 모집분야의 직무수행내용을 분석하여, 지원자 개인에게 맞춤화된 구조화 면접질문을 생성합니다.
@@ -1397,6 +1457,7 @@ function buildPrompt(s) {
 ${list}
 
 [생성 규칙]
+- 각 주질문은 해당 평가요소의 정의에 맞는 역량을 검증해야 합니다. 정의가 없는 평가요소는 이름의 일반적인 의미로 판단합니다.
 - 주질문은 자기소개서의 구체적 경험·표현에 근거해야 하며, 일반적인 질문은 지양합니다.
 - 근거구절: 해당 질문의 근거가 된 자기소개서 문장을 원문 그대로 인용합니다.
 - 질문이유: 이 질문으로 무엇을 검증하려는지 1~2문장으로 설명합니다.
@@ -1410,7 +1471,7 @@ ${list}
   "main_questions": [
     {
       "번호": 1,
-      "평가요소": "${s.factors[0]}",
+      "평가요소": "${n ? factors[0].name : ''}",
       "주질문": "...",
       "근거구절": "...",
       "질문이유": "...",
@@ -1477,7 +1538,6 @@ function goToStep(n) {
   }
   if (n === 4 && !hasResults()) { toast('아직 결과가 없습니다. 3단계에서 생성을 먼저 시작하세요.', 'warn'); return; }
   if (currentStep === 2 && n > 2) {
-    commitFactorInput();
     const bad = firstInvalidSub();
     if (bad) { showSub(bad.sub); toast(bad.err, 'warn', subAnchor(bad.sub)); return; }
   }
@@ -1556,7 +1616,7 @@ if (savedKey) { $('apiKey').value = savedKey; lockKey(); }
 // 2단계 세부 화면 (한 화면에 설정 2개 이하)
 // ══════════════════════════════════════════
 const SUBSTEPS = [
-  { label: '모델',      title: '모델과 질문 다양성' },
+  { label: '모델',      title: '모델과 분석 방식' },
   { label: '로고',      title: '보고서 로고' },
   { label: '질문 구성', title: '평가요소와 보조질문 수' },
   { label: '확인',      title: '설정 확인' },
@@ -1577,7 +1637,6 @@ function renderSubstepper() {
 // 앞으로 건너뛸 때는 지나치는 화면의 입력값을 먼저 확인
 function showSub(k, fromNav) {
   if (fromNav && k > currentSub) {
-    commitFactorInput();
     for (let s = currentSub; s < k; s++) {
       const err = subError(s);
       if (err) { k = s; toast(err, 'warn', subAnchor(s)); break; }
@@ -1596,15 +1655,14 @@ function showSub(k, fromNav) {
 }
 function subPrev() { if (currentSub > 1) showSub(currentSub - 1, false); else goToStep(1); }
 function subNext() {
-  commitFactorInput();
   const err = subError(currentSub);
   if (err) { toast(err, 'warn', subAnchor(currentSub)); return; }
   if (currentSub < SUBSTEPS.length) showSub(currentSub + 1, false);
   else goToStep(3);
 }
 function subError(k) {
-  if (k === 1 && !tempValid()) return '질문 다양성(온도)은 0에서 1 사이 숫자로 넣어 주세요.';
-  if (k === 3 && !settings.factors.length) return '평가요소를 하나 이상 넣어 주세요.';
+  if (k === 1 && !isReasoningModel(settings.model) && !tempValid()) return '질문 다양성(온도)은 0에서 1 사이 숫자로 넣어 주세요.';
+  if (k === 3) return factorError();
   return null;
 }
 function firstInvalidSub() {
@@ -1629,8 +1687,19 @@ function syncTempView() {
   document.querySelectorAll('#tempPresets .preset-chip').forEach(b => b.classList.toggle('active', ok && Number(b.dataset.temp) === settings.temp));
 }
 document.querySelectorAll('input[name="model"]').forEach(r => r.addEventListener('change', () => {
-  settings.model = r.value; saveSettings();
+  settings.model = r.value; saveSettings(); syncModelBlocks();
 }));
+// 고른 모델에 맞는 두 번째 설정만 보여 줌 (gpt-5 계열: 분석 깊이 / gpt-4.1: 질문 다양성)
+function syncModelBlocks() {
+  const r = isReasoningModel(settings.model);
+  $('effortBlock').classList.toggle('hidden', !r);
+  $('tempBlock').classList.toggle('hidden', r);
+}
+function renderEffortSeg() {
+  $('effortSeg').innerHTML = EFFORTS.map(e =>
+    `<button type="button" role="radio" aria-checked="${e.value === settings.effort}" class="${e.value === settings.effort ? 'active' : ''}" onclick="setEffort('${e.value}')">${e.label}</button>`).join('');
+}
+function setEffort(v) { settings.effort = v; renderEffortSeg(); saveSettings(); }
 document.querySelectorAll('#tempPresets .preset-chip').forEach(b => b.addEventListener('click', () => {
   $('temperature').value = b.dataset.temp;
   settings.temp = Number(b.dataset.temp);
@@ -1666,51 +1735,88 @@ function clearLogo() {
   renderLogoPreview();
 }
 
-// ── 2-3. 평가요소 (꼬리표 입력) · 보조질문 수 ──
-function setFactors(list, silent) {
-  const uniq = [...new Set(list.map(t => String(t).trim()).filter(Boolean))];
-  if (uniq.length > MAX_FACTORS) toast(`평가요소는 최대 ${MAX_FACTORS}개까지 넣을 수 있습니다.`, 'warn');
-  const next = uniq.slice(0, MAX_FACTORS);
-  const changed = next.join('|') !== settings.factors.join('|');
-  settings.factors = next;
-  const box = $('factorTagBox');
-  box.querySelectorAll('.tag').forEach(t => t.remove());
-  next.forEach((w, i) => {
-    const tag = document.createElement('span');
-    tag.className = 'tag';
-    tag.innerHTML = `${i + 1}. ${escapeHtml(w)}<button type="button" aria-label="${escapeHtml(w)} 지우기" title="지우기">×</button>`;
-    tag.querySelector('button').addEventListener('click', () => {
-      setFactors(settings.factors.filter((_, k) => k !== i));
-      $('factorInput').focus();
-    });
-    box.insertBefore(tag, $('factorInput'));
-  });
+// ── 2-3. 평가요소 (이름 + 정의) · 보조질문 수 ──
+function renderFactors() {
+  $('factorList').innerHTML = settings.factors.map((f, i) => `
+    <div class="factor-row" data-i="${i}">
+      <div class="fr-head">
+        <span class="fr-num">${i + 1}</span>
+        <input class="setting-input fr-name" type="text" value="${escapeHtml(f.name)}" placeholder="평가요소 이름 (예: 정신자세)" aria-label="${i + 1}번 평가요소 이름">
+        <button type="button" class="icon-btn" onclick="removeFactor(${i})" title="이 평가요소 삭제" aria-label="${i + 1}번 평가요소 삭제">×</button>
+      </div>
+      <textarea class="field fr-def" rows="2" placeholder="정의 (선택) — 이 평가요소로 무엇을 확인하려는지 적어 주세요. 예: 공직자로서의 사명감·책임감·성실성" aria-label="${i + 1}번 평가요소 정의">${escapeHtml(f.def)}</textarea>
+    </div>`).join('');
+  $('addFactorBtn').disabled = settings.factors.length >= MAX_FACTORS;
+  $('addFactorBtn').title = $('addFactorBtn').disabled ? `평가요소는 최대 ${MAX_FACTORS}개까지 넣을 수 있습니다.` : '';
+  syncFactorMeta();
+}
+function syncFactorMeta() {
+  const names = activeFactors().map(f => f.name).join('|');
   document.querySelectorAll('#factorPresets .preset-chip').forEach(b => {
-    b.classList.toggle('active', FACTOR_PRESETS[Number(b.dataset.i)].factors.join('|') === next.join('|'));
+    b.classList.toggle('active', FACTOR_PRESETS[Number(b.dataset.i)].factors.map(f => f.name).join('|') === names);
   });
+  const withDef = activeFactors().filter(f => f.def).length;
+  $('factorHint').textContent = `${settings.factors.length} / ${MAX_FACTORS}개 · 정의 작성 ${withDef}개`;
   renderCountLine();
-  if (changed && !silent) { markPromptStale(); saveSettings(); }
 }
-function commitFactorInput() {
-  const input = $('factorInput');
-  const parts = input.value.split(',').map(t => t.trim()).filter(Boolean);
-  input.value = '';
-  if (parts.length) setFactors(settings.factors.concat(parts));
+function setFactors(list, silent) {
+  settings.factors = list.slice(0, MAX_FACTORS).map(normFactor);
+  renderFactors();
+  if (!silent) { markPromptStale(); saveSettings(); }
 }
-(function initFactorInput() {
+function addFactor() {
+  if (settings.factors.length >= MAX_FACTORS) return;
+  settings.factors.push({ name: '', def: '' });
+  renderFactors();
+  saveSettings();
+  const rows = document.querySelectorAll('#factorList .fr-name');
+  rows[rows.length - 1].focus();
+}
+function removeFactor(i) {
+  const f = settings.factors[i];
+  if ((f.name || f.def) && !confirm(`"${f.name || (i + 1) + '번'}" 평가요소를 지울까요?`)) return;
+  settings.factors.splice(i, 1);
+  renderFactors();
+  markPromptStale();
+  saveSettings();
+}
+function factorError() {
+  const list = settings.factors;
+  if (list.some(f => !f.name.trim() && f.def.trim())) return '정의는 있는데 이름이 비어 있는 평가요소가 있습니다. 이름을 넣어 주세요.';
+  const names = activeFactors().map(f => f.name.trim());
+  if (!names.length) return '평가요소를 하나 이상 넣어 주세요.';
+  const dup = names.find((n, i) => names.indexOf(n) !== i);
+  if (dup) return `"${dup}" 평가요소가 두 번 들어 있습니다. 이름을 다르게 해 주세요.`;
+  return null;
+}
+// 이름·정의를 고치면 바로 설정에 반영 (입력 중에는 저장만, 칸을 벗어나면 지시문 확정 해제)
+$('factorList').addEventListener('input', e => {
+  const row = e.target.closest('.factor-row');
+  if (!row) return;
+  const f = settings.factors[Number(row.dataset.i)];
+  if (e.target.classList.contains('fr-name')) f.name = e.target.value.trim();
+  if (e.target.classList.contains('fr-def')) f.def = e.target.value.trim();
+  syncFactorMeta();
+  saveSettings();
+});
+$('factorList').addEventListener('change', () => markPromptStale());
+$('factorList').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.isComposing && e.target.classList.contains('fr-name')) {
+    e.preventDefault();
+    e.target.closest('.factor-row').querySelector('.fr-def').focus();
+  }
+});
+(function initFactorPresets() {
   $('factorPresets').insertAdjacentHTML('beforeend', FACTOR_PRESETS.map((p, i) =>
-    `<button type="button" class="preset-chip" data-i="${i}" title="${escapeHtml(p.factors.join(', '))}">${escapeHtml(p.label)}<small>${p.factors.length}개</small></button>`).join(''));
+    `<button type="button" class="preset-chip" data-i="${i}" title="${escapeHtml(p.factors.map(f => f.name).join(', '))}">${escapeHtml(p.label)}<small>${p.factors.length}개</small></button>`).join(''));
   document.querySelectorAll('#factorPresets .preset-chip').forEach(b => b.addEventListener('click', () => {
+    const touched = settings.factors.some((f, i) => {
+      const preset = FACTOR_PRESETS.flatMap(p => p.factors).find(x => x.name === f.name);
+      return f.name && (!preset || preset.def !== f.def);
+    });
+    if (touched && !confirm('직접 입력하거나 고친 평가요소가 있습니다. 빠른 선택으로 바꿀까요?')) return;
     setFactors(FACTOR_PRESETS[Number(b.dataset.i)].factors);
   }));
-  const input = $('factorInput');
-  input.addEventListener('keydown', e => {
-    if (e.isComposing) return;   // 한글 조합 중 Enter는 무시
-    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); commitFactorInput(); }
-    else if (e.key === 'Backspace' && !input.value && settings.factors.length) setFactors(settings.factors.slice(0, -1));
-  });
-  input.addEventListener('input', () => { if (input.value.includes(',')) commitFactorInput(); });
-  input.addEventListener('blur', commitFactorInput);
 })();
 
 function renderSubNSeg() {
@@ -1726,7 +1832,7 @@ function setSubN(n) {
   saveSettings();
 }
 function renderCountLine() {
-  const f = settings.factors.length, s = settings.subN;
+  const f = activeFactors().length, s = settings.subN;
   $('countLine').innerHTML = f
     ? `한 지원자당 주질문 <b>${f}개</b> × 보조질문 <b>${s}개</b> → 질문 <b>${f * (s + 1)}개</b>가 만들어집니다.`
     : '⚠️ 평가요소를 하나 이상 넣어 주세요.';
@@ -1736,12 +1842,13 @@ function renderCountLine() {
 function resetSub(k) {
   if (k === 1) {
     settings.model = DEFAULT_SETTINGS.model;
+    settings.effort = DEFAULT_SETTINGS.effort;
     settings.temp = DEFAULT_SETTINGS.temp;
     applySettingsToView();
   } else if (k === 2) {
     clearLogo();
   } else if (k === 3) {
-    $('factorInput').value = '';
+    if (!confirm('평가요소를 기본값(공공기관 5요소)으로 되돌릴까요? 직접 입력한 내용은 사라집니다.')) return;
     setFactors(DEFAULT_SETTINGS.factors);
     setSubN(DEFAULT_SETTINGS.subN);
   }
@@ -1749,7 +1856,7 @@ function resetSub(k) {
   toast(`${SUBSTEPS[k - 1].title}을(를) 기본값으로 되돌렸습니다.`, 'success');
 }
 function resetAll() {
-  if (!confirm('모든 생성 설정(모델·질문 다양성·로고·평가요소·보조질문 수·직접 수정한 지시문)을 처음 상태로 되돌릴까요?')) return;
+  if (!confirm('모든 생성 설정(모델·분석 방식·로고·평가요소와 정의·보조질문 수·직접 수정한 지시문)을 처음 상태로 되돌릴까요?')) return;
   settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
   customPrompt = null;
   clearLogo();
@@ -1762,11 +1869,13 @@ function resetAll() {
 }
 function applySettingsToView() {
   const radio = [...document.querySelectorAll('input[name="model"]')].find(r => r.value === settings.model)
-    || document.querySelector('input[name="model"]');
+    || document.querySelector(`input[name="model"][value="${DEFAULT_SETTINGS.model}"]`);
   radio.checked = true;
   settings.model = radio.value;
   $('temperature').value = settings.temp;
   syncTempView();
+  renderEffortSeg();
+  syncModelBlocks();
   setFactors(settings.factors, true);
   renderSubNSeg();
 }
@@ -1775,9 +1884,13 @@ function applySettingsToView() {
 function renderSummary() {
   const rows = [
     ['🧠', '인공지능 모델', `<b>${escapeHtml(settings.model)}</b>`, 1],
-    ['🎨', '질문 다양성', `<b>${settings.temp}</b> (${settings.temp <= 0.25 ? '일관되게' : settings.temp >= 0.7 ? '다양하게' : '균형'})`, 1],
+    isReasoningModel(settings.model)
+      ? ['🔬', '분석 깊이', `<b>${EFFORTS.find(e => e.value === settings.effort).label}</b>`, 1]
+      : ['🎨', '질문 다양성', `<b>${settings.temp}</b> (${settings.temp <= 0.25 ? '일관되게' : settings.temp >= 0.7 ? '다양하게' : '균형'})`, 1],
     ['🏛️', '보고서 로고', orgLogo ? '넣음' : '없음', 2],
-    ['📋', '평가요소', settings.factors.length ? `${settings.factors.length}개 (${settings.factors.map(escapeHtml).join(', ')})` : '<b style="color:var(--red)">없음</b>', 3],
+    ['📋', '평가요소', activeFactors().length
+      ? `${activeFactors().length}개 (${activeFactors().map(f => escapeHtml(f.name)).join(', ')}) · 정의 작성 ${activeFactors().filter(f => f.def).length}개`
+      : '<b style="color:var(--red)">없음</b>', 3],
     ['🔎', '보조질문', `주질문마다 <b>${settings.subN}개</b>`, 3],
     ['🛠️', '시스템 지시문', customPrompt ? '<b>직접 수정한 지시문</b> 사용' : '설정으로 자동 생성', 4],
   ];
@@ -1793,7 +1906,7 @@ function renderCondStrip() {
   $('condStrip').innerHTML = `
     ${keyPart}<span class="cs-sep">|</span>
     <span>모델 <b>${escapeHtml(settings.model)}</b></span><span class="cs-sep">·</span>
-    <span>평가요소 <b>${settings.factors.length}개</b></span><span class="cs-sep">·</span>
+    <span>평가요소 <b>${activeFactors().length}개</b></span><span class="cs-sep">·</span>
     <span>보조질문 <b>${settings.subN}개</b></span>
     ${customPrompt ? '<span class="cs-sep">·</span><span>지시문 <b>직접 수정</b></span>' : ''}
     <button type="button" class="link-btn" onclick="goToStep(2)">설정 바꾸기</button>`;
@@ -1817,7 +1930,8 @@ function preflight() {
     toast('오픈에이아이 접속 키를 먼저 등록하세요. (1단계)', 'warn');
     return false;
   }
-  if (!settings.factors.length) { toast('평가요소를 하나 이상 넣어 주세요. (2단계)', 'warn'); return false; }
+  const fErr = factorError();
+  if (fErr) { toast(fErr + ' (2단계 3번 화면)', 'warn'); return false; }
   return true;
 }
 function friendlyApiError(status, raw) {
@@ -1830,13 +1944,14 @@ function friendlyApiError(status, raw) {
 async function callOpenAI(userPrompt) {
   const body = {
     model: settings.model,
-    temperature: settings.temp,
     response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: getPrompt() },
       { role: 'user', content: userPrompt },
     ],
   };
+  if (isReasoningModel(settings.model)) body.reasoning_effort = settings.effort;
+  else body.temperature = settings.temp;
   let lastErr = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) await sleep(1500 * Math.pow(2, attempt - 1));
@@ -1976,7 +2091,7 @@ async function runSingle() {
   const field = $('sField').value.trim();
   $('btnSingle').disabled = true;
   setProgress(true, '면접질문 만드는 중', '', 30, false);
-  updateProgress(30, `🤖 ${settings.model} 모델이 자기소개서를 분석하고 있습니다. 보통 10~30초 걸립니다.`);
+  updateProgress(30, `🤖 ${settings.model} 모델이 자기소개서를 분석하고 있습니다. 보통 10초~1분 걸립니다.`);
   const t0 = Date.now();
   const cand = { exam: '직접 입력', name: '', field: field || '-', status: '', qa, result: null, error: null };
   try {
@@ -2137,7 +2252,7 @@ function updateBatchHint() {
   if (!candidates.length) { $('batchHint').textContent = '엑셀 파일을 먼저 올려 주세요.'; $('btnBatch').title = $('batchHint').textContent; return; }
   const skip = sel - todo;
   $('batchHint').textContent = todo
-    ? `${todo}명 생성 예정 · 예상 소요 약 ${formatDuration(todo * 20000)}` + (skip ? ` (이미 완료된 ${skip}명은 건너뜀)` : '')
+    ? `${todo}명 생성 예정 · 예상 소요 약 ${formatDuration(todo * perPersonMs())}` + (skip ? ` (이미 완료된 ${skip}명은 건너뜀)` : '')
     : (sel ? '선택한 지원자는 모두 완료되었습니다.' : '생성할 지원자를 선택하세요.');
   $('btnBatch').title = todo ? '' : $('batchHint').textContent;
 }
@@ -2239,6 +2354,10 @@ function setProgress(show, title, count, pct, cancellable) {
 function updateProgress(pct, text) {
   $('progressBar').style.width = pct + '%';
   $('progressText').textContent = text;
+}
+function perPersonMs() {
+  if (!isReasoningModel(settings.model)) return 15000;
+  return { low: 20000, medium: 35000, high: 60000 }[settings.effort] || 35000;
 }
 function formatDuration(ms) {
   const s = Math.max(1, Math.round(ms / 1000));
@@ -2350,6 +2469,7 @@ function renderReport(meta, result, viewIdx) {
         ${q.평가요소 ? `<span class="q-factor">${escapeHtml(q.평가요소)}</span>` : ''}
         ${tools ? `<button type="button" class="btn btn-sm no-print" data-copy="${escapeHtml(copyText)}" onclick="copyText(this)">📋 질문 복사</button>` : ''}
       </div>
+      ${factorDef(q.평가요소) ? `<div class="q-def">${escapeHtml(factorDef(q.평가요소))}</div>` : ''}
       <div class="q-main">${escapeHtml(q.주질문 || '')}</div>
       ${q.근거구절 ? `<div class="q-quote"><b>자기소개서 근거 구절</b>“${escapeHtml(q.근거구절)}”</div>` : ''}
       ${q.질문이유 ? `<div class="q-reason"><b>질문 의도</b>${escapeHtml(q.질문이유)}</div>` : ''}
@@ -2452,17 +2572,17 @@ function dateStamp() {
 }
 function downloadExcel() {
   if (typeof XLSX === 'undefined') { toast('엑셀 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.', 'error'); return; }
-  const rows = [['수험번호', '이름', '모집분야', '평가요소', '주질문', '근거구절', '질문이유', '보조질문']];
+  const rows = [['수험번호', '이름', '모집분야', '평가요소', '평가요소 정의', '주질문', '근거구절', '질문이유', '보조질문']];
   viewList().forEach(c => {
     if (!c.result) return;
     c.result.main_questions.forEach(q => rows.push([
       c.exam, c.name, c.field,
-      q.평가요소 || '', q.주질문 || '', q.근거구절 || '', q.질문이유 || '',
+      q.평가요소 || '', factorDef(q.평가요소), q.주질문 || '', q.근거구절 || '', q.질문이유 || '',
       Array.isArray(q.보조질문) ? q.보조질문.map((s, i) => `${i + 1}. ${s}`).join('\n') : '',
     ]));
   });
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 16 }, { wch: 12 }, { wch: 50 }, { wch: 40 }, { wch: 35 }, { wch: 55 }];
+  ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 16 }, { wch: 12 }, { wch: 40 }, { wch: 50 }, { wch: 40 }, { wch: 35 }, { wch: 55 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '면접질문');
   XLSX.writeFile(wb, `면접질문_생성결과_${dateStamp()}.xlsx`);
