@@ -875,6 +875,128 @@
     .card-header + .notice-box { margin: 14px 18px 0; }
     .glance li { flex-direction: column; gap: 0; }
   }
+
+  /* ════════════════════════════════════════
+     플랫(Flat) 가독성 디자인 — 뉴모피즘 덮어쓰기
+     - 페이지는 옅은 회색, 카드·입력칸은 흰 면 + 얇은 테두리로 층을 구분
+     - 그림자는 카드에만 아주 옅게, 눌린(inset) 효과는 모두 없애고 옅은 배경색으로 대체
+     - 강조색은 단색, 그라데이션 없음
+     ════════════════════════════════════════ */
+  :root {
+    --bg: #F3F5F9;
+    --surface: #FFFFFF;
+    --surface-2: #F7F8FB;
+    --border: #D9DEE7;
+    --border-strong: #B9C1CF;
+    --text-main: #111827;
+    --text-sub: #374151;
+    --text-light: #6B7280;
+    --accent: #1A4B8C;
+    --accent-deep: #123A6E;
+    --accent-soft: #E9EFF7;
+    --input-bg: #FFFFFF;
+    --input-border: #B9C1CF;
+    --btn-border: #C9D0DC;
+    --input-border-hover: #8A94A6;
+    --input-focus-ring: rgba(26, 75, 140, 0.20);
+    --line: #E5E8EE;
+    --raise: 0 1px 2px rgba(16,24,40,.05), 0 2px 8px rgba(16,24,40,.05);
+    --raise-sm: 0 1px 2px rgba(16,24,40,.05);
+    --raise-xs: none;
+    --inset: none;
+    --inset-sm: none;
+    --radius: 14px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+  }
+
+  /* 헤더 · 단계 표시줄: 흰 띠 + 아래 경계선 */
+  .header { background: var(--surface); border-bottom: 1px solid var(--line); padding: 20px 24px 16px; }
+  .header-icon, .card-icon { background: var(--accent-soft); box-shadow: none; }
+  .stepper-wrap { background: var(--surface); box-shadow: none; border-bottom: 1px solid var(--border); }
+  .stepper li + li::before { background: var(--border); height: 2px; }
+  .sd-num { background: var(--surface); border: 2px solid var(--border-strong); box-shadow: none; }
+  .stepper li.current .sd-num { background: var(--accent); border-color: var(--accent); box-shadow: none; }
+  .stepper li.done .sd-num { background: var(--accent-soft); border-color: var(--accent); box-shadow: none; }
+
+  /* 카드류: 흰 면 + 테두리 */
+  .card, .advanced { background: var(--surface); border: 1px solid var(--border); }
+  .card-header { border-bottom: 1px solid var(--line); }
+  .item-row, .excel-guide, .factor-row, .result-card, .q-card, .stat-box, .mo-box {
+    background: var(--surface); border: 1px solid var(--border); box-shadow: none;
+  }
+  .stat-box { background: var(--surface-2); }
+  .sub-badge { background: var(--accent-soft); box-shadow: none; }
+
+  /* 눌린 영역 → 옅은 배경면 */
+  .flow-list li, .info-box, .quick-start, .cond-strip, .agree-box, .summary-list li,
+  .ov-card, .essay-box, .table-wrap {
+    background: var(--surface-2); border: 1px solid var(--line); box-shadow: none;
+  }
+  .info-box { background: #F2F6FB; border-color: #D6E0EE; border-left: 4px solid var(--accent); }
+  .agree-box { background: var(--surface); border: 1.5px solid var(--border-strong); }
+  .agree-box:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .badge, .ok-pill, .prompt-status, .q-factor, .col-badge, .hint-line code, .apikey-hint code {
+    background: var(--surface-2); border: 1px solid var(--border); box-shadow: none;
+  }
+  .q-factor { background: var(--accent-soft); border-color: transparent; }
+  .key-status { background: var(--surface-2); border: 1px solid var(--border); box-shadow: none; }
+  .key-status.ok { background: #EAF6EE; border-color: #B7DEC3; }
+  .key-status.missing { background: #FDF0F0; border-color: #EBC1C1; }
+
+  /* 진행 막대 */
+  .progress-bar-wrap, .len-mini, .len-bar-outer { background: #E8EBF1; box-shadow: none; padding: 0; }
+  .progress-bar { background: var(--accent); }
+
+  /* 탭 · 분절 컨트롤 */
+  .tabs-wrap { padding: 0 28px; border-bottom: 1px solid var(--border); }
+  .tabs { box-shadow: none; padding: 0; gap: 4px; border-radius: 0; }
+  .tab { border: none !important; border-radius: 0; padding: 14px 18px 12px; border-bottom: 3px solid transparent !important; }
+  .tab.active { background: transparent; color: var(--accent); box-shadow: none; border-bottom-color: var(--accent) !important; }
+  .seg { box-shadow: none; background: #EEF1F6; border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+  .seg button { border-radius: 7px; }
+  .seg button.active { background: var(--surface); color: var(--accent); box-shadow: 0 1px 2px rgba(16,24,40,.12); border: 1px solid var(--border); }
+
+  /* 단추 */
+  .btn { background: var(--surface); box-shadow: none; }
+  .btn:hover:not(:disabled) { background: var(--surface-2); }
+  .btn:active:not(:disabled) { box-shadow: none; transform: none; background: #ECEFF4; }
+  .btn-primary, .btn-primary:hover:not(:disabled) { background: var(--accent); box-shadow: none; filter: none; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-deep); }
+  .btn-primary:active:not(:disabled) { background: var(--accent-deep); box-shadow: none; }
+  .btn-green, .btn-green:hover:not(:disabled) { background: var(--green); box-shadow: none; filter: none; }
+  .btn-green:active:not(:disabled) { box-shadow: none; }
+  .icon-btn { background: var(--surface); box-shadow: none; }
+  .icon-btn:hover { background: var(--surface-2); }
+  .filter-chip, .preset-chip { background: var(--surface); box-shadow: none; }
+  .filter-chip.active, .preset-chip.active { background: var(--accent-soft); box-shadow: none; }
+
+  /* 세부 단계 표시 */
+  .ss-dot { background: var(--surface); box-shadow: none; }
+  .ss-dot.current { background: var(--accent-soft); box-shadow: none; }
+  .ss-num { background: #EEF1F6; box-shadow: none; }
+
+  /* 모델 카드 · 로고 */
+  .model-opt input:checked + .mo-box { border: 2px solid var(--accent); background: var(--accent-soft); box-shadow: none; }
+  .model-opt:hover .mo-box { border-color: var(--border-strong); }
+  .logo-preview { box-shadow: none; border: 1px solid var(--border); }
+
+  /* 입력 칸 */
+  .field, select, .setting-input, .tag-input { box-shadow: none; }
+  .upload-zone { box-shadow: none; background: var(--surface-2); border-color: var(--border-strong); }
+  .upload-zone:hover, .upload-zone.dragover { background: var(--accent-soft); }
+  .setting-input[readonly] { background-color: #F1F3F7; }
+
+  /* 표 머리 */
+  .sample-table thead th { background: var(--surface-2); }
+  .table-wrap { padding: 0; background: var(--surface); }
+
+  /* 결과 · 보고서 */
+  .result-card-head:hover { background: var(--surface-2); }
+  .q-quote { background: #F2F6FB; border-left: 3px solid var(--accent); }
+  .toast { box-shadow: 0 6px 20px rgba(16,24,40,.18); }
+  .tag button:hover { background: rgba(26,75,140,0.12); }
+  .header h1 { color: #0F2A4D; }
 </style>
 </head>
 <body>
