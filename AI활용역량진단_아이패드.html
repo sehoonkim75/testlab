@@ -1,0 +1,1606 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AI 활용역량 진단</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%2316288A%27/%3E%3Cpath d=%27M15 6l2.2 6.3L23.5 14.5l-6.3 2.2L15 23l-2.2-6.3L6.5 14.5l6.3-2.2z%27 fill=%27%23fff%27/%3E%3Cpath d=%27M23 20.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z%27 fill=%27%237FB2FF%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&display=swap">
+
+<!-- 공통 토큰·기본 서식 (리포트 내보내기에도 그대로 사용) -->
+<style id="base-css">
+:root{
+  --bg:#F5F8FD; --surface:#FFFFFF; --sunk:#EDF2FA; --line:#D8E1EF;
+  --band:#EAF3FF; --navy:#16288A; --navy-fill:#16288A;
+  --ink:#0F1B33; --muted:#4A5874;
+  --accent:#1D5FD8; --accent-ink:#FFFFFF; --accent-soft:#E3EEFF;
+  --warn:#B5680A; --warn-soft:#FBEBD3;
+  --bad:#C23A2E; --bad-soft:#FAE3DF;
+  --info:#0A8CCB; --info-soft:#DFF3FC;
+  --font-body:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r:16px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B1220; --surface:#121B2E; --sunk:#1A2540; --line:#27334F;
+  --band:#0F1A31; --navy:#AFC6FF; --navy-fill:#1E3A8C;
+  --ink:#E6ECF7; --muted:#9DABC4;
+  --accent:#5E9BFF; --accent-ink:#0B1220; --accent-soft:#182B52;
+  --warn:#EDAA4E; --warn-soft:#3A2C17; --bad:#F08476; --bad-soft:#40221E;
+  --info:#4CC3F0; --info-soft:#12324A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B1220; --surface:#121B2E; --sunk:#1A2540; --line:#27334F;
+  --band:#0F1A31; --navy:#AFC6FF; --navy-fill:#1E3A8C;
+  --ink:#E6ECF7; --muted:#9DABC4;
+  --accent:#5E9BFF; --accent-ink:#0B1220; --accent-soft:#182B52;
+  --warn:#EDAA4E; --warn-soft:#3A2C17; --bad:#F08476; --bad-soft:#40221E;
+  --info:#4CC3F0; --info-soft:#12324A; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.7;
+  word-break:keep-all;overflow-wrap:break-word;-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+h1,h2,h3,h4{line-height:1.35;text-wrap:balance;margin:0}
+p,li{text-wrap:pretty}
+p{margin:0}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.ic{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style>
+
+<!-- 리포트 서식 (페이지 표시·내보내기 공용) -->
+<style id="rp-css">
+.rp{display:grid;gap:22px;font-size:17px}
+.rp .card{background:var(--surface);border-radius:var(--r);padding:26px 28px;min-width:0}
+@media (max-width:640px){.rp .card{padding:20px}}
+.rp .brand{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--muted);flex-wrap:wrap}
+.rp .brand b{color:var(--ink);font-size:16px}
+.rp .brand .logo{width:30px;height:30px;border-radius:8px;background:var(--navy-fill);color:#fff;display:grid;place-items:center}
+.rp .brand .logo .ic{width:18px;height:18px}
+.rp .ex-tag{margin-left:auto;font-size:14px;font-weight:700;color:var(--warn);background:var(--warn-soft);border-radius:6px;padding:2px 10px}
+.rp .sec-h{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.rp .sec-h .badge{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.rp .sec-h .badge.info{background:var(--info-soft);color:var(--info)}
+.rp .sec-h h2{font-size:21px;color:var(--navy);font-weight:700}
+.rp .sec-h p{font-size:15px;color:var(--muted);flex-basis:100%}
+
+.rp .hero{display:grid;grid-template-columns:180px minmax(0,1fr);gap:32px;align-items:center}
+@media (max-width:680px){.rp .hero{grid-template-columns:minmax(0,1fr);justify-items:start}}
+.rp .ring{width:180px;height:180px;position:relative}
+.rp .ring svg{width:100%;height:100%;display:block}
+.rp .ring .val{position:absolute;inset:0;display:grid;place-items:center;text-align:center;line-height:1.1}
+.rp .ring .val b{font-family:var(--font-num);font-size:52px;font-weight:600;display:block}
+.rp .ring .val span{font-size:15px;color:var(--muted)}
+.rp .hero-info{display:grid;gap:14px;min-width:0}
+.rp .eyebrow{font-size:15px;font-weight:600;color:var(--muted)}
+.rp .hero-info h1{font-size:clamp(24px,3vw,30px);letter-spacing:-.02em;color:var(--navy);font-weight:800}
+.rp .level-now{font-size:19px;font-weight:700;color:var(--lv)}
+.rp .level-now span{background:var(--lv-soft);border-radius:8px;padding:3px 12px;display:inline-block}
+.rp .levels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.rp .lv{display:grid;gap:4px}
+.rp .lv i{display:block;height:12px;border-radius:4px;background:var(--sunk)}
+.rp .lv.done i{background:var(--lv)}
+.rp .lv span{font-size:14px;color:var(--muted);line-height:1.35}
+.rp .lv.now span{color:var(--ink);font-weight:700}
+.rp .lv small{font-family:var(--font-num);font-size:13px;color:var(--muted)}
+.rp .summary{max-width:none}
+.rp .meta{display:flex;gap:18px;flex-wrap:wrap;font-size:15px;color:var(--muted)}
+.rp .meta span{display:flex;align-items:center;gap:6px}
+.rp .meta .ic{width:18px;height:18px}
+
+.rp .glance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.rp .glance{grid-template-columns:minmax(0,1fr)}}
+.rp .tile{border-radius:var(--r);padding:22px;display:grid;gap:10px;align-content:start}
+.rp .tile .t-h{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700}
+.rp .tile .t-ic{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--surface)}
+.rp .tile .big{font-size:21px;font-weight:700;line-height:1.4}
+.rp .tile p{font-size:15.5px}
+.rp .tile.good{background:var(--accent-soft)} .rp .tile.good .t-ic{color:var(--accent)}
+.rp .tile.weak{background:var(--warn-soft)} .rp .tile.weak .t-ic{color:var(--warn)}
+.rp .tile.req{background:var(--info-soft)} .rp .tile.req .t-ic{color:var(--info)}
+.rp .reqbar{display:flex;gap:4px;margin-top:2px}
+.rp .reqbar i{flex:1;height:12px;border-radius:3px}
+.rp .ok-bg{background:var(--accent)} .rp .part-bg{background:var(--warn)} .rp .no-bg{background:var(--bad)}
+.rp .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.rp .legend span{display:flex;align-items:center;gap:6px}
+.rp .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+.rp .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.rp .stats{grid-template-columns:minmax(0,1fr)}}
+.rp .stat{background:var(--sunk);border-radius:10px;padding:18px 20px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;align-items:center;align-content:start}
+.rp .stat .s-ic{grid-row:span 2;width:46px;height:46px;border-radius:10px;background:var(--surface);color:var(--info);display:grid;place-items:center}
+.rp .stat b{font-family:var(--font-num);font-size:30px;font-weight:600;line-height:1.1}
+.rp .stat b small{font-family:var(--font-body);font-size:16px;font-weight:500;margin-left:2px}
+.rp .stat .s-lab{font-size:15.5px;font-weight:600}
+.rp .stat p{grid-column:1/-1;font-size:14.5px;color:var(--muted);margin-top:8px}
+.rp .simbar{grid-column:1/-1;height:12px;border-radius:4px;background:var(--surface);overflow:hidden;margin-top:6px}
+.rp .simbar i{display:block;height:100%;background:var(--info)}
+
+.rp .factors{display:grid;gap:14px}
+.rp .fac{border:2px solid var(--sunk);border-radius:var(--r);padding:20px 22px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:24px}
+.rp .fac.weak{border-color:var(--warn-soft);background:var(--surface);background:color-mix(in srgb,var(--warn-soft) 35%,var(--surface))}
+@media (max-width:760px){.rp .fac{grid-template-columns:minmax(0,1fr);gap:16px}}
+.rp .fac-side{display:grid;gap:10px;align-content:start}
+.rp .fac-title{display:flex;align-items:center;gap:10px}
+.rp .f-ic{width:42px;height:42px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.rp .fac.weak .f-ic{background:var(--warn-soft);color:var(--warn)}
+.rp .fac-title h3{font-size:19px}
+.rp .fac-desc{font-size:14.5px;color:var(--muted);line-height:1.55}
+.rp .blocks{display:flex;gap:5px;align-items:center}
+.rp .blocks i{width:28px;height:14px;border-radius:3px;background:var(--sunk)}
+.rp .blocks i.on{background:var(--accent)}
+.rp .fac.weak .blocks i.on{background:var(--warn)}
+.rp .blocks b{font-family:var(--font-num);font-size:18px;margin-left:8px}
+.rp .blocks b small{font-size:14px;color:var(--muted);font-weight:500}
+.rp .fac-w{font-size:14px;color:var(--muted)}
+.rp .fac-body{display:grid;gap:14px;min-width:0;align-content:start}
+.rp .pt{display:grid;grid-template-columns:30px minmax(0,1fr);gap:12px;align-items:start}
+.rp .p-ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+.rp .p-ic .ic{width:18px;height:18px;stroke-width:2.6}
+.rp .pt.good .p-ic{background:var(--accent);color:var(--accent-ink)}
+.rp .pt.bad .p-ic{background:var(--warn);color:var(--surface)}
+.rp .pt h4{margin:0 0 2px;font-size:15px}
+.rp .pt.good h4{color:var(--accent)} .rp .pt.bad h4{color:var(--warn)}
+.rp .pt p{font-size:16px}
+
+.rp .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:stretch}
+@media (max-width:860px){.rp .two{grid-template-columns:minmax(0,1fr)}}
+
+.rp .reqs{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.rp .reqs li{display:grid;grid-template-columns:48px minmax(0,1fr);gap:14px;align-items:start;padding:14px 16px;border-radius:10px;background:var(--sunk)}
+.rp .r-ic{display:grid;justify-items:center;gap:3px}
+.rp .r-ic span{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--surface)}
+.rp .r-ic span .ic{width:20px;height:20px;stroke-width:2.8}
+.rp .r-ic em{font-style:normal;font-size:13px;font-weight:700}
+.rp .reqs .ok .r-ic span{background:var(--accent)} .rp .reqs .ok em{color:var(--accent)}
+.rp .reqs .part .r-ic span{background:var(--warn)} .rp .reqs .part em{color:var(--warn)}
+.rp .reqs .no .r-ic span{background:var(--bad)} .rp .reqs .no em{color:var(--bad)}
+.rp .reqs h4{font-size:16.5px}
+.rp .reqs p{font-size:15px;color:var(--muted);margin-top:2px}
+
+.rp .flow{list-style:none;margin:0;padding:0;display:grid}
+.rp .flow li{display:grid;grid-template-columns:40px minmax(0,1fr);gap:14px;position:relative;padding-bottom:18px}
+.rp .flow li:last-child{padding-bottom:0}
+.rp .flow li:not(:last-child)::before{content:"";position:absolute;left:19px;top:40px;bottom:0;width:2px;background:var(--line)}
+.rp .flow .dot{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font-family:var(--font-num);font-size:16px;font-weight:600}
+.rp .flow li.warn .dot{background:var(--warn);color:var(--surface)}
+.rp .flow .f-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:6px}
+.rp .flow .f-top b{font-size:16.5px}
+.rp .flow .chip{font-size:13.5px;font-weight:600;border-radius:6px;padding:1px 9px;background:var(--accent-soft);color:var(--accent)}
+.rp .flow li.warn .chip{background:var(--warn-soft);color:var(--warn)}
+.rp .flow p{font-size:15px;color:var(--muted)}
+.rp .empty{color:var(--muted);font-size:15.5px}
+
+.rp .points{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.rp .points li{display:grid;grid-template-columns:36px minmax(0,1fr);gap:14px;align-items:start;font-size:16.5px}
+.rp .points .n{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-family:var(--font-num);font-weight:600;font-size:16px}
+.rp .good-list .n{background:var(--accent-soft);color:var(--accent)}
+.rp .todo-list .n{background:var(--info-soft);color:var(--info)}
+
+.rp .howto{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start;background:var(--sunk);border-radius:var(--r);padding:20px 22px;font-size:15px;color:var(--muted)}
+.rp .howto .ic{color:var(--info);margin-top:2px}
+.rp .howto b{color:var(--ink)}
+.rp .howto p+p{margin-top:6px}
+
+@media print{
+  :root,:root[data-theme="dark"]{--bg:#FFFFFF;--surface:#FFFFFF;--sunk:#F0F4FA;--line:#C9D4E5;--ink:#0F1B33;--muted:#3E4B66;--navy:#16288A;--navy-fill:#16288A;--band:#EAF3FF;--accent:#1D5FD8;--accent-ink:#FFF;--accent-soft:#E3EEFF;--warn:#A85F06;--warn-soft:#FBEBD3;--bad:#B4362A;--bad-soft:#F8E1DD;--info:#0A7FB8;--info-soft:#DFF3FC;color-scheme:light}
+  body{font-size:12pt;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .rp{gap:14px}
+  .rp .card{padding:16px 0;border-top:1px solid var(--line);border-radius:0}
+  .rp .card,.rp .fac,.rp .tile,.rp .reqs li,.rp .flow li,.rp .stat,.rp .howto{break-inside:avoid}
+  @page{size:A4;margin:14mm}
+}
+</style>
+
+<!-- 진단 화면 서식 -->
+<style>
+/* Layout: 시험 콘솔 — 상단 상태바 / 좌 과제·최종안, 우 AI 대화 / 리포트 */
+button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar-in{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:12px;max-width:1320px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.topbrand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;color:var(--navy)}
+.logo{width:32px;height:32px;border-radius:9px;background:var(--navy-fill);color:#fff;display:grid;place-items:center}
+.logo .ic{width:19px;height:19px}
+.steps{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;padding:5px 12px;border-radius:999px;color:var(--muted);background:var(--sunk)}
+.step .ic{width:16px;height:16px}
+.step.on{background:var(--accent);color:var(--accent-ink)}
+.step.done{background:var(--accent-soft);color:var(--accent)}
+.timer{display:flex;align-items:center;gap:6px;font-family:var(--font-num);font-size:16px;font-weight:600;padding:5px 12px;border-radius:8px;background:var(--sunk)}
+.timer .ic{width:18px;height:18px}
+.timer.over{background:var(--warn-soft);color:var(--warn)}
+
+.wrap{max-width:1320px;margin:0 auto;padding-block:32px 64px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;padding:9px 16px;font-weight:600;font-size:15px}
+.btn .ic{width:18px;height:18px}
+@media (hover:hover){.btn:hover{border-color:var(--ink)}}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+@media (hover:hover){.btn.primary:hover{filter:brightness(1.08)}}
+.btn.warn{background:var(--warn);border-color:var(--warn);color:var(--surface)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:6px 11px;font-size:14px}
+.btn.sm .ic{width:16px;height:16px}
+
+/* 인트로: 전폭 밴드 구성 */
+#v-intro{display:block}
+.band{padding-block:72px}
+.band.tint{background:var(--band)}
+.band.navy{background:var(--navy-fill);color:#fff}
+.band-in{max-width:1180px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+@media (max-width:700px){.band{padding-block:52px}}
+.pill{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;font-size:14px;font-weight:700;color:var(--accent);background:var(--surface);border:1px solid var(--accent-soft);padding:6px 14px;border-radius:999px}
+.pill .ic{width:16px;height:16px}
+
+.hero-band{padding-block:80px 88px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,520px);gap:56px;align-items:center}
+@media (max-width:980px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:44px}}
+.hero-copy{display:grid;gap:22px;align-content:start}
+.hero-copy h1{font-size:clamp(32px,4.4vw,50px);line-height:1.25;letter-spacing:-.035em;font-weight:800;color:var(--navy)}
+.hero-copy h1 em{font-style:normal;color:var(--accent)}
+.hero-copy p{font-size:18.5px;color:var(--muted);line-height:1.75}
+.cta{display:flex;gap:10px;flex-wrap:wrap}
+.btn.lg{padding:14px 24px;font-size:17px;border-radius:12px}
+.facts{list-style:none;margin:8px 0 0;padding:0;display:flex;gap:0;flex-wrap:wrap}
+.facts li{display:grid;gap:2px;padding-right:28px;margin-right:28px;border-right:1px solid var(--line)}
+.facts li:last-child{border-right:0;margin-right:0;padding-right:0}
+.facts b{font-size:28px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+.facts span{font-size:14.5px;color:var(--muted)}
+
+/* 히어로 오른쪽: 제품 화면 미리보기 */
+.mock{position:relative;padding-bottom:56px}
+.mock-win{background:var(--surface);border-radius:18px;border:1px solid var(--line);overflow:hidden}
+.mock-bar{display:flex;align-items:center;gap:6px;padding:12px 16px;background:var(--navy-fill)}
+.mock-bar i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.35)}
+.mock-bar span{margin-left:10px;font-size:12.5px;font-weight:600;color:rgba(255,255,255,.85)}
+.mock-body{display:grid;grid-template-columns:150px minmax(0,1fr)}
+.mock-side{border-right:1px solid var(--line);padding:16px 14px;display:grid;gap:9px;align-content:start;background:var(--sunk)}
+.mock-side b{font-size:12.5px;color:var(--navy)}
+.mock-side i{display:block;height:7px;border-radius:4px;background:var(--line)}
+.mock-side i.s{width:70%}
+.mock-chat{padding:16px;display:grid;gap:10px;align-content:start}
+.mb{font-size:12.5px;line-height:1.5;padding:8px 11px;border-radius:10px;max-width:86%}
+.mb.u{justify-self:end;background:var(--accent);color:var(--accent-ink)}
+.mb.a{background:var(--sunk);color:var(--ink)}
+.mb.a .chk{color:var(--accent);font-weight:700}
+.mock-card{position:absolute;right:-12px;bottom:0;width:250px;background:var(--surface);border-radius:16px;border:1px solid var(--line);padding:16px;display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:center}
+@media (max-width:560px){.mock{padding-bottom:0}.mock-card{position:relative;right:auto;bottom:auto;width:auto;max-width:300px;margin:-24px 12px 0 auto}.mock-body{grid-template-columns:minmax(0,1fr)}.mock-side{display:none}}
+.mock-card svg{width:64px;height:64px}
+.mock-card .t{font-size:12px;color:var(--muted);font-weight:600}
+.mock-card .v{font-size:15px;font-weight:800;color:var(--navy)}
+.mini{display:grid;gap:4px;margin-top:6px}
+.mini span{display:grid;grid-template-columns:52px 1fr;gap:6px;align-items:center;font-size:11px;color:var(--muted)}
+.mini span i{height:6px;border-radius:3px;background:var(--sunk);position:relative;overflow:hidden}
+.mini span i::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--w);background:var(--accent);border-radius:3px}
+
+.key-wrap{margin-top:28px}
+.notice{display:flex;gap:12px;align-items:flex-start;padding:16px 18px;border-radius:12px;background:var(--warn-soft);font-size:15.5px}
+.notice .ic{color:var(--warn);margin-top:2px}
+.notice code{font-family:var(--font-num);font-size:14px;background:var(--surface);padding:1px 6px;border-radius:4px}
+
+/* 섹션 머리 */
+.sec-head{display:grid;gap:12px;justify-items:center;text-align:center;margin-bottom:40px}
+.eyebrow{font-size:15px;font-weight:700;color:var(--accent);letter-spacing:.02em}
+.sec-head h2{font-size:clamp(26px,3vw,36px);line-height:1.35;letter-spacing:-.03em;font-weight:800;color:var(--navy)}
+.sec-head p{font-size:17px;color:var(--muted);max-width:60ch}
+
+/* 비교 */
+.compare{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px}
+@media (max-width:820px){.compare{grid-template-columns:minmax(0,1fr)}}
+.cmp{border-radius:20px;padding:30px 32px;display:grid;gap:18px;align-content:start}
+.cmp.old{background:var(--sunk)}
+.cmp.new{background:var(--navy-fill);color:#fff}
+.cmp-h{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:var(--muted)}
+.cmp.new .cmp-h{color:#BFD3FF}
+.cmp h3{font-size:22px;letter-spacing:-.02em}
+.cmp ul{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.cmp li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;align-items:start;font-size:16.5px}
+.cmp li .ic{width:24px;height:24px;margin-top:1px}
+.cmp.old li .ic{color:var(--muted)}
+.cmp.new li .ic{color:#7FB2FF}
+.cmp.new li b{display:block;font-size:17px}
+.cmp.new li span{color:#C9D7F5;font-size:15.5px}
+
+/* 진행 순서 */
+.process{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;counter-reset:st}
+@media (max-width:900px){.process{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.process{grid-template-columns:minmax(0,1fr)}}
+.pstep{background:var(--surface);border-radius:20px;padding:26px 24px;display:grid;gap:12px;align-content:start}
+.pstep .top{display:flex;align-items:center;justify-content:space-between}
+.pstep .ico{width:48px;height:48px;border-radius:14px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.pstep .ico .ic{width:26px;height:26px}
+.pstep .no{font-family:var(--font-num);font-size:15px;font-weight:600;color:var(--accent)}
+.pstep h3{font-size:19px;color:var(--navy)}
+.pstep p{font-size:15.5px;color:var(--muted)}
+
+/* 평가 역량 */
+.fgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px}
+.fcard{grid-column:span 2;background:var(--band);border-radius:20px;padding:28px 26px;display:grid;gap:12px;align-content:start}
+.fcard:nth-child(4),.fcard:nth-child(5){grid-column:span 3}
+@media (max-width:900px){.fgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.fcard,.fcard:nth-child(4){grid-column:span 1}.fcard:nth-child(5){grid-column:span 2}}
+@media (max-width:520px){.fgrid{grid-template-columns:minmax(0,1fr)}.fcard,.fcard:nth-child(5){grid-column:span 1}}
+.fcard .ico{width:48px;height:48px;border-radius:14px;background:var(--accent);color:#fff;display:grid;place-items:center}
+.fcard .ico .ic{width:26px;height:26px}
+.fcard .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fcard .w{font-size:14px;font-weight:700;color:var(--accent);background:var(--surface);border-radius:999px;padding:3px 12px}
+.fcard.key .w{color:#fff;background:var(--navy-fill)}
+.fcard h3{font-size:22px;letter-spacing:-.02em;color:var(--ink)}
+.fcard p{font-size:16px;color:var(--muted);line-height:1.65}
+
+/* 과제 */
+.tasks{display:grid;gap:40px}
+.tgroup{display:grid;gap:16px}
+.tgroup-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tgroup-h b{font-size:20px;color:var(--navy)}
+.tgroup-h span.g{font-size:15px;color:var(--muted)}
+.trow{display:flex;flex-wrap:wrap;gap:18px}
+.trow .tcard{flex:1 1 250px;min-width:0}
+.tcard{background:var(--surface);border-radius:20px;padding:28px;display:flex;flex-direction:column;gap:14px;border:1.5px solid var(--line);transition:border-color .15s,transform .15s}
+@media (hover:hover){.tcard:hover{border-color:var(--accent);transform:translateY(-2px)}}
+@media (prefers-reduced-motion:reduce){.tcard{transition:none}.tcard:hover{transform:none}}
+.tcard .ico{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.tcard .ico .ic{width:28px;height:28px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.chip .ic{width:14px;height:14px}
+.tcard h3{font-size:21px;letter-spacing:-.02em;color:var(--navy)}
+.tcard p{font-size:16px;color:var(--muted);flex:1}
+.tcard .btn{width:100%}
+
+/* 난이도 안내 · 필터 */
+.levels-guide{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:28px}
+@media (max-width:820px){.levels-guide{grid-template-columns:minmax(0,1fr)}}
+.lg{background:var(--surface);border-radius:16px;padding:18px 20px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;align-items:center}
+.lg .lvb{grid-row:span 2}
+.lg b{font-size:17px;color:var(--navy)}
+.lg p{font-size:14.5px;color:var(--muted);line-height:1.55}
+.lvb{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:700;border-radius:999px;padding:4px 12px;white-space:nowrap}
+.lvb .dots{display:inline-flex;gap:3px}
+.lvb .dots i{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.25}
+.lvb .dots i.on{opacity:1}
+.lvb.l1{background:var(--info-soft);color:var(--info)}
+.lvb.l2{background:var(--accent-soft);color:var(--accent)}
+.lvb.l3{background:var(--navy-fill);color:#fff}
+.filter{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:24px}
+.filter button{border:1.5px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:8px 18px;font-size:15px;font-weight:700}
+.filter button span{font-family:var(--font-num);font-weight:600;margin-left:6px;opacity:.75}
+.filter button[aria-selected="true"]{background:var(--navy-fill);border-color:var(--navy-fill);color:#fff}
+.tcard .head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tcard .meta2{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+.tcard .meta2 span{display:inline-flex;align-items:center;gap:5px}
+.tcard .meta2 .ic{width:16px;height:16px}
+.mat-note{margin-top:12px;white-space:pre-wrap;font-size:15.5px;line-height:1.75}
+
+/* 하단 */
+.foot-band{padding-block:40px}
+.foot-in{display:flex;gap:16px 32px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.foot-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px}
+.foot-brand .logo{background:#fff;color:var(--navy-fill)}
+.foot-in p{font-size:14.5px;color:#C9D7F5;max-width:70ch}
+
+/* 작업 화면 */
+.work{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:stretch}
+#v-work{padding-block:20px}
+@media (min-width:1001px){
+  .work{height:calc(100vh - env(safe-area-inset-top,0px) - 98px);height:calc(100dvh - env(safe-area-inset-top,0px) - 98px);min-height:560px}
+  .work>.panel{display:flex;flex-direction:column;min-height:0}
+  .work>.panel>.panel-b{flex:1;min-height:0;overflow-y:auto}
+}
+@media (max-width:1000px){.work{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border-radius:var(--r);min-width:0;border:1px solid var(--line)}
+.panel-h{flex:none;min-height:63px;padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.panel-h .badge{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.panel-h .badge .ic{width:19px;height:19px}
+.panel-h h2{font-size:17px;color:var(--navy)}
+.panel-h .sp{margin-left:auto;display:flex;gap:8px;align-items:center}
+.panel-b{padding:20px;display:grid;gap:20px}
+.brief h3{font-size:22px;margin-bottom:8px;color:var(--navy);letter-spacing:-.02em}
+.brief p{font-size:16.5px}
+.blk-h{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;margin-bottom:10px}
+.blk-h .ic{width:19px;height:19px;color:var(--accent)}
+.blk-h .btn{margin-left:auto}
+.material{background:var(--sunk);border-radius:10px;padding:16px;min-width:0}
+.material pre{margin:0;font-family:var(--font-body);font-size:15.5px;line-height:1.75;white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word}
+.tbl-wrap{overflow-x:auto}
+.material table{border-collapse:collapse;font-size:15.5px;width:100%;min-width:440px;background:var(--surface);border-radius:8px;overflow:hidden}
+.material th,.material td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+.material tr:last-child td{border-bottom:0}
+.material td.n{text-align:right;font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.material th{font-weight:700;color:var(--muted);font-size:14px;background:var(--surface);white-space:nowrap}
+.material th.n{text-align:right}
+.reqlist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.reqlist li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;align-items:start;font-size:16px}
+.reqlist .ic{width:22px;height:22px;color:var(--accent);margin-top:2px}
+textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;resize:vertical;line-height:1.7}
+textarea:focus{outline:none;border-color:var(--accent)}
+#final{min-height:240px}
+.answer-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;color:var(--muted);margin-top:10px}
+.answer-foot .grow{flex:1 1 auto}
+
+.chat{display:flex;flex-direction:column}
+@media (max-width:1000px){.chat{height:76vh;height:76dvh;min-height:420px}}
+.msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:18px;display:flex;flex-direction:column;gap:16px;min-height:0}
+.msg{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;max-width:94%}
+.msg .av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center}
+.msg .av .ic{width:19px;height:19px}
+.msg .col{display:grid;gap:6px;min-width:0}
+.msg .who{font-size:13px;font-weight:700;color:var(--muted)}
+.msg .body{padding:12px 15px;border-radius:12px;white-space:pre-wrap;font-size:16px;line-height:1.7}
+.msg.ai .av{background:var(--accent-soft);color:var(--accent)}
+.msg.ai .body{background:var(--sunk);border-top-left-radius:4px}
+.msg.user{align-self:flex-end;grid-template-columns:minmax(0,1fr) 36px}
+.msg.user .av{order:2;background:var(--info-soft);color:var(--info)}
+.msg.user .who{text-align:right}
+.msg.user .body{background:var(--accent);color:var(--accent-ink);border-top-right-radius:4px}
+.msg.err .av{background:var(--bad-soft);color:var(--bad)}
+.msg.err .body{background:var(--bad-soft);color:var(--bad)}
+.msg .acts{display:flex;gap:6px;flex-wrap:wrap}
+.thinking{color:var(--muted)}
+.empty-chat{margin:auto;text-align:center;color:var(--muted);font-size:15.5px;max-width:360px;display:grid;gap:10px;justify-items:center}
+.empty-chat .big{width:60px;height:60px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.empty-chat .big .ic{width:30px;height:30px}
+.empty-chat b{color:var(--ink);font-size:17px}
+.composer{border-top:1px solid var(--line);padding:14px;display:grid;gap:8px}
+.composer textarea{min-height:72px;max-height:220px;resize:none}
+.composer-row{display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--muted);flex-wrap:wrap}
+.composer-row .sp{margin-left:auto;display:flex;gap:8px}
+.composer-row .ic{width:16px;height:16px}
+.composer-row > span:first-child{display:flex;align-items:center;gap:6px}
+
+/* 연결 설정 */
+.conn{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 12px 5px 10px;font-size:14px;font-weight:600}
+.conn .ic{width:16px;height:16px}
+.conn b{font-size:12.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 8px}
+.conn.need b{color:var(--warn);background:var(--warn-soft)}
+@media (max-width:640px){.conn>span{display:none}}
+.key-wrap .notice{align-items:center;flex-wrap:wrap}
+.key-wrap .notice p{flex:1 1 280px}
+.modal{position:fixed;inset:0;z-index:30;background:rgba(8,14,30,.55);display:grid;place-items:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal-box{width:min(520px,100%);background:var(--surface);border-radius:18px;padding:26px 26px 22px;display:grid;gap:14px}
+.modal-box h2{font-size:21px;color:var(--navy)}
+.modal-box p{font-size:15.5px;color:var(--muted)}
+.modal-box .hint{font-size:14px}
+.fld{display:grid;gap:6px;font-size:14px;font-weight:700}
+.fld input{width:100%;font:inherit;font-size:16px;font-family:var(--font-num);color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 14px}
+.fld input:focus{outline:none;border-color:var(--accent)}
+.fld input:disabled{opacity:.5}
+.modal-act{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.modal-act .grow{flex:1 1 auto}
+
+/* 리포트 화면 */
+#v-report{max-width:1080px;margin:0 auto}
+.rp-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.loading{display:grid;place-items:center;gap:16px;padding:90px 16px;text-align:center}
+.loading p{color:var(--muted);font-size:15.5px;max-width:46ch}
+.spin{width:40px;height:40px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.toast{max-width:calc(100vw - 32px);text-align:center;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:10px;font-size:15px;z-index:20}
+
+@media print{
+  .bar,.rp-actions,.toast,.modal,body::before{display:none!important}
+  .wrap{padding:0;max-width:none}
+}
+</style>
+</head>
+<body>
+
+<svg id="sprite" width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.7 1.8 1.8.7-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-6"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3L2 20h20z"/><path d="M12 10v4M12 17.5v.1"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M8 13h8"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-cycle" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></symbol>
+  <symbol id="i-award" viewBox="0 0 24 24"><circle cx="12" cy="9" r="6"/><path d="M8.5 14L7 22l5-3 5 3-1.5-8"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-check-c" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 10"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.1"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-arrow-r" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-arrow-l" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M7 21h10M5 7h14"/><path d="M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-insert" viewBox="0 0 24 24"><path d="M12 4v10M8 10l4 4 4-4"/><rect x="3" y="16" width="18" height="5" rx="1.5"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+  <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M3 11v3a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></symbol>
+  <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M2 21h20"/><path d="M8 7h4M8 11h4M8 15h4"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3 13l3-8h12l3 8v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13h5l1.5 3h5L16 13h5"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+</svg>
+
+<header class="bar"><div class="bar-in">
+  <div class="topbrand"><span class="logo"><svg class="ic"><use href="#i-spark"/></svg></span>AI 활용역량 진단</div>
+  <nav class="steps" aria-label="진행 단계">
+    <span class="step on" data-s="intro"><svg class="ic"><use href="#i-list"/></svg>과제 선택</span>
+    <span class="step" data-s="work"><svg class="ic"><use href="#i-chat"/></svg>AI와 문제 해결</span>
+    <span class="step" data-s="report"><svg class="ic"><use href="#i-award"/></svg>역량 리포트</span>
+  </nav>
+  <button class="conn" id="conn-btn" type="button" data-open-conn aria-haspopup="dialog"><svg class="ic"><use href="#i-lock"/></svg><span>AI 연결 설정</span><b id="conn-state">연결 필요</b></button>
+  <span class="timer" id="timer" hidden><svg class="ic"><use href="#i-clock"/></svg><span id="timer-t">20:00</span></span>
+</div></header>
+
+<main>
+
+<!-- ===== 인트로 ===== -->
+<section id="v-intro">
+  <div class="band tint hero-band"><div class="band-in">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="pill"><svg class="ic"><use href="#i-spark"/></svg>과제형 AI 활용역량 진단</span>
+        <h1>AI 활용역량,<br><em>결과가 아닌 과정</em>으로 진단합니다</h1>
+        <p>실무 과제를 AI와 함께 해결하는 동안 남긴 질문, 점검, 수정의 흐름을 분석합니다. 정답 여부만으로는 보이지 않는 실제 AI 활용 수준을 다섯 가지 역량으로 보여드립니다.</p>
+        <div class="cta">
+          <a class="btn primary lg" href="#tasks-sec" style="text-decoration:none">진단 시작하기<svg class="ic"><use href="#i-arrow-r"/></svg></a>
+          <button class="btn lg" id="demo-btn"><svg class="ic"><use href="#i-eye"/></svg>예시 리포트 보기</button>
+        </div>
+        <ul class="facts">
+          <li><b>5개</b><span>평가 역량</span></li>
+          <li><b>10종</b><span>실무형 과제</span></li>
+          <li><b>15~30분</b><span>과제별 응시 시간</span></li>
+        </ul>
+      </div>
+      <div class="mock" aria-hidden="true">
+        <div class="mock-win">
+          <div class="mock-bar"><i></i><i></i><i></i><span>AI 활용역량 진단 · 응시 화면</span></div>
+          <div class="mock-body">
+            <div class="mock-side"><b>과제 자료</b><i></i><i class="s"></i><i></i><i class="s"></i><b style="margin-top:6px">요구사항</b><i></i><i class="s"></i><i></i></div>
+            <div class="mock-chat">
+              <div class="mb u">아래 공고 초안에서 블라인드 채용에 어긋나는 표현을 찾아줘</div>
+              <div class="mb a">연령, 학교, 성별 조건이 문제입니다. 수정안은 다음과 같습니다…</div>
+              <div class="mb u">거주지·체력 조건은 빠졌어. 다시 확인해줘</div>
+              <div class="mb a"><span class="chk">✓ 확인했습니다.</span> 관내 거주와 체력 조건도 직무 기준으로 바꾸겠습니다.</div>
+            </div>
+          </div>
+        </div>
+        <div class="mock-card">
+          <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--sunk)" stroke-width="8"/><circle cx="32" cy="32" r="26" fill="none" stroke="var(--accent)" stroke-width="8" stroke-dasharray="117.6 163.4" transform="rotate(-90 32 32)"/><text x="32" y="37" text-anchor="middle" font-size="16" font-weight="800" fill="var(--navy)" font-family="var(--font-body)">72</text></svg>
+          <div><div class="t">역량 리포트</div><div class="v">3단계 · 숙련 활용</div>
+            <div class="mini"><span>답변 점검<i style="--w:80%"></i></span><span>요청 설계<i style="--w:60%"></i></span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="key-wrap" id="key-note" hidden><div class="notice">
+      <svg class="ic"><use href="#i-alert"/></svg>
+      <p><b>AI 연결이 필요합니다</b> · 오른쪽 위 <b>AI 연결 설정</b>에서 OpenAI API 키를 입력하면 이 기기에서 바로 응시할 수 있습니다.</p>
+      <button class="btn sm" type="button" data-open-conn>AI 연결 설정</button>
+    </div></div>
+  </div></div>
+
+  <div class="band"><div class="band-in">
+    <div class="sec-head"><span class="eyebrow">왜 과정을 보나요</span><h2>정답만 보는 평가로는<br>AI 활용 실력을 알 수 없습니다</h2></div>
+    <div class="compare">
+      <div class="cmp old">
+        <div class="cmp-h"><svg class="ic"><use href="#i-doc"/></svg>기존 평가 방식</div>
+        <h3>결과물과 경험 여부 중심</h3>
+        <ul>
+          <li><svg class="ic"><use href="#i-minus"/></svg><span>AI를 써 본 적이 있는지만 확인합니다.</span></li>
+          <li><svg class="ic"><use href="#i-minus"/></svg><span>최종 결과물만 보고 판단해 실제 업무 능력을 알기 어렵습니다.</span></li>
+          <li><svg class="ic"><use href="#i-minus"/></svg><span>외워 둔 질문 문장만으로도 좋은 점수를 받을 수 있습니다.</span></li>
+        </ul>
+      </div>
+      <div class="cmp new">
+        <div class="cmp-h"><svg class="ic"><use href="#i-spark"/></svg>AI 활용역량 진단</div>
+        <h3>문제 해결 과정 전체를 분석</h3>
+        <ul>
+          <li><svg class="ic"><use href="#i-check-c"/></svg><div><b>대화 기록 분석</b><span>AI에게 무엇을, 어떻게 요청했는지 질문 하나하나를 살펴봅니다.</span></div></li>
+          <li><svg class="ic"><use href="#i-check-c"/></svg><div><b>점검과 개선 추적</b><span>AI 답변의 오류를 찾아내고 결과물을 더 낫게 고쳤는지 확인합니다.</span></div></li>
+          <li><svg class="ic"><use href="#i-check-c"/></svg><div><b>실무형 과제</b><span>실제 업무와 비슷한 상황에서 바로 쓸 수 있는 역량을 검증합니다.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="band tint"><div class="band-in">
+    <div class="sec-head"><span class="eyebrow">진행 순서</span><h2>과제 하나로 진단이 끝납니다</h2></div>
+    <div class="process">
+      <div class="pstep"><div class="top"><span class="ico"><svg class="ic"><use href="#i-doc"/></svg></span><span class="no">01</span></div><h3>과제 확인</h3><p>업무 상황과 자료, 최종안 요구사항을 읽습니다.</p></div>
+      <div class="pstep"><div class="top"><span class="ico"><svg class="ic"><use href="#i-chat"/></svg></span><span class="no">02</span></div><h3>AI와 문제 해결</h3><p>필요한 자료를 AI에게 직접 전달하며 함께 풉니다.</p></div>
+      <div class="pstep"><div class="top"><span class="ico"><svg class="ic"><use href="#i-send"/></svg></span><span class="no">03</span></div><h3>최종안 제출</h3><p>AI 답변을 다듬어 최종안을 완성하고 제출합니다.</p></div>
+      <div class="pstep"><div class="top"><span class="ico"><svg class="ic"><use href="#i-award"/></svg></span><span class="no">04</span></div><h3>역량 리포트</h3><p>결과를 확인하고 HTML 파일로 내려받습니다.</p></div>
+    </div>
+  </div></div>
+
+  <div class="band"><div class="band-in">
+    <div class="sec-head"><span class="eyebrow">평가 역량</span><h2>다섯 가지 역량으로 진단합니다</h2><p>각 역량을 5점 만점으로 평가하고, 반영 비중에 따라 100점 만점 점수로 환산합니다.</p></div>
+    <div class="fgrid" id="fgrid"></div>
+  </div></div>
+
+  <div class="band tint" id="tasks-sec"><div class="band-in">
+    <div class="sec-head"><span class="eyebrow">과제 선택</span><h2>난이도에 맞는 과제를 선택하세요</h2><p>AI는 과제 내용을 모릅니다. 필요한 자료는 직접 복사해서 전달해야 합니다.</p></div>
+    <div class="filter" role="tablist" aria-label="난이도 선택" id="filter"></div>
+    <div class="tasks" id="tasks"></div>
+  </div></div>
+
+  <div class="band navy foot-band"><div class="band-in foot-in">
+    <div class="foot-brand"><span class="logo"><svg class="ic"><use href="#i-spark"/></svg></span>AI 활용역량 진단</div>
+    <p>본 페이지는 시연용 샘플입니다. 역량 점수는 AI 평가자의 분석 결과이며, 실제 선발에 활용하려면 문항 타당화와 평가자 간 일치도 검증이 필요합니다.</p>
+  </div></div>
+</section>
+
+<!-- ===== 작업 화면 ===== -->
+<section id="v-work" class="wrap" hidden>
+  <div class="work">
+    <div class="panel">
+      <div class="panel-h"><span class="badge"><svg class="ic"><use href="#i-doc"/></svg></span><h2>과제</h2><span class="sp"><span class="chip" id="w-chip"></span></span></div>
+      <div class="panel-b">
+        <div class="brief" id="w-brief"></div>
+        <div>
+          <div class="blk-h"><svg class="ic"><use href="#i-folder"/></svg><span id="w-mat-title">자료</span>
+            <button class="btn sm" id="copy-mat"><svg class="ic"><use href="#i-copy"/></svg>자료 복사</button></div>
+          <div class="material" id="w-material"></div>
+        </div>
+        <div>
+          <div class="blk-h"><svg class="ic"><use href="#i-list"/></svg>최종안 요구사항</div>
+          <ul class="reqlist" id="w-reqs"></ul>
+        </div>
+        <div>
+          <label class="blk-h" for="final"><svg class="ic"><use href="#i-pen"/></svg>최종안 작성</label>
+          <textarea id="final" placeholder="AI 답변을 가져와 다듬거나 직접 작성하세요. 이 칸의 내용이 결과물로 평가됩니다."></textarea>
+          <div class="answer-foot">
+            <span class="num grow" id="final-count">0자</span>
+            <button class="btn" id="cancel-btn"><svg class="ic"><use href="#i-arrow-l"/></svg>처음으로</button>
+            <button class="btn primary" id="submit-btn"><svg class="ic"><use href="#i-send"/></svg><span>제출하고 진단받기</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel chat">
+      <div class="panel-h"><span class="badge"><svg class="ic"><use href="#i-spark"/></svg></span><h2>AI 어시스턴트</h2><span class="sp"><span class="chip" id="turn-count"><svg class="ic"><use href="#i-chat"/></svg>질문 0번</span></span></div>
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+      <div class="composer">
+        <textarea id="ask" placeholder="메시지를 입력하세요 · Enter 보내기, Shift+Enter 줄바꿈" aria-label="AI에게 보낼 메시지"></textarea>
+        <div class="composer-row"><span><svg class="ic"><use href="#i-info"/></svg>모든 대화는 평가 기록으로 남습니다</span>
+          <span class="sp"><button class="btn sm" id="stop-btn" hidden><svg class="ic"><use href="#i-stop"/></svg>중지</button><button class="btn primary sm" id="send-btn"><svg class="ic"><use href="#i-send"/></svg>보내기</button></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 리포트 ===== -->
+<section id="v-report" class="wrap" hidden></section>
+</main>
+<div class="toast" id="toast" hidden></div>
+<div class="modal" id="conn-modal" hidden role="dialog" aria-modal="true" aria-labelledby="conn-h">
+  <form class="modal-box" id="conn-form" autocomplete="off">
+    <h2 id="conn-h">AI 연결 설정</h2>
+    <p id="conn-desc">OpenAI API 키를 입력하세요. 키는 이 기기의 브라우저에만 저장되고, 요청은 OpenAI로 직접 보내집니다.</p>
+    <label class="fld"><span>OpenAI API 키</span>
+      <input id="conn-key" type="password" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="sk-proj-..."></label>
+    <p class="hint">공용 기기에서는 테스트가 끝나면 <b>키 지우기</b>를 눌러 주세요. 사용 한도를 걸어 둔 테스트 전용 키를 권장합니다.</p>
+    <div class="modal-act">
+      <button class="btn" type="button" id="conn-clear">키 지우기</button>
+      <span class="grow"></span>
+      <button class="btn" type="button" id="conn-close">닫기</button>
+      <button class="btn primary" type="submit">저장</button>
+    </div>
+  </form>
+</div>
+
+<script>
+/* =====================================================================
+   AI 활용역량 진단 · 과제 데이터
+   ---------------------------------------------------------------------
+   index.html과 같은 폴더에 두면 자동으로 불러옵니다.
+   과제를 추가·수정할 때는 이 파일만 고치면 됩니다.
+
+   필드 설명
+   id            과제 고유 이름 (영문, 겹치지 않게)
+   level         난이도: "쉬움" | "보통" | "어려움"
+   minutes       권장 응시 시간(분)
+   icon          아이콘 이름 (index.html 상단 아이콘 목록 참고)
+   type          과제 유형 (카드에 표시)
+   title/teaser  과제 제목 / 카드 한 줄 소개
+   situation     응시자에게 주는 업무 상황
+   materialTitle 자료 제목
+   table         (선택) 표 자료 {head:[...], rows:[[...]]}
+   note          (선택) 표 아래 덧붙이는 글 자료
+   materialText  '자료 복사' 버튼으로 복사되는 전체 자료 (표·글 포함)
+   reqs          최종안 요구사항 (리포트에서 하나씩 판정)
+   markers       응시자가 AI에게 자료를 전달했는지 확인하는 핵심 단어
+   rubric        채점 참고 (응시자에게 보이지 않음 · 정답과 함정 포인트)
+   ===================================================================== */
+window.TASKS = [
+
+/* ───────────── 쉬움: 자료 1개 · 점검 포인트 1개 · 15분 ───────────── */
+{
+  id:"cs", level:"쉬움", minutes:15, icon:"i-mail", type:"고객 응대",
+  title:"배송 지연 고객 회신 메일",
+  teaser:"전액 환불을 요구하는 고객에게 사내 보상 규정에 맞는 회신을 작성합니다.",
+  situation:"온라인 쇼핑몰 고객상담 담당자인 당신에게 배송 지연에 화가 난 고객의 메일이 왔습니다. 사내 보상 규정을 지키면서 고객의 이탈을 막는 회신을 보내야 합니다.",
+  materialTitle:"고객 메일과 사내 규정",
+  materialText:`[고객 메일 · 김OO 고객]
+주문한 지 벌써 4일이 지났는데 아직도 '배송 준비 중'입니다. 선물용이라 날짜가 중요했는데 너무 실망스럽네요. 전액 환불해 주시고 언제 도착하는지 정확한 날짜를 알려주세요.
+
+[사내 보상 규정]
+- 출고 예정일 대비 3일 이상 지연: 배송비(3,000원) 환불
+- 5일 이상 지연: 배송비 환불 + 5,000원 쿠폰
+- 상품 대금 전액 환불은 고객이 주문을 취소하는 경우에만 가능
+- 물류사 확인 전에는 도착일을 확정해 안내하지 않음 ("영업일 기준 2~3일 내 출고 예정"까지만 안내 가능)`,
+  reqs:["사과와 공감을 먼저 표현","규정에 맞는 보상만 안내 (과잉 약속 금지)","도착일을 단정하지 않고 규정 범위 내에서 안내","주문 취소·환불 선택지를 정확히 안내"],
+  markers:["4일","3,000","5,000","전액 환불","출고 예정"],
+  rubric:"4일 지연이므로 보상은 배송비 3,000원 환불만 해당(5,000원 쿠폰은 해당 없음). 상품 대금 환불은 주문 취소 시에만 가능하다는 선택지를 안내해야 함. 도착일을 특정 날짜로 단정하면 규정 위반. AI가 쿠폰을 함께 약속하거나 도착일을 단정했을 때 응시자가 이를 잡아냈는지가 답변 점검의 핵심 근거."
+},
+{
+  id:"meeting", level:"쉬움", minutes:15, icon:"i-note", type:"문서 정리",
+  title:"회의 메모를 회의록으로 정리",
+  teaser:"두서없는 회의 메모를 결정사항, 할 일, 미결 사항으로 나눠 회의록을 만듭니다.",
+  situation:"채용운영팀 막내인 당신은 오늘 주간 회의에서 받아 적은 메모를 팀 메신저에 공유할 회의록으로 정리해야 합니다. 팀장은 \"누가 언제까지 뭘 하는지 한눈에 보이게\" 해 달라고 했습니다.",
+  materialTitle:"주간 채용운영 회의 메모",
+  materialText:`[주간 채용운영 회의 메모 · 10월 27일(화)]
+- 참석: 김팀장, 이대리, 박주임, 최사원
+- 하반기 공채 서류 접수 1,284명으로 마감. 전년 대비 12% 증가.
+- 필기시험 장소는 강남 A고사장으로 확정. 감독관 18명 필요 → 이대리가 섭외, 11/3까지.
+- 면접위원 위촉 공문: 박주임이 작성, 기한은 다음 주 중.
+- 합격자 발표 문자 시스템 교체 건: 비용 확인 필요, 담당은 아직 안 정함.
+- 블라인드 위반 의심 자소서 47건 중 15건 재검토 여부: 김팀장은 재검토하자고 했고 최사원은 일정상 어렵다고 함 → 결론 못 냄.
+- 다음 회의: 11/3(화) 10시`,
+  reqs:["결정사항, 할 일, 미결 사항을 구분해 정리","할 일마다 담당자와 기한을 표기","정해지지 않은 담당자·기한은 '미정'으로 표시 (임의로 정하지 않기)","전체 12줄 이내"],
+  markers:["1,284","18명","박주임","47건","11/3"],
+  rubric:"결정사항: 필기 장소 강남 A고사장 확정, 다음 회의 11/3(화) 10시 (서류 1,284명 마감은 보고 사항). 할 일: 감독관 18명 섭외(이대리, 11/3까지), 면접위원 위촉 공문(박주임, 기한 '다음 주 중' — 특정 날짜로 바꾸면 오류), 문자 시스템 비용 확인(담당 미정). 미결: 블라인드 위반 의심 15건 재검토 여부(결론 없음 — '재검토하기로 함'으로 쓰면 오류). AI가 담당자를 임의로 배정하거나, 재검토를 결정사항으로 쓰거나, '다음 주 중'을 날짜로 바꿨을 때 응시자가 바로잡았는지가 답변 점검의 핵심 근거."
+},
+{
+  id:"notice", level:"쉬움", minutes:15, icon:"i-megaphone", type:"사내 공지",
+  title:"연말정산 안내 공지문 작성",
+  teaser:"인사팀 메모를 바탕으로 전 직원에게 보낼 연말정산 안내 공지를 씁니다.",
+  situation:"인사팀 급여 담당인 당신은 다음 주 월요일 전 직원에게 연말정산 안내 공지를 올려야 합니다. 팀장이 넘겨준 메모를 바탕으로 공지문을 작성하세요.",
+  materialTitle:"인사팀 메모",
+  materialText:`[연말정산 안내 · 인사팀 메모]
+- 대상: 2026년 근로소득이 있는 전 직원
+- 간소화 자료 조회: 국세청 홈택스, 2027년 1월 15일(목)부터
+- 사내 시스템 제출 마감: 2027년 1월 29일(금) 18시
+- 제출 서류: 간소화 자료 PDF, 부양가족이 바뀐 경우 가족관계증명서
+- 문의: 인사팀 급여 담당 (내선 2341)
+- 참고: 작년에 마감 후 제출이 많아 환급이 늦어진 사례가 있었음`,
+  reqs:["제목을 포함한 전 직원 대상 공지문","일정, 제출 서류, 문의처를 빠짐없이 포함","날짜와 요일을 정확하게 표기","마감 준수를 당부하되 위협적이지 않은 어조"],
+  markers:["1월 15일","1월 29일","2341","가족관계증명서"],
+  rubric:"2027년 1월 15일은 금요일이므로 메모의 '(목)'은 오류이며 공지에는 '1월 15일(금)'으로 써야 함. 1월 29일(금) 18시는 정확. 문의처 내선 2341 포함 필요. AI가 메모의 요일을 그대로 옮겼을 때 응시자가 요일을 확인해 바로잡았는지가 답변 점검의 핵심 근거."
+},
+
+/* ───────────── 보통: 자료 1~2개 · 점검 포인트 2개 · 20분 ───────────── */
+{
+  id:"edu", level:"보통", minutes:20, icon:"i-chart", type:"데이터 해석",
+  title:"사내 교육 만족도 결과 보고",
+  teaser:"4개 교육과정의 만족도 조사 결과를 경영진 보고용 요약으로 정리합니다.",
+  situation:"인재개발팀 담당자인 당신은 상반기 사내 교육 4개 과정의 만족도 조사 결과를 내일 경영진 회의에서 보고해야 합니다. 팀장은 \"숫자 근거가 분명한 5줄 요약\"을 요청했습니다.",
+  materialTitle:"상반기 교육 만족도 조사 결과",
+  table:{head:["과정","응답자 수","만족도(5점)","재수강 의향"],
+    rows:[["리더십 기초","42","4.1","68%"],["데이터 리터러시","38","3.6","52%"],["보고서 작성","3","4.9","100%"],["고객 응대","51","3.9","61%"]]},
+  materialText:`과정 | 응답자 수 | 만족도(5점) | 재수강 의향
+리더십 기초 | 42 | 4.1 | 68%
+데이터 리터러시 | 38 | 3.6 | 52%
+보고서 작성 | 3 | 4.9 | 100%
+고객 응대 | 51 | 3.9 | 61%`,
+  reqs:["경영진 보고용 5줄 이내 요약","전체 평균 만족도를 정확한 수치로 제시","결과 해석 시 주의할 점 1가지 포함","다음 분기 개선 우선순위 1가지 제안"],
+  markers:["42","38","51","4.9","3.6","데이터 리터러시"],
+  rubric:"전체 평균은 응답자 수 가중평균 약 3.90점(522.6/134)이며 단순평균 4.13점을 쓰면 오류. '보고서 작성'은 응답자 3명이라 표본이 너무 작아 최고 과정으로 단정하면 안 됨(해석 주의점). 개선 우선순위는 만족도·재수강 의향이 가장 낮은 '데이터 리터러시'가 타당. AI가 단순평균을 내거나 보고서 작성 과정을 최우수로 단정했을 때 응시자가 이를 잡아냈는지가 답변 점검의 핵심 근거."
+},
+{
+  id:"job", level:"보통", minutes:20, icon:"i-scale", type:"공정채용 검토",
+  title:"채용공고 우대사항 다시 쓰기",
+  teaser:"블라인드 채용 원칙에 어긋나는 공고 초안을 직무 중심으로 고쳐 씁니다.",
+  situation:"공공기관 채용 담당자인 당신은 현업 부서가 보낸 '시설관리 운영직' 채용공고 초안을 받았습니다. 공고는 블라인드 채용 원칙을 따라야 하고, 오늘 중으로 게시용 문안을 확정해야 합니다.",
+  materialTitle:"현업 부서 작성 공고 초안",
+  materialText:`[모집분야] 시설관리 운영직 (정규직, 1명)
+[주요업무] 청사 전기·기계설비 일상점검, 협력업체 작업 관리, 설비 고장 접수 및 대응, 에너지 사용량 관리
+[지원자격]
+- 35세 이하인 자
+- 서울 소재 4년제 대학 졸업자
+[우대사항]
+- 남성 지원자 우대 (야간 당직 근무)
+- 전기기능사 이상 자격 보유자
+- 관내 거주자 우대 (긴급 출동)
+- 체력이 좋고 건강한 분`,
+  reqs:["블라인드 채용에 위배되는 표현을 모두 제거","주요업무 내용은 그대로 유지","우대사항을 직무 수행능력·자격 기준으로 대체","[지원자격]~[우대사항] 부분 400자 이내"],
+  markers:["35세","서울 소재","남성","관내 거주","전기기능사"],
+  rubric:"위배 표현 5개: 연령(35세 이하), 학교·지역(서울 소재 4년제), 성별(남성 우대), 거주지(관내 거주 우대), 신체조건(체력·건강). '야간 당직 근무', '긴급 출동'은 '야간·휴일 교대근무 가능자', '긴급상황 대응 가능자' 같은 근무조건으로 바꾸는 것이 적절. 전기기능사 등 직무 관련 자격은 유지 가능. AI가 일부 위배 표현(특히 관내 거주, 체력)을 놓치거나 주요업무를 임의로 바꿨을 때 응시자가 이를 잡았는지가 답변 점검의 핵심 근거."
+},
+{
+  id:"interview", level:"보통", minutes:20, icon:"i-users", type:"면접 설계",
+  title:"자기소개서 기반 면접 질문 만들기",
+  teaser:"직무기술서와 자기소개서를 바탕으로 경험 확인 면접 질문을 설계합니다.",
+  situation:"면접관 교육을 맡은 당신은 내일 면접에 들어갈 현업 면접관에게 지원자별 질문지를 미리 전달해야 합니다. 아래 지원자의 질문지를 만들어 주세요.",
+  materialTitle:"직무기술서와 자기소개서 발췌",
+  materialText:`[직무기술서 · 고객데이터 분석 담당]
+- 주요업무: 고객 이용 데이터 분석, 이탈 고객 요인 파악, 마케팅 부서와 개선안 협업
+- 필요역량: 데이터 분석(SQL·엑셀), 문제 해결, 협업 커뮤니케이션
+
+[지원자 자기소개서 발췌]
+1. 대학 3학년 때 교내 카페 동아리 회장을 맡아, 판매 데이터를 엑셀로 분석해 비인기 메뉴 3개를 정리하고 월 매출을 18% 올렸습니다.
+2. 인턴 기간 중 고객 문의 2,000건을 분류하는 업무를 맡아, 반복 문의 유형을 찾아 FAQ를 개편했습니다. 다만 개발팀 일정과 충돌해 적용은 한 달 늦어졌습니다.
+3. 아버지께서 은행 지점장으로 근무하셔서 어릴 때부터 숫자와 고객 응대에 익숙했습니다.`,
+  reqs:["자기소개서 경험에 근거한 질문 5개","질문마다 꼬리질문 1개","질문마다 연결되는 직무 필요역량 표시","가족·출신 등 블라인드 위배 질문 제외"],
+  markers:["18%","2,000건","FAQ","SQL"],
+  rubric:"3번 문항의 아버지 직업은 블라인드 위배 정보이므로 질문 근거로 쓰면 안 됨. AI가 '아버지의 영향' 같은 질문을 만들었을 때 응시자가 걸러냈는지가 답변 점검의 핵심 근거. 2번의 '적용 지연'은 협업·갈등 해결 질문의 좋은 근거이고, 1번의 '매출 18%'는 산정 방법과 본인 기여를 확인하는 질문이 적절. SQL 역량은 자소서에 근거가 없으므로 '경험이 있는지' 확인하는 질문으로 다뤄야 하며 경험을 전제하면 안 됨."
+},
+{
+  id:"budget", level:"보통", minutes:20, icon:"i-calc", type:"예산 검토",
+  title:"교육 행사 예산안 검토와 조정",
+  teaser:"계산 오류가 섞인 예산안을 검토하고 한도 안으로 조정안을 만듭니다.",
+  situation:"신입사원 입문교육을 준비하는 당신은 협력사가 보낸 예산안을 검토해 팀장에게 보고해야 합니다. 이번 행사의 예산 한도는 700만 원입니다.",
+  materialTitle:"신입사원 입문교육 예산안 (협력사 작성)",
+  table:{head:["항목","단가(원)","수량","금액(원)"],
+    rows:[["교육장 대관","1,200,000","2일","2,400,000"],["중식","15,000","60명×2일","1,800,000"],["교재 인쇄","8,000","60부","480,000"],["외부 강사료","500,000","3명","1,800,000"],["기념품","25,000","60개","1,500,000"],["합계","","","7,980,000"]]},
+  note:"※ 예산 한도: 7,000,000원\n※ 교육장 대관과 중식은 이미 계약을 마쳐 조정할 수 없음",
+  materialText:`항목 | 단가(원) | 수량 | 금액(원)
+교육장 대관 | 1,200,000 | 2일 | 2,400,000
+중식 | 15,000 | 60명×2일 | 1,800,000
+교재 인쇄 | 8,000 | 60부 | 480,000
+외부 강사료 | 500,000 | 3명 | 1,800,000
+기념품 | 25,000 | 60개 | 1,500,000
+합계 | | | 7,980,000
+
+※ 예산 한도: 7,000,000원
+※ 교육장 대관과 중식은 이미 계약을 마쳐 조정할 수 없음`,
+  reqs:["예산안의 계산 오류를 찾아 바로잡기","정확한 원래 합계 제시","한도 700만 원 이내 조정안 (항목별 금액과 조정 이유)","조정 후 합계 검산"],
+  markers:["7,980,000","1,800,000","500,000","7,000,000"],
+  rubric:"외부 강사료는 500,000×3명=1,500,000원인데 1,800,000원으로 잘못 적혀 있어 합계도 틀림. 바른 합계는 7,680,000원이며 한도 대비 680,000원 초과(980,000원 초과로 보면 오류). 교육장 대관·중식은 조정 불가이므로 교재·강사료·기념품에서 680,000원 이상 줄여야 함. 조정 후 합계가 7,000,000원 이하인지 계산이 맞아야 함. AI가 7,980,000원을 그대로 쓰거나, 조정 불가 항목을 줄이거나, 조정 후 합계를 틀렸을 때 응시자가 바로잡았는지가 답변 점검의 핵심 근거."
+},
+
+/* ───────────── 어려움: 여러 자료 · 상충 정보 · 계산 · 30분 ───────────── */
+{
+  id:"vendor", level:"어려움", minutes:30, icon:"i-building", type:"의사결정 보고",
+  title:"외주업체 선정 평가 보고",
+  teaser:"평가 기준에 따라 세 업체의 점수를 계산하고, 실무자 메모의 오류를 바로잡아 추천합니다.",
+  situation:"채용대행 외주업체 선정 실무를 맡은 당신은 세 업체의 제안서 평가 결과를 정리해 본부장에게 추천안을 보고해야 합니다. 동료가 먼저 정리한 메모가 있지만 그대로 믿어도 되는지는 확인이 필요합니다.",
+  materialTitle:"평가 기준, 업체별 결과, 동료 메모",
+  table:{head:["업체","기술점수(100점)","입찰가(원)","실적점수(100점)","정보보호 인증"],
+    rows:[["A사","82","48,000,000","90","보유"],["B사","90","60,000,000","70","보유"],["C사","88","40,000,000","85","미보유"]]},
+  note:"[평가 기준]\n- 총점 = 기술점수 50% + 가격점수 30% + 실적점수 20%\n- 가격점수 = (적격 업체 중 최저 입찰가 ÷ 해당 업체 입찰가) × 100\n- 필수 자격: 정보보호 인증 보유 (미보유 업체는 평가에서 제외)\n\n[동료 메모]\n\"C사가 가격이 제일 싸고 기술도 좋아서 C사로 가면 될 것 같습니다. 가격점수는 C사 100점, A사 90점, B사 80점으로 계산해 뒀어요.\"",
+  materialText:`업체 | 기술점수(100점) | 입찰가(원) | 실적점수(100점) | 정보보호 인증
+A사 | 82 | 48,000,000 | 90 | 보유
+B사 | 90 | 60,000,000 | 70 | 보유
+C사 | 88 | 40,000,000 | 85 | 미보유
+
+[평가 기준]
+- 총점 = 기술점수 50% + 가격점수 30% + 실적점수 20%
+- 가격점수 = (적격 업체 중 최저 입찰가 ÷ 해당 업체 입찰가) × 100
+- 필수 자격: 정보보호 인증 보유 (미보유 업체는 평가에서 제외)
+
+[동료 메모]
+"C사가 가격이 제일 싸고 기술도 좋아서 C사로 가면 될 것 같습니다. 가격점수는 C사 100점, A사 90점, B사 80점으로 계산해 뒀어요."`,
+  reqs:["필수 자격 미달 업체를 찾아 제외","적격 업체의 가격점수와 총점을 기준대로 계산 (소수점 첫째 자리)","추천 업체와 근거 제시","동료 메모의 잘못된 부분 지적"],
+  markers:["48,000,000","60,000,000","40,000,000","미보유","최저 입찰가"],
+  rubric:"C사는 정보보호 인증 미보유로 평가 제외. 적격 업체 최저 입찰가는 A사 48,000,000원이므로 가격점수 A사 100점, B사 80점(48/60×100). 총점 A사 = 41.0+30.0+18.0 = 89.0점, B사 = 45.0+24.0+14.0 = 83.0점 → A사 추천. 동료 메모의 오류: 결격인 C사 추천, A사 가격점수 90점(정답 100점), C사를 최저가 기준에 포함. AI가 C사를 추천하거나, 메모의 점수를 그대로 쓰거나, C사 입찰가를 최저가로 써서 A 83.3·B 66.7로 계산했을 때 응시자가 바로잡았는지가 답변 점검의 핵심 근거."
+},
+{
+  id:"voc", level:"어려움", minutes:30, icon:"i-inbox", type:"데이터 분류",
+  title:"고객 불만 분류와 개선 우선순위",
+  teaser:"중복과 칭찬이 섞인 고객 의견 15건을 기준대로 분류하고 개선 우선순위를 정합니다.",
+  situation:"서비스기획팀인 당신은 지난주 접수된 고객 의견을 분류해 다음 달 개선 과제 1순위를 제안해야 합니다. 팀에서 정한 집계 기준을 반드시 따라야 합니다.",
+  materialTitle:"지난주 고객 의견 15건과 집계 기준",
+  table:{head:["번호","고객","접수 경로","내용"],
+    rows:[["1","C102","앱","결제 버튼을 눌러도 반응이 없어요"],["2","C215","앱","배송이 예정일보다 3일 늦었어요"],["3","C102","콜센터","결제가 안 돼서 전화드려요"],["4","C330","앱","로그인할 때마다 앱이 꺼져요"],["5","C411","콜센터","상담원이 친절해서 좋았어요"],["6","C512","앱","카드 결제 후 주문 내역이 안 보여요"],["7","C618","이메일","택배가 다른 주소로 갔어요"],["8","C330","이메일","로그인 오류 아직도 안 고쳐졌나요"],["9","C720","앱","비밀번호 재설정 메일이 안 와요"],["10","C801","콜센터","상담 연결까지 20분 넘게 걸렸어요"],["11","C905","앱","결제 금액이 두 번 빠져나갔어요"],["12","C912","앱","배송 기사가 문 앞이 아닌 경비실에 두고 갔어요"],["13","C930","앱","앱 업데이트 후 로그인이 안 됩니다"],["14","C944","이메일","상담원이 같은 질문을 계속 반복했어요"],["15","C951","앱","배송 조회가 안 돼요"]]},
+  note:"[집계 기준]\n- 유형: 결제, 로그인, 배송, 상담 4가지\n- 같은 고객이 같은 문제로 여러 번 접수한 경우 1건으로 집계\n- 불만이 아닌 의견(칭찬 등)은 집계에서 제외\n- 우선순위 점수 = 건수 × 심각도 (결제 3, 로그인 3, 배송 2, 상담 1)\n- 점수가 같으면 금전 피해가 생기는 유형을 우선",
+  materialText:`번호 | 고객 | 접수 경로 | 내용
+1 | C102 | 앱 | 결제 버튼을 눌러도 반응이 없어요
+2 | C215 | 앱 | 배송이 예정일보다 3일 늦었어요
+3 | C102 | 콜센터 | 결제가 안 돼서 전화드려요
+4 | C330 | 앱 | 로그인할 때마다 앱이 꺼져요
+5 | C411 | 콜센터 | 상담원이 친절해서 좋았어요
+6 | C512 | 앱 | 카드 결제 후 주문 내역이 안 보여요
+7 | C618 | 이메일 | 택배가 다른 주소로 갔어요
+8 | C330 | 이메일 | 로그인 오류 아직도 안 고쳐졌나요
+9 | C720 | 앱 | 비밀번호 재설정 메일이 안 와요
+10 | C801 | 콜센터 | 상담 연결까지 20분 넘게 걸렸어요
+11 | C905 | 앱 | 결제 금액이 두 번 빠져나갔어요
+12 | C912 | 앱 | 배송 기사가 문 앞이 아닌 경비실에 두고 갔어요
+13 | C930 | 앱 | 앱 업데이트 후 로그인이 안 됩니다
+14 | C944 | 이메일 | 상담원이 같은 질문을 계속 반복했어요
+15 | C951 | 앱 | 배송 조회가 안 돼요
+
+[집계 기준]
+- 유형: 결제, 로그인, 배송, 상담 4가지
+- 같은 고객이 같은 문제로 여러 번 접수한 경우 1건으로 집계
+- 불만이 아닌 의견(칭찬 등)은 집계에서 제외
+- 우선순위 점수 = 건수 × 심각도 (결제 3, 로그인 3, 배송 2, 상담 1)
+- 점수가 같으면 금전 피해가 생기는 유형을 우선`,
+  reqs:["집계 기준(중복 1건, 칭찬 제외)에 맞는 유형별 건수","유형별 우선순위 점수와 1~4순위","1순위 유형의 개선안 2가지","유형별 건수·점수 집계표 포함"],
+  markers:["C102","C330","C411","심각도","금전 피해"],
+  rubric:"제외: 3번(C102, 1번과 중복), 8번(C330, 4번과 중복), 5번(칭찬). 유효 12건. 결제 3건(1,6,11)×3=9점, 로그인 3건(4,9,13)×3=9점, 배송 4건(2,7,12,15)×2=8점, 상담 2건(10,14)×1=2점. 결제와 로그인이 9점 동점이며 금전 피해 기준으로 결제가 1순위, 로그인 2순위, 배송 3순위, 상담 4순위. 중복을 세면 결제·로그인 4건(12점)이 되고, 칭찬을 상담에 넣으면 상담 3건이 되어 오류. AI의 집계를 그대로 믿지 않고 건수를 검산했는지가 답변 점검의 핵심 근거."
+},
+{
+  id:"incident", level:"어려움", minutes:30, icon:"i-lock", type:"위기 대응",
+  title:"개인정보 노출 사고 1차 대응 보고",
+  teaser:"서로 다른 수치가 담긴 보고와 로그를 비교해, 규정에 맞는 통지·신고 기한을 판단합니다.",
+  situation:"개인정보보호 담당자인 당신은 고객 게시판 첨부파일 노출 사고에 대한 1차 대응 보고서를 오늘 오전 중 경영진에게 올려야 합니다. 보안팀 메일과 서버 로그의 내용이 서로 다르니 주의하세요.",
+  materialTitle:"보안팀 메일, 서버 로그, 사내 규정",
+  materialText:`[보안팀 1차 보고 메일 · 10월 28일(수) 09:10]
+어젯밤 고객 문의 게시판의 첨부파일 경로가 외부에서 열람 가능한 상태였던 것을 확인했습니다. 노출된 파일에 고객 이름·연락처가 포함되어 있으며, 영향 고객은 약 900명으로 추정됩니다. 원인 서버는 차단했습니다.
+
+[서버 로그 요약 · 보안팀 첨부]
+- 노출 시작: 10월 20일(화) 14:00 (게시판 업데이트 배포 시점)
+- 노출 사실 최초 인지: 10월 27일(화) 22:40
+- 외부 접근 차단: 10월 27일(화) 23:15
+- 노출된 첨부파일 412개, 포함된 고객 기록을 중복 제거하면 1,240명
+- 실제 외부에서 내려받은 기록이 있는지는 분석 중
+
+[사내 개인정보 사고 대응 규정]
+- 유출을 알게 된 때부터 72시간 이내에 해당 고객에게 통지
+- 유출 규모가 1천 명 이상이면 72시간 이내에 개인정보보호위원회(또는 KISA)에 신고
+- 원인·규모가 확인되지 않은 사항은 '확인 중'으로 쓰고, 추정을 사실처럼 쓰지 않음`,
+  reqs:["경영진 보고용 1차 대응 보고서 (상황, 규모, 조치, 향후 일정)","고객 통지와 기관 신고 기한을 정확한 날짜·시각으로 제시","신고 대상 여부 판단과 근거","확인된 사실과 확인 중인 사항 구분"],
+  markers:["1,240","900명","22:40","72시간","1천 명"],
+  rubric:"규모는 서버 로그 기준 1,240명(메일의 '약 900명'은 추정치)이므로 1천 명 이상 → 기관 신고 대상. 기한은 최초 인지 시점 10월 27일(화) 22:40부터 72시간 = 10월 30일(금) 22:40까지 고객 통지·기관 신고. 노출 시작 시점(10/20)이나 메일 발송 시각(10/28 09:10)을 기준으로 계산하면 오류. 외부 다운로드 여부는 미확인이므로 '확인 중'으로 써야 하며 '유출 피해 없음'이나 '유출 확정'으로 단정하면 오류. AI가 900명을 써서 신고 불필요로 판단하거나 기한을 잘못 계산했을 때 응시자가 바로잡았는지가 답변 점검의 핵심 근거."
+}
+];
+</script>
+<script>
+/* =====================================================================
+   관리자 설정 — 여기만 고치면 됩니다
+   ---------------------------------------------------------------------
+   연결 방법은 세 가지 중 하나입니다 (위에서부터 우선 적용)
+   1) PROXY_URL : 중계 서버 주소. 키가 브라우저에 노출되지 않습니다.
+        - Cloudflare Worker(worker.js) : "https://<이름>.<계정>.workers.dev"
+        - server.py로 이 파일을 띄울 때 : "/"  (같은 서버로 요청)
+   2) API_KEY   : 문서에 키를 직접 넣음. 파일을 연 사람 누구나 키를 볼 수 있습니다.
+   3) 둘 다 비우면 화면의 [AI 연결 설정]에서 키를 입력받아 그 기기(브라우저)에만 저장합니다.
+        아이패드 단독 테스트는 3)이 가장 간단합니다.
+   ===================================================================== */
+const API_KEY    = "";                 // 비워 두면 화면에서 키를 입력받아 이 기기에만 저장
+const PROXY_URL  = "";                 // 예: "https://ai-proxy.example.workers.dev"
+const CHAT_MODEL = "gpt-5.4-mini";     // 응시자와 대화하는 모델
+const EVAL_MODEL = "gpt-5.5";          // 대화 기록을 채점하는 모델
+const DEFAULT_MIN = 20;                // 과제에 시간이 없을 때 쓰는 권장 시간(분)
+
+/* ---------- 과제: tasks.js에서 불러옴 ---------- */
+const TASKS = Array.isArray(window.TASKS) ? window.TASKS : [];
+const LEVEL_ORDER = ["쉬움","보통","어려움"];
+
+const FACTORS = [
+  {key:"context",  name:"상황 설명",     icon:"i-folder", w:.20, desc:"목적, 대상, 자료, 지켜야 할 조건을 AI에게 충분히 알려주었는지"},
+  {key:"prompting",name:"요청 설계",     icon:"i-pen",    w:.20, desc:"원하는 형식과 분량을 정하고, 큰 일을 작은 단계로 나눠 요청했는지"},
+  {key:"control",  name:"답변 점검",     icon:"i-shield", w:.25, desc:"AI 답변의 틀린 내용, 빠진 내용, 지나친 내용을 찾아 바로잡았는지"},
+  {key:"iteration",name:"반복 개선",     icon:"i-cycle",  w:.15, desc:"처음 받은 결과물을 여러 번 고쳐 더 낫게 만들었는지"},
+  {key:"output",   name:"결과물 완성도", icon:"i-doc",    w:.20, desc:"최종 제출한 결과물이 과제 요구사항을 지켰는지"}];
+const LEVELS = [{min:0,no:1,name:"입문",range:"0~39점"},{min:40,no:2,name:"기본 활용",range:"40~59점"},{min:60,no:3,name:"숙련 활용",range:"60~79점"},{min:80,no:4,name:"주도적 활용",range:"80~100점"}];
+const ORD = ["첫","두","세","네","다섯","여섯","일곱","여덟","아홉","열"];
+
+/* ---------- 공통 ---------- */
+let S=null, chatCtl=null, LAST=null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const icon=(id,cls="ic")=>`<svg class="${cls}"><use href="#${id}"/></svg>`;
+function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,2400)}
+function show(view){
+  ["intro","work","report"].forEach(v=>$("v-"+v).hidden=v!==view);
+  const order=["intro","work","report"],i=order.indexOf(view);
+  document.querySelectorAll(".step").forEach(el=>{const j=order.indexOf(el.dataset.s);el.className="step"+(j===i?" on":j<i?" done":"")});
+  $("timer").hidden=view!=="work"; window.scrollTo(0,0);
+}
+async function copyText(t,msg){
+  try{await navigator.clipboard.writeText(t);toast(msg)}
+  catch{const ta=document.createElement("textarea");ta.value=t;ta.setAttribute("readonly","");
+    ta.style.cssText="position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px";
+    document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange(0,t.length);
+    let ok=false;try{ok=document.execCommand("copy")}catch{}ta.remove();toast(ok?msg:"복사하지 못했습니다. 길게 눌러 직접 복사해 주세요")}
+}
+
+/* ---------- OpenAI 연결 ---------- */
+const API_PATH="/api/ai/chat/completions";          // worker.js · server.py와 같은 경로
+const KEY_STORE="aiq_openai_key";
+const store={get(k){try{return localStorage.getItem(k)||""}catch{return ""}},
+  set(k,v){try{v?localStorage.setItem(k,v):localStorage.removeItem(k);return true}catch{return false}}};
+let userKey=store.get(KEY_STORE);
+const apiKey=()=>API_KEY||userKey;
+let READY=false;
+function refreshReady(){READY=!!(PROXY_URL||apiKey());const n=$("key-note");if(n)n.hidden=READY;const s=$("conn-state");if(s)s.textContent=PROXY_URL?"중계 서버":apiKey()?"연결됨":"연결 필요";$("conn-btn")?.classList.toggle("need",!READY)}
+const endpoint=()=>{
+  if(!PROXY_URL) return "https://api.openai.com/v1/chat/completions";
+  const base=PROXY_URL.replace(/\/+$/,"");
+  return base.endsWith(API_PATH)?base:base+API_PATH;
+};
+// 중계 서버는 "chat"/"evaluation" 별칭만 받으므로 별칭으로 보냄
+const modelFor=kind=>PROXY_URL?kind:(kind==="chat"?CHAT_MODEL:EVAL_MODEL);
+const headers=()=>{const h={"Content-Type":"application/json"}; if(!PROXY_URL) h.Authorization="Bearer "+apiKey(); return h};
+class ApiError extends Error{constructor(code,msg){super(msg);this.code=code}}
+async function apiFail(res){
+  let d="";try{const j=await res.json();d=j?.error?.message||""}catch{}
+  const c=res.status===401?"auth":res.status===403?"forbidden":res.status===404?"model":res.status===429?"rate":res.status>=500?"server":"bad";
+  return new ApiError(c,d);
+}
+const netError=e=>e?.name==="AbortError"?new ApiError("cancelled",""):e instanceof ApiError?e:new ApiError("network",String(e?.message||e));
+async function openaiChat(messages,{model,onText,signal}){
+  let res;
+  try{res=await fetch(endpoint(),{method:"POST",headers:headers(),signal,body:JSON.stringify({model,messages,stream:true})})}catch(e){throw netError(e)}
+  if(!res.ok) throw await apiFail(res);
+  const reader=res.body.getReader(),dec=new TextDecoder();let buf="",text="";
+  try{
+    while(true){
+      const {value,done}=await reader.read(); if(done)break;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split("\n"); buf=lines.pop();
+      for(const line of lines){
+        const l=line.trim(); if(!l.startsWith("data:"))continue;
+        const data=l.slice(5).trim(); if(data==="[DONE]")continue;
+        try{const d=JSON.parse(data).choices?.[0]?.delta?.content; if(d){text+=d;onText?.(text)}}catch{}
+      }
+    }
+  }catch(e){const err=netError(e);err.partial=text;throw err}
+  if(!text) throw new ApiError("empty","");
+  return text;
+}
+async function openaiJSON(prompt,{model}){
+  let res;
+  try{res=await fetch(endpoint(),{method:"POST",headers:headers(),body:JSON.stringify({model,
+    messages:[{role:"system",content:"You are a strict assessment rater. Reply with one JSON object only, written in Korean."},{role:"user",content:prompt}],
+    response_format:{type:"json_object"}})})}catch(e){throw netError(e)}
+  if(!res.ok) throw await apiFail(res);
+  const j=await res.json(),raw=j.choices?.[0]?.message?.content||"";
+  try{return JSON.parse(raw)}catch{const m=raw.match(/\{[\s\S]*\}/);if(m)try{return JSON.parse(m[0])}catch{}throw new ApiError("json",raw)}
+}
+function errCopy(c,detail){
+  const m={auth:"API 키가 올바르지 않습니다. 오른쪽 위 [AI 연결 설정]에서 키를 다시 확인해 주세요.",
+    forbidden:"이 키로는 요청한 모델을 쓸 수 없습니다. 관리자에게 모델 설정을 확인해 달라고 요청해 주세요.",
+    model:"설정된 모델을 찾을 수 없습니다. 관리자에게 모델 이름을 확인해 달라고 요청해 주세요.",
+    rate:"요청 한도나 사용 한도에 걸렸습니다. 잠시 후 다시 시도해 주세요.",
+    server:"AI 서버가 잠시 응답하지 않습니다. 잠시 후 다시 보내 주세요.",
+    network:"AI 서버에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요.",
+    empty:"빈 응답이 왔습니다. 같은 메시지를 다시 보내 주세요.",
+    json:"평가 결과를 읽지 못했습니다. [다시 평가]를 눌러 주세요.",
+    nokey:"AI가 연결되지 않았습니다. 오른쪽 위 [AI 연결 설정]에서 OpenAI API 키를 입력해 주세요.",
+    bad:"요청이 거부되었습니다."}[c]||"응답을 받지 못했습니다. 다시 시도해 주세요.";
+  return detail&&["forbidden","model","bad"].includes(c)? m+" ("+detail.slice(0,140)+")" : m;
+}
+
+/* ---------- 인트로 ---------- */
+refreshReady();
+function openConn(){
+  const m=$("conn-modal");
+  $("conn-key").value=userKey;
+  $("conn-key").disabled=!!(PROXY_URL||API_KEY);
+  $("conn-desc").textContent=PROXY_URL?"이 페이지는 중계 서버로 연결되어 있어 키를 입력할 필요가 없습니다."
+    :API_KEY?"이 파일에 키가 내장되어 있어 따로 입력할 필요가 없습니다."
+    :"OpenAI API 키를 입력하세요. 키는 이 기기의 브라우저에만 저장되고, 요청은 OpenAI로 직접 보내집니다.";
+  m.hidden=false; if(!$("conn-key").disabled) setTimeout(()=>$("conn-key").focus(),50);
+}
+function closeConn(){$("conn-modal").hidden=true}
+document.addEventListener("click",e=>{if(e.target.closest("[data-open-conn]"))openConn()});
+$("conn-close").onclick=closeConn;
+$("conn-modal").addEventListener("click",e=>{if(e.target.id==="conn-modal")closeConn()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("conn-modal").hidden)closeConn()});
+$("conn-form").addEventListener("submit",e=>{
+  e.preventDefault(); if($("conn-key").disabled){closeConn();return}
+  const v=$("conn-key").value.trim();
+  if(v&&!/^sk-/.test(v)){toast("OpenAI 키는 sk-로 시작합니다");return}
+  userKey=v; const ok=store.set(KEY_STORE,v); refreshReady(); closeConn();
+  toast(!v?"키를 지웠습니다":ok?"키를 저장했습니다":"이 브라우저는 저장을 막아 두어 이번 방문에만 사용합니다");
+});
+$("conn-clear").onclick=()=>{userKey="";store.set(KEY_STORE,"");$("conn-key").value="";refreshReady();toast("키를 지웠습니다")};
+$("fgrid").innerHTML=FACTORS.map(f=>`<div class="fcard${f.key==="control"?" key":""}"><div class="row"><span class="ico">${icon(f.icon)}</span><span class="w">반영 비중 ${Math.round(f.w*100)}%</span></div><h3>${f.name}</h3><p>${f.desc}</p></div>`).join("");
+const LV_CLS={"쉬움":"l1","보통":"l2","어려움":"l3"};
+const lvBadge=lv=>{const n=LEVEL_ORDER.indexOf(lv)+1;return `<span class="lvb ${LV_CLS[lv]||"l2"}"><span class="dots">${[1,2,3].map(k=>`<i${k<=n?' class="on"':""}></i>`).join("")}</span>${lv}</span>`};
+const GUIDE={"쉬움":"자료 1개 · 확인할 함정 1개 · 15분 내외","보통":"자료 1~2개 · 계산이나 원칙 판단 포함 · 20분 내외","어려움":"여러 자료의 상충 정보 · 계산과 판단이 함께 · 30분 내외"};
+let filterLv="전체";
+function renderTasks(){
+  $("filter").innerHTML=["전체",...LEVEL_ORDER].map(l=>`<button role="tab" aria-selected="${l===filterLv}" data-lv="${l}">${l}<span>${l==="전체"?TASKS.length:TASKS.filter(t=>t.level===l).length}</span></button>`).join("");
+  const card=t=>`<article class="tcard">
+    <div class="head"><span class="ico">${icon(t.icon||"i-doc")}</span>${lvBadge(t.level)}</div>
+    <h3>${esc(t.title)}</h3><p>${esc(t.teaser)}</p>
+    <div class="meta2"><span>${icon("i-layers")}${esc(t.type)}</span><span>${icon("i-clock")}${t.minutes||DEFAULT_MIN}분</span><span>${icon("i-list")}요구사항 ${t.reqs.length}개</span></div>
+    <button class="btn primary" data-start="${t.id}">이 과제로 시작${icon("i-arrow-r")}</button></article>`;
+  const levels=filterLv==="전체"?[...LEVEL_ORDER,...new Set(TASKS.map(t=>t.level).filter(l=>!LEVEL_ORDER.includes(l)))]:[filterLv];
+  const groups=levels.map(l=>({l,items:TASKS.filter(t=>t.level===l)})).filter(g=>g.items.length);
+  $("tasks").innerHTML=groups.length?groups.map(g=>`<div class="tgroup">
+      <div class="tgroup-h">${lvBadge(g.l)}<b>${esc(g.l)} 과제 ${g.items.length}개</b><span class="g">${GUIDE[g.l]||""}</span></div>
+      <div class="trow">${g.items.map(card).join("")}</div></div>`).join("")
+    :`<div class="notice">${icon("i-alert")}<p><b>과제를 불러오지 못했습니다</b> · 파일 아래쪽 <code>window.TASKS</code> 과제 데이터를 확인해 주세요.</p></div>`;
+}
+$("filter").addEventListener("click",e=>{const b=e.target.closest("[data-lv]");if(b){filterLv=b.dataset.lv;renderTasks()}});
+renderTasks();
+$("tasks").addEventListener("click",e=>{const b=e.target.closest("[data-start]");if(b)startTask(b.dataset.start)});
+$("demo-btn").onclick=()=>{LAST=DEMO;renderReport(DEMO,true)};
+
+/* ---------- 응시 ---------- */
+function emptyChat(){return `<div class="empty-chat" id="empty-chat"><span class="big">${icon("i-chat")}</span><b>무엇이든 요청해 보세요</b><span>AI는 과제 자료를 보지 못합니다. 자료를 복사해 붙여넣거나 상황을 설명하고 시작하세요.</span></div>`}
+const isNum=v=>v===""||/^[\d,.]+(%|원|명|일|부|개|점)?(×[\d,.]+(명|일|개))?$/.test(String(v).replace(/\s/g,""))||/^\d+명×\d+일$/.test(String(v));
+function tableHTML(tb){
+  const numCol=tb.head.map((_,i)=>i>0&&tb.rows.every(r=>isNum(r[i]??"")));
+  return `<div class="tbl-wrap"><table><thead><tr>${tb.head.map((h,i)=>`<th class="${numCol[i]?"n":""}">${esc(h)}</th>`).join("")}</tr></thead><tbody>${tb.rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${numCol[i]?"n":""}">${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function startTask(id){
+  const t=TASKS.find(x=>x.id===id);
+  S={task:t,start:Date.now(),turns:[],events:[]};
+  $("w-chip").innerHTML=`${esc(t.type)} · 난이도 ${esc(t.level)}`;
+  $("w-brief").innerHTML=`<h3>${esc(t.title)}</h3><p>${esc(t.situation)}</p>`;
+  $("w-mat-title").textContent="자료 · "+t.materialTitle;
+  $("w-material").innerHTML=t.table
+    ?tableHTML(t.table)
+    :`<pre>${esc(t.materialText)}</pre>`;
+  if(t.table&&t.note) $("w-material").insertAdjacentHTML("beforeend",`<div class="mat-note">${esc(t.note)}</div>`);
+  $("copy-mat").onclick=()=>copyText(t.materialText,"자료를 복사했습니다");
+  $("w-reqs").innerHTML=t.reqs.map(r=>`<li>${icon("i-check-c")}<span>${esc(r)}</span></li>`).join("");
+  $("final").value="";updateCount();
+  $("msgs").innerHTML=emptyChat();
+  if(!READY) appendMsg("err",errCopy("nokey"));
+  setTurnCount(0); disarm();
+  show("work"); tick();
+}
+const elapsed=()=>S?Math.round((Date.now()-S.start)/1000):0;
+const fmt=sec=>{const s=Math.abs(sec);return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
+function tick(){
+  if(!S||$("v-work").hidden)return;
+  const left=(S.task.minutes||DEFAULT_MIN)*60-elapsed();
+  $("timer-t").innerHTML=`<span style="font-family:var(--font-body)">${left>=0?"남은 시간":"시간 초과"}</span> ${fmt(left)}`;
+  $("timer").classList.toggle("over",left<0);
+  setTimeout(tick,1000);
+}
+function setTurnCount(n){$("turn-count").innerHTML=`${icon("i-chat")}질문 ${n}번`}
+$("final").addEventListener("input",updateCount);
+function updateCount(){const v=$("final").value;$("final-count").textContent=`${v.length}자 (공백 제외 ${v.replace(/\s/g,"").length}자)`}
+$("cancel-btn").onclick=()=>{if(chatCtl)chatCtl.abort();S=null;show("intro")};
+
+/* 마크다운 → 순수 텍스트 (최종안에 넣기·복사용) */
+function mdToText(md){
+  let s=String(md||"").replace(/\r\n?/g,"\n");
+  s=s.replace(/```[^\n]*\n([\s\S]*?)```/g,"$1");             // 코드블록 울타리
+  s=s.replace(/^[ \t]*(?:-{3,}|\*{3,}|_{3,})[ \t]*(\n|$)/gm,"");          // 구분선
+  s=s.replace(/^[ \t]*\|?[ \t]*:?-{2,}:?[ \t]*(\|[ \t]*:?-{2,}:?[ \t]*)*\|?[ \t]*(\n|$)/gm,""); // 표 구분행
+  s=s.replace(/^[ \t]*\|(.*)\|[ \t]*$/gm,(m,r)=>r.split("|").map(c=>c.trim()).join("  "));  // 표 행
+  s=s.replace(/^#{1,6}\s+/gm,"");                                // 제목
+  s=s.replace(/^[ \t]*>[ \t]?/gm,"");                                  // 인용
+  s=s.replace(/^(\s*)[-*+]\s+\[[ xX]\]\s+/gm,"$1- ");          // 체크박스
+  s=s.replace(/^(\s*)[*+]\s+/gm,"$1- ");                         // 목록 기호 통일
+  s=s.replace(/!\[([^\]]*)\]\([^)]*\)/g,"$1");                 // 이미지
+  s=s.replace(/\[([^\]]+)\]\([^)]*\)/g,"$1");                  // 링크
+  s=s.replace(/(\*\*|__)(.+?)\1/g,"$2");                         // 굵게
+  s=s.replace(/(^|[^*\w])\*(?!\s)([^*\n]+?)\*(?!\w)/g,"$1$2");   // 기울임
+  s=s.replace(/~~(.+?)~~/g,"$1").replace(/`([^`]+)`/g,"$1");      // 취소선·인라인 코드
+  s=s.replace(/\\([*_#`~>\[\]()|-])/g,"$1");                    // 이스케이프
+  return s.replace(/[ \t]+$/gm,"").replace(/\n{3,}/g,"\n\n").trim();
+}
+const mdLite=s=>esc(s).replace(/^#{1,6}\s*/gm,"").replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/^\s*[-*]\s+/gm,"• ");
+function appendMsg(kind,text,idx){
+  $("empty-chat")?.remove();
+  const d=document.createElement("div");d.className="msg "+kind;
+  const who=kind==="user"?`나${idx?` · 질문 ${idx}`:""}`:kind==="ai"?"AI 어시스턴트":"안내";
+  const ic=kind==="user"?"i-user":kind==="ai"?"i-spark":"i-alert";
+  d.innerHTML=`<span class="av">${icon(ic)}</span><div class="col"><span class="who">${who}</span><div class="body"></div></div>`;
+  const b=d.querySelector(".body");
+  if(kind==="ai") b.innerHTML=text?mdLite(text):'<span class="thinking">답변을 작성하고 있습니다…</span>'; else b.textContent=text;
+  $("msgs").appendChild(d);$("msgs").scrollTop=$("msgs").scrollHeight;
+  return d;
+}
+function addAiActions(d,text){
+  const a=document.createElement("div");a.className="acts";
+  a.innerHTML=`<button class="btn sm">${icon("i-insert")}최종안에 넣기</button><button class="btn sm">${icon("i-copy")}복사</button>`;
+  const [ins,cp]=a.querySelectorAll("button");
+  const plain=mdToText(text);
+  ins.onclick=()=>{const f=$("final");f.value=f.value.trim()?f.value.replace(/\s+$/,"")+"\n\n"+plain:plain;updateCount();
+    S.events.push({t:elapsed(),type:"insert"});toast("최종안에 넣었습니다")};
+  cp.onclick=()=>copyText(plain,"답변을 복사했습니다");
+  d.querySelector(".col").appendChild(a);
+}
+const RULES="당신은 회사 실무를 돕는 범용 AI 어시스턴트입니다. 한국어로 답하세요. 사용자가 대화에서 알려준 정보만 알고 있습니다. 정보가 부족하면 합리적으로 가정해 답하되, 가정한 부분은 짧게 밝히세요. 서식은 굵게(**)와 '- ' 목록 정도만 쓰고 표는 쓰지 마세요. 답변은 요청 범위에 맞게 간결하게 작성하세요.";
+
+async function send(){
+  const text=$("ask").value.trim();
+  if(!text||!S||chatCtl)return;
+  if(!READY){toast(errCopy("nokey"));return}
+  $("ask").value="";
+  S.turns.push({role:"user",content:text,t:elapsed()});
+  const n=S.turns.filter(x=>x.role==="user").length;
+  setTurnCount(n); appendMsg("user",text,n);
+  const d=appendMsg("ai",""),body=d.querySelector(".body");
+  chatCtl=new AbortController();setBusy(true);
+  const hist=S.turns.slice(-30).map(x=>({role:x.role,content:x.content}));
+  try{
+    const ans=await openaiChat([{role:"system",content:RULES},...hist],{model:modelFor("chat"),signal:chatCtl.signal,
+      onText:t=>{body.innerHTML=mdLite(t);$("msgs").scrollTop=$("msgs").scrollHeight}});
+    S.turns.push({role:"assistant",content:ans,t:elapsed()});
+    addAiActions(d,ans);
+  }catch(e){
+    const p=e.partial;
+    if(e.code==="cancelled"){
+      if(p){S.turns.push({role:"assistant",content:p+" [중지됨]",t:elapsed()});body.innerHTML=mdLite(p);addAiActions(d,p)}
+      else{body.innerHTML='<span class="thinking">답변을 중지했습니다</span>';S.turns.push({role:"assistant",content:"[응답 중지됨]",t:elapsed()})}
+    }else{
+      d.className="msg err";d.querySelector(".av").innerHTML=icon("i-alert");d.querySelector(".who").textContent="안내";
+      body.textContent=errCopy(e.code,e.message);S.turns.pop();setTurnCount(n-1);
+    }
+  }finally{chatCtl=null;setBusy(false);$("ask").focus()}
+}
+function setBusy(b){$("send-btn").disabled=b;$("stop-btn").hidden=!b}
+$("send-btn").onclick=send;
+$("stop-btn").onclick=()=>chatCtl?.abort();
+$("ask").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();send()}});
+
+/* ---------- 제출 ---------- */
+function disarm(){const b=$("submit-btn");b.dataset.arm="";b.classList.remove("warn");b.querySelector("span").textContent="제출하고 진단받기"}
+$("submit-btn").onclick=()=>{
+  const b=$("submit-btn");
+  if(!$("final").value.trim()){toast("최종안을 입력한 뒤 제출하세요");$("final").focus();return}
+  if(!b.dataset.arm){b.dataset.arm="1";b.classList.add("warn");b.querySelector("span").textContent="제출하면 수정할 수 없습니다 · 한 번 더 누르기";setTimeout(()=>{if(b.dataset.arm)disarm()},5000);return}
+  disarm(); if(chatCtl)chatCtl.abort();
+  if(!READY){toast(errCopy("nokey"));return}
+  evaluate();
+};
+function bigrams(s){s=s.replace(/\s+/g,"");const m=new Set();for(let i=0;i<s.length-1;i++)m.add(s.slice(i,i+2));return m}
+function sim(a,b){const A=bigrams(a),B=bigrams(b);if(!A.size||!B.size)return 0;let n=0;A.forEach(x=>B.has(x)&&n++);return n/(A.size+B.size-n)}
+function metrics(){
+  const t=S.task,users=S.turns.filter(x=>x.role==="user"),ais=S.turns.filter(x=>x.role==="assistant");
+  const all=users.map(u=>u.content).join("\n");
+  const ctx=t.markers.filter(m=>all.includes(m)).length/t.markers.length;
+  const verify=users.filter(u=>/확인|검증|맞(는|나|아)|틀(렸|린)|오류|근거|다시 계산|가중|정확|사실|체크|검토|빠진|누락|규정/.test(u.content)).length;
+  const spec=users.filter(u=>/\d+\s*(자|줄|문장|개|가지)|형식|톤|대상|분량|이내|목록|어조|정중|경영진|요약|구성|순서/.test(u.content)).length;
+  const revise=users.slice(1).filter(u=>/수정|고쳐|바꿔|다시|빼|추가|줄여|늘려|대신|반영|보완/.test(u.content)).length;
+  const fin=$("final").value;
+  const reliance=ais.length?Math.max(...ais.map(a=>sim(fin,mdToText(a.content)))):0;
+  return {turns:users.length,avgLen:users.length?Math.round(users.reduce((s,u)=>s+u.content.length,0)/users.length):0,
+    ctx:Math.round(ctx*100),verify,spec,revise,timeSec:elapsed(),reliance:Math.round(reliance*100)};
+}
+
+async function evaluate(){
+  const m=metrics(),t=S.task,fin=$("final").value;
+  show("report");
+  const rv=$("v-report");
+  rv.innerHTML=`<div class="loading"><div class="spin"></div><b style="font-size:19px">대화 기록을 분석하고 있습니다</b><p>질문의 흐름, 답변 점검 여부, 최종안의 요구사항 충족을 평가합니다. 30초에서 1분 정도 걸립니다.</p></div>`;
+  let n=0;
+  const log=S.turns.map(x=>x.role==="user"?`[응시자 질문 ${++n} · ${fmt(x.t)}]\n${x.content}`:`[AI 답변]\n${x.content.slice(0,2500)}`).join("\n\n");
+  const prompt=`당신은 산업조직심리 기반 AI 활용역량 평가 전문가입니다. 아래 응시자가 실무 과제를 AI 어시스턴트와 해결한 대화 기록과 최종 제출물을 분석해 AI 활용역량을 평가하세요. 정답 여부보다 AI를 다루는 과정(상황 설명, 요청 설계, 답변 점검, 반복 개선)을 중시하되 결과물 품질도 반영합니다. 근거 없이 후하게 주지 마세요. 대화가 거의 없거나 AI 답변을 검토 없이 그대로 제출했으면 해당 역량을 낮게 평가하세요.
+
+[과제] ${t.title} (난이도 ${t.level}, 권장 ${t.minutes||DEFAULT_MIN}분 · 난이도와 관계없이 같은 기준으로 채점)
+[상황] ${t.situation}
+[응시자에게 제공된 자료]
+${t.materialText}
+[최종안 요구사항]
+${t.reqs.map((r,i)=>`${i+1}. ${r}`).join("\n")}
+[채점 참고(응시자에게 비공개)] ${t.rubric}
+
+[행동 지표(자동 산출)]
+- 질문 ${m.turns}번, 평균 질문 길이 ${m.avgLen}자, 소요 ${fmt(m.timeSec)}
+- 자료 핵심정보 전달률 ${m.ctx}%, 답변 확인 질문 ${m.verify}번, 형식·조건 지정 ${m.spec}번, 수정 요청 ${m.revise}번
+- 최종안과 AI 답변의 최대 유사도 ${m.reliance}%
+
+[대화 기록]
+${log||"(대화 없음)"}
+
+[최종 제출물]
+${fin}
+
+평가 역량(각 1~5점, 1=매우 미흡, 3=보통, 5=탁월):
+- context 상황 설명: 목적·대상·자료·조건을 AI에 충분히 전달했는가
+- prompting 요청 설계: 형식·분량 지정, 단계 나누기, 명확성
+- control 답변 점검: AI 답변의 틀린 내용·빠진 내용·지나친 약속을 찾아 바로잡았는가 (채점 참고의 함정 중심)
+- iteration 반복 개선: 처음 결과물을 단계적으로 더 낫게 만들었는가
+- output 결과물 완성도: 최종안이 요구사항을 지켰는가
+
+작성 규칙: 응시자가 읽는 리포트입니다. 쉬운 우리말로 쓰고 약어·기호(#2, L2, 프롬프트 같은 전문용어)는 쓰지 마세요. 질문은 '두 번째 질문'처럼 한글 서수로 가리키세요. 모든 문장은 '~했습니다/~입니다'로 끝내세요.
+
+반드시 JSON 객체 하나만 출력하세요. 형식:
+{"headline":"결과를 요약하는 제목 한 문장(35자 이내)","summary":"총평 2~3문장","best":{"title":"가장 잘한 점(15자 이내 명사구)","desc":"한 문장"},"weak":{"title":"가장 보완할 점(15자 이내 명사구)","desc":"한 문장"},"factors":[{"key":"context","score":3,"good":"잘한 점 1~2문장(구체적 근거)","bad":"부족한 점 1~2문장(구체적 근거)"} ...5개 모두],"requirements":[{"item":"요구사항을 짧게","met":"충족|일부|미충족","note":"판정 근거 한 문장"} ...요구사항 수만큼],"turns":[{"turn":1,"title":"질문 내용 요약(20자 이내)","tag":"기준 확인|자료 전달|구체화|답변 확인|수정 요청|조건 없이 맡김|기타 중 하나","note":"이 질문의 의미 한 문장"} ...응시자 질문마다],"strengths":["강점 1","강점 2"],"nextSteps":["다음에 해 볼 행동 1","다음에 해 볼 행동 2"]}`;
+  try{
+    const r=await openaiJSON(prompt,{model:modelFor("evaluation")});
+    if(!r||!Array.isArray(r.factors)) throw new ApiError("json","");
+    LAST=buildReport(r,m,t);
+    renderReport(LAST,false);
+  }catch(e){
+    rv.innerHTML=`<div class="loading">${icon("i-alert")}<b style="font-size:19px">진단을 완료하지 못했습니다</b><p>${esc(errCopy(e.code||"json",e.message))}</p><div class="rp-actions"><button class="btn primary" id="retry-ev">${icon("i-cycle")}다시 평가</button><button class="btn" id="log-ev">${icon("i-chat")}대화기록 내보내기</button><button class="btn" id="back-work">${icon("i-arrow-l")}작업 화면으로</button></div></div>`;
+    $("retry-ev").onclick=evaluate; $("log-ev").onclick=()=>exportTranscript(snapTranscript()); $("back-work").onclick=()=>{show("work");tick()};
+  }
+}
+function normMet(s){s=String(s||"");return s.includes("미")?"미충족":(s.includes("일부")||s.includes("부분"))?"일부":"충족"}
+function buildReport(r,m,t){
+  const fs=FACTORS.map(f=>{const x=r.factors.find(y=>y.key===f.key)||{};
+    return {...f,score:Math.min(5,Math.max(1,Math.round(Number(x.score))||1)),good:x.good||"",bad:x.bad||""}});
+  const w=fs.reduce((s,f)=>s+f.score*f.w,0), overall=Math.round((w-1)/4*100);
+  const users=S.turns.filter(x=>x.role==="user");
+  const d=new Date();
+  return {task:t.title,taskType:t.type,level:t.level,date:`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`,
+    overall,weighted:w,headline:r.headline||"",summary:r.summary||"",best:r.best||{},weak:r.weak||{},factors:fs,
+    requirements:(Array.isArray(r.requirements)?r.requirements:[]).map(q=>({item:q.item,met:normMet(q.met),note:q.note})),
+    turns:users.map((u,i)=>{const x=(r.turns||[]).find(y=>Number(y.turn)===i+1)||{};
+      return {turn:i+1,title:x.title||u.content.slice(0,40),tag:x.tag||"",note:x.note||""}}),
+    strengths:r.strengths||[],nextSteps:r.nextSteps||r.improvements||[],metrics:m,transcript:snapTranscript()};
+}
+
+/* ---------- 리포트 마크업 (화면·내보내기 공용) ---------- */
+function reportMarkup(d,isDemo){
+  const lv=[...LEVELS].reverse().find(l=>d.overall>=l.min);
+  const tone=lv.no>=3?["--accent","--accent-soft"]:lv.no===2?["--warn","--warn-soft"]:["--bad","--bad-soft"];
+  const C=477.5, m=d.metrics;
+  const min=Math.min(...d.factors.map(f=>f.score)), max=Math.max(...d.factors.map(f=>f.score));
+  const weakF=d.factors.filter(f=>f.score===min&&min<max).sort((a,b)=>b.w-a.w)[0];
+  const cnt={ok:0,part:0,no:0}; d.requirements.forEach(q=>cnt[q.met==="충족"?"ok":q.met==="일부"?"part":"no"]++);
+  const reqCls=q=>q.met==="충족"?"ok":q.met==="일부"?"part":"no";
+  const reqIc=q=>q.met==="충족"?"i-check":q.met==="일부"?"i-minus":"i-x";
+  const warnTag=tag=>/맡김|위임/.test(tag||"");
+  return `<div class="rp">
+  <div class="brand"><span class="logo">${icon("i-spark")}</span><b>AI 활용역량 진단</b><span>개인 결과 리포트</span>${isDemo?'<span class="ex-tag">예시 · 가상의 응시 결과</span>':""}</div>
+
+  <section class="card hero" style="--lv:var(${tone[0]});--lv-soft:var(${tone[1]})">
+    <div class="ring" role="img" aria-label="종합 점수 100점 만점에 ${d.overall}점">
+      <svg viewBox="0 0 180 180" aria-hidden="true"><circle cx="90" cy="90" r="76" fill="none" stroke="var(--sunk)" stroke-width="18"/>
+      <circle cx="90" cy="90" r="76" fill="none" stroke="var(${tone[0]})" stroke-width="18" stroke-dasharray="${(C*d.overall/100).toFixed(1)} ${C}" transform="rotate(-90 90 90)"/></svg>
+      <div class="val"><div><b>${d.overall}</b><span>100점 만점</span></div></div>
+    </div>
+    <div class="hero-info">
+      <span class="eyebrow">과제 · ${esc(d.task)}${d.level?` · 난이도 ${esc(d.level)}`:""}</span>
+      <h1>${esc(d.headline||"AI 활용역량 진단 결과")}</h1>
+      <div class="level-now"><span>4단계 중 ${lv.no}단계 · ${lv.name}</span></div>
+      <div class="levels" aria-label="역량 단계">${LEVELS.map(l=>`<div class="lv${l.no<=lv.no?" done":""}${l.no===lv.no?" now":""}"><i></i><span>${l.no}단계 ${l.name}</span><small>${l.range}</small></div>`).join("")}</div>
+      <p class="summary">${esc(d.summary)}</p>
+      <div class="meta"><span>${icon("i-cal")}응시일 ${esc(d.date)}</span><span>${icon("i-doc")}과제 유형 ${esc(d.taskType)}</span><span>${icon("i-clock")}소요 시간 ${Math.floor(m.timeSec/60)}분 ${m.timeSec%60}초</span></div>
+    </div>
+  </section>
+
+  <section class="glance" aria-label="한눈에 보기">
+    <div class="tile good"><div class="t-h"><span class="t-ic">${icon("i-star")}</span>가장 잘한 점</div><div class="big">${esc(d.best.title)}</div><p>${esc(d.best.desc)}</p></div>
+    <div class="tile weak"><div class="t-h"><span class="t-ic">${icon("i-alert")}</span>가장 보완할 점</div><div class="big">${weakF?`${esc(weakF.name)} (5점 중 ${weakF.score}점)`:esc(d.weak.title)}</div><p>${esc(d.weak.desc)}</p></div>
+    <div class="tile req"><div class="t-h"><span class="t-ic">${icon("i-list")}</span>요구사항 충족</div><div class="big">${d.requirements.length}개 중 ${cnt.ok}개 충족</div>
+      <div class="reqbar" aria-hidden="true">${d.requirements.map(q=>`<i class="${reqCls(q)}-bg"></i>`).join("")}</div>
+      <div class="legend">${cnt.ok?`<span><i class="ok-bg"></i>충족 ${cnt.ok}</span>`:""}${cnt.part?`<span><i class="part-bg"></i>일부 충족 ${cnt.part}</span>`:""}${cnt.no?`<span><i class="no-bg"></i>미충족 ${cnt.no}</span>`:""}</div></div>
+  </section>
+
+  <section class="card">
+    <div class="sec-h"><span class="badge info">${icon("i-gauge")}</span><h2>AI와 어떻게 대화했나요</h2><p>대화 기록에서 자동으로 계산한 수치입니다.</p></div>
+    <div class="stats">
+      <div class="stat"><span class="s-ic">${icon("i-chat")}</span><b>${m.turns}<small>번</small></b><span class="s-lab">AI에게 한 질문</span><p>평균 질문 길이는 ${m.avgLen}자입니다.</p></div>
+      <div class="stat"><span class="s-ic">${icon("i-search")}</span><b>${m.verify}<small>번</small></b><span class="s-lab">답변을 확인한 질문</span><p>AI 답변이 맞는지 따져 본 질문입니다. 많을수록 좋습니다.</p></div>
+      <div class="stat"><span class="s-ic">${icon("i-copy")}</span><b>${m.reliance}<small>%</small></b><span class="s-lab">AI 답변과 겹치는 정도</span>
+        <div class="simbar" aria-hidden="true"><i style="width:${m.reliance}%"></i></div>
+        <p>최종안이 AI 답변과 얼마나 같은지 나타냅니다. 높을수록 AI 답변을 그대로 옮겼다는 뜻입니다.</p></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="sec-h"><span class="badge">${icon("i-award")}</span><h2>다섯 가지 역량별 결과</h2><p>각 역량을 5점 만점으로 평가했습니다.${weakF?" 주황색은 가장 보완이 필요한 역량입니다.":""}</p></div>
+    <div class="factors">${d.factors.map(f=>`
+      <article class="fac${weakF&&f.key===weakF.key?" weak":""}">
+        <div class="fac-side">
+          <div class="fac-title"><span class="f-ic">${icon(f.icon)}</span><h3>${f.name}</h3></div>
+          <p class="fac-desc">${f.desc}</p>
+          <div class="blocks" aria-label="5점 중 ${f.score}점">${[1,2,3,4,5].map(k=>`<i${k<=f.score?' class="on"':""}></i>`).join("")}<b>${f.score}<small> / 5</small></b></div>
+          <span class="fac-w">종합점수 반영 비중 ${Math.round(f.w*100)}%</span>
+        </div>
+        <div class="fac-body">
+          <div class="pt good"><span class="p-ic">${icon("i-check")}</span><div><h4>잘한 점</h4><p>${esc(f.good)}</p></div></div>
+          <div class="pt bad"><span class="p-ic">${icon("i-minus")}</span><div><h4>부족한 점</h4><p>${esc(f.bad)}</p></div></div>
+        </div>
+      </article>`).join("")}
+    </div>
+  </section>
+
+  <div class="two">
+    <section class="card">
+      <div class="sec-h"><span class="badge">${icon("i-list")}</span><h2>과제 요구사항 확인</h2></div>
+      <ul class="reqs">${d.requirements.map(q=>`<li class="${reqCls(q)}"><div class="r-ic"><span>${icon(reqIc(q))}</span><em>${q.met}</em></div><div><h4>${esc(q.item)}</h4><p>${esc(q.note)}</p></div></li>`).join("")}</ul>
+    </section>
+    <section class="card">
+      <div class="sec-h"><span class="badge">${icon("i-route")}</span><h2>AI에게 한 질문의 흐름</h2></div>
+      ${d.turns.length?`<ol class="flow">${d.turns.map(x=>`<li${warnTag(x.tag)?' class="warn"':""}><span class="dot">${x.turn}</span><div><div class="f-top"><b>${esc(x.title)}</b>${x.tag?`<span class="chip">${esc(x.tag)}</span>`:""}</div>${x.note?`<p>${esc(x.note)}</p>`:""}</div></li>`).join("")}</ol>`:'<p class="empty">AI와 대화하지 않고 제출했습니다.</p>'}
+    </section>
+  </div>
+
+  <div class="two">
+    <section class="card">
+      <div class="sec-h"><span class="badge">${icon("i-star")}</span><h2>강점</h2></div>
+      <ul class="points good-list">${d.strengths.map((s,i)=>`<li><span class="n">${i+1}</span><p>${esc(s)}</p></li>`).join("")}</ul>
+    </section>
+    <section class="card">
+      <div class="sec-h"><span class="badge info">${icon("i-flag")}</span><h2>다음에 이렇게 해 보세요</h2></div>
+      <ul class="points todo-list">${d.nextSteps.map((s,i)=>`<li><span class="n">${i+1}</span><p>${esc(s)}</p></li>`).join("")}</ul>
+    </section>
+  </div>
+
+  <section class="howto">${icon("i-info")}<div>
+    <p><b>점수 계산 방법</b> · 다섯 역량 점수(각 5점 만점)에 반영 비중을 곱해 더하면 5점 만점에 ${d.weighted.toFixed(2)}점이며, 이를 100점 만점으로 바꾸면 ${d.overall}점입니다. 답변 점검 역량의 비중이 25%로 가장 큽니다.</p>
+    <p>역량 점수는 AI 평가자가 대화 기록과 최종안을 분석해 매긴 값입니다. 실제 채용 선발에 쓰려면 문항 타당성과 평가자 간 일치도 검증이 필요합니다.</p>
+  </div></section>
+</div>`;
+}
+
+function renderReport(d,isDemo){
+  show("report");
+  $("v-report").innerHTML=reportMarkup(d,isDemo)+`
+  <div class="rp-actions">
+    <button class="btn primary" id="export-btn">${icon("i-download")}HTML 리포트로 내보내기</button>
+    ${d.transcript?`<button class="btn" id="log-btn">${icon("i-chat")}대화기록 내보내기</button>`:""}
+    <button class="btn" id="print-btn">${icon("i-print")}인쇄 · PDF로 저장</button>
+    <button class="btn" id="again-btn">${icon("i-arrow-l")}다른 과제 응시하기</button>
+  </div>`;
+  $("export-btn").onclick=()=>exportReport(d,isDemo);
+  if(d.transcript) $("log-btn").onclick=()=>exportTranscript(d.transcript);
+  $("print-btn").onclick=()=>window.print();
+  $("again-btn").onclick=()=>{S=null;show("intro")};
+}
+
+/* ---------- HTML 내보내기 ---------- */
+// iPad 사파리는 '다운로드' 확인 창을 띄운 뒤 파일을 읽으므로 blob 주소를 넉넉히 유지
+function saveBlob(blob,name,msg){
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=name;a.rel="noopener";document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},60000);
+  toast(/iPad|iPhone|Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1?msg.replace("내려받았습니다","저장합니다 · '파일' 앱의 다운로드 폴더를 확인하세요"):msg);
+}
+function exportReport(d,isDemo){
+  const css=$("base-css").textContent+"\n"+$("rp-css").textContent+
+    "\n.page{max-width:1080px;margin:0 auto;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}\n@media print{.page{padding:0;max-width:none}}";
+  const fonts=[...document.querySelectorAll('link[rel="stylesheet"],link[rel="icon"]')].map(l=>l.outerHTML).join("\n");
+  const doc=`<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AI 활용역량 진단 리포트 · ${esc(d.task)}</title>
+${fonts}
+<style>${css}</style>
+</head>
+<body>
+${$("sprite").outerHTML}
+<main class="page">${reportMarkup(d,isDemo)}</main>
+</body>
+</html>`;
+  const blob=new Blob([doc],{type:"text/html;charset=utf-8"});
+  const stamp=new Date().toISOString().slice(0,10).replace(/-/g,"");
+  const name=`AI활용역량진단_${d.task.replace(/[\\/:*?"<>|\s]+/g,"_")}_${stamp}.html`;
+  saveBlob(blob,name,"리포트 파일을 내려받았습니다");
+}
+
+/* ---------- 대화기록 내보내기 (리포트와 별개) ---------- */
+function snapTranscript(){
+  if(!S) return null;
+  const t=S.task;
+  return {task:{title:t.title,type:t.type,level:t.level,minutes:t.minutes||DEFAULT_MIN,situation:t.situation,
+      materialTitle:t.materialTitle,materialText:t.materialText,reqs:t.reqs||[]},
+    turns:S.turns.map(x=>({...x})),events:(S.events||[]).map(x=>({...x})),
+    final:$("final")?.value||"",start:S.start,timeSec:elapsed()};
+}
+function transcriptMarkup(tr){
+  const t=tr.task,d=new Date(tr.start),p2=n=>String(n).padStart(2,"0");
+  const when=`${d.getFullYear()}.${p2(d.getMonth()+1)}.${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+  const users=tr.turns.filter(x=>x.role==="user"),ais=tr.turns.filter(x=>x.role==="assistant");
+  const chars=a=>a.reduce((s,x)=>s+String(x.content||"").length,0);
+  const items=[];let q=0;
+  tr.turns.forEach((x,i)=>items.push({t:x.t??0,o:i*2,x}));
+  tr.events.forEach((e,i)=>items.push({t:e.t??0,o:1e6+i,e}));
+  items.sort((a,b)=>a.t-b.t||a.o-b.o);
+  const rows=items.map(it=>{
+    if(it.e){return it.e.type==="insert"?`<li class="ev">${icon("i-insert")}<span>${fmt(it.e.t)} · AI 답변을 최종안에 넣었습니다</span></li>`:""}
+    const x=it.x,u=x.role==="user",stop=!u&&/\[(응답 )?중지됨\]$/.test(x.content);
+    const head=u?`응시자 · 질문 ${++q}`:"AI 어시스턴트";
+    const body=u?esc(x.content):mdLite(x.content);
+    return `<li class="m ${u?"u":"a"}"><div class="h">${icon(u?"i-user":"i-spark")}<b>${head}</b><span>${fmt(x.t??0)}</span><span>${String(x.content).length.toLocaleString()}자</span>${stop?'<em>중지됨</em>':""}</div><div class="b">${body}</div></li>`;
+  }).join("");
+  return `<header class="hd">
+  <p class="kicker">AI 활용역량 진단 · 대화기록</p>
+  <h1>${esc(t.title)}</h1>
+  <div class="meta"><span>${esc(t.type)}</span><span>난이도 ${esc(t.level)}</span><span>권장 ${t.minutes}분</span><span>응시 ${when}</span></div>
+  <dl class="stats">
+    <div><dt>질문</dt><dd>${users.length}회</dd></div>
+    <div><dt>AI 답변</dt><dd>${ais.length}회</dd></div>
+    <div><dt>소요 시간</dt><dd>${fmt(tr.timeSec)}</dd></div>
+    <div><dt>질문 글자 수</dt><dd>${chars(users).toLocaleString()}자</dd></div>
+    <div><dt>답변 글자 수</dt><dd>${chars(ais).toLocaleString()}자</dd></div>
+  </dl>
+</header>
+<details class="box"><summary>과제 상황과 자료</summary>
+  <h3>상황</h3><p>${esc(t.situation)}</p>
+  <h3>${esc(t.materialTitle||"자료")}</h3><pre>${esc(t.materialText)}</pre>
+  ${t.reqs.length?`<h3>최종안 요구사항</h3><ol>${t.reqs.map(r=>`<li>${esc(r)}</li>`).join("")}</ol>`:""}
+</details>
+<section><h2>대화 흐름</h2>${rows?`<ol class="log">${rows}</ol>`:`<p class="none">대화 기록이 없습니다.</p>`}</section>
+<section><h2>최종 제출물</h2>${tr.final.trim()?`<div class="final">${esc(tr.final)}</div>`:`<p class="none">제출한 내용이 없습니다.</p>`}</section>
+<p class="foot">이 문서는 응시 중 주고받은 질문과 답변을 그대로 기록한 것입니다. 오류로 전송되지 않은 질문은 포함되지 않습니다.</p>`;
+}
+const TR_CSS=`
+.page{max-width:880px;margin:0 auto;padding:40px max(16px,env(safe-area-inset-left,0px)) 64px;display:grid;gap:28px}
+.hd{display:grid;gap:12px}
+.kicker{font-size:14px;font-weight:700;color:var(--accent)}
+.hd h1{font-size:clamp(24px,3vw,30px);line-height:1.35;letter-spacing:-.02em;color:var(--navy);word-break:keep-all;text-wrap:balance}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:15px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:6px}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.stats dt{font-size:13px;color:var(--muted)}
+.stats dd{font-size:20px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
+h2{font-size:20px;color:var(--navy);margin-bottom:14px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 20px}
+.box summary{cursor:pointer;font-weight:700;color:var(--navy)}
+.box h3{font-size:15px;margin:16px 0 6px;color:var(--ink)}
+.box p,.box li{font-size:15px;line-height:1.7;word-break:keep-all}
+.box ol{padding-left:20px}
+.box pre{white-space:pre-wrap;font:14px/1.7 var(--font-body,inherit);background:var(--sunk);border-radius:10px;padding:12px 14px}
+.log{list-style:none;display:grid;gap:14px;padding:0}
+.m{border-radius:14px;padding:14px 18px;border:1px solid var(--line);background:var(--surface)}
+.m.u{background:var(--accent-soft);border-color:transparent}
+.m .h{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;font-size:13px;color:var(--muted);margin-bottom:8px}
+.m .h b{font-size:14px;color:var(--ink)}
+.m .h .ic{width:18px;height:18px;color:var(--accent)}
+.m .h em{font-style:normal;font-weight:700;color:var(--warn);background:var(--warn-soft);border-radius:6px;padding:1px 8px}
+.m .b{white-space:pre-wrap;font-size:15.5px;line-height:1.75;word-break:keep-all;overflow-wrap:anywhere}
+.ev{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted);padding-left:6px}
+.ev .ic{width:16px;height:16px;color:var(--accent)}
+.final{white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;font-size:15.5px;line-height:1.75;word-break:keep-all;overflow-wrap:anywhere}
+.none{color:var(--muted)}
+.foot{font-size:13.5px;color:var(--muted);word-break:keep-all}
+.ic{width:20px;height:20px;flex:none}
+@media print{.page{padding:0;max-width:none}.box{break-inside:avoid}.m{break-inside:avoid}details.box>*{display:block}}`;
+function exportTranscript(tr){
+  if(!tr){toast("내보낼 대화기록이 없습니다");return}
+  const fonts=[...document.querySelectorAll('link[rel="stylesheet"],link[rel="icon"]')].map(l=>l.outerHTML).join("\n");
+  const doc=`<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>대화기록 · ${esc(tr.task.title)}</title>
+${fonts}
+<style>${$("base-css").textContent}\n${TR_CSS}</style>
+</head>
+<body>
+${$("sprite").outerHTML}
+<main class="page">${transcriptMarkup(tr)}</main>
+</body>
+</html>`;
+  const blob=new Blob([doc],{type:"text/html;charset=utf-8"});
+  const d=new Date(tr.start),p2=n=>String(n).padStart(2,"0");
+  const stamp=`${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}`;
+  saveBlob(blob,`AI활용역량진단_대화기록_${tr.task.title.replace(/[\\/:*?"<>|\s]+/g,"_")}_${stamp}.html`,"대화기록 파일을 내려받았습니다");
+}
+
+/* ---------- 예시 리포트 (가상 데이터) ---------- */
+const DEMO=(()=>{
+  const sc={context:4,prompting:4,control:3,iteration:3,output:3};
+  const txt={
+    context:["첫 질문에서 표 전체와 '경영진 회의 보고용'이라는 목적을 함께 전달했습니다.","보고를 받는 사람이 무엇을 결정해야 하는지는 알려주지 않았습니다."],
+    prompting:["첫 질문에서 5줄 요약, 수치 근거 포함 등 형식과 분량을 구체적으로 정했습니다.","요약, 점검, 문장 다듬기처럼 단계를 나눠 요청하지는 않았습니다."],
+    control:["두 번째 질문에서 응답자 수를 반영한 평균인지 확인해 3.90점으로 바로잡았습니다.","응답자가 3명뿐인 과정을 가장 좋은 과정으로 쓴 문장은 걸러내지 못했습니다."],
+    iteration:["두 번째와 세 번째 질문에서 평균과 개선안 문장을 고쳤습니다.","마지막 정리는 AI 답변을 거의 그대로 썼습니다."],
+    output:["평균 수치와 개선 우선순위는 정확합니다.","결과 해석 시 주의할 점이 빠져 있습니다."]};
+  const fs=FACTORS.map(f=>({...f,score:sc[f.key],good:txt[f.key][0],bad:txt[f.key][1]}));
+  const w=fs.reduce((s,f)=>s+f.score*f.w,0);
+  const t=new Date();
+  return {task:"사내 교육 만족도 결과 보고",taskType:"데이터 해석",level:"보통",date:`${t.getFullYear()}년 ${t.getMonth()+1}월 ${t.getDate()}일`,overall:Math.round((w-1)/4*100),weighted:w,
+    headline:"수치는 잘 점검했지만, 해석의 근거는 놓쳤습니다",
+    summary:"자료를 표째로 전달하고 보고 형식과 분량을 분명히 정해 첫 결과물의 품질이 높았습니다. AI가 단순평균(4.13점)을 제시했을 때 가중평균으로 다시 계산하게 한 점이 돋보입니다. 다만 응답자가 3명뿐인 과정을 가장 좋은 과정으로 쓴 부분은 걸러내지 못했습니다.",
+    best:{title:"AI가 낸 수치를 다시 확인",desc:"단순평균을 그대로 쓰지 않고 응답자 수를 반영해 다시 계산하게 했습니다."},
+    weak:{title:"해석 문장의 근거 확인",desc:"표본이 작은 과정을 최고로 단정한 문장을 그대로 두었습니다."},
+    factors:fs,
+    requirements:[{item:"경영진 보고용 5줄 이내 요약",met:"충족",note:"5줄 형식으로 작성했습니다."},
+      {item:"전체 평균 만족도를 정확한 수치로 제시",met:"충족",note:"가중평균 3.90점을 제시했습니다."},
+      {item:"결과 해석 시 주의할 점 1가지 포함",met:"미충족",note:"표본이 작은 과정에 대한 주의 문구가 없습니다."},
+      {item:"다음 분기 개선 우선순위 1가지 제안",met:"충족",note:"데이터 리터러시 과정 개편을 제안했습니다."}],
+    turns:[{turn:1,title:"표와 보고 목적 전달",tag:"자료 전달",note:"목적, 자료, 형식을 한 번에 알려주었습니다."},
+      {turn:2,title:"전체 평균 다시 계산",tag:"답변 확인",note:"단순평균 오류를 찾아 바로잡았습니다."},
+      {turn:3,title:"개선 우선순위 구체화",tag:"수정 요청",note:"개선안을 한 문장으로 다듬었습니다."},
+      {turn:4,title:"최종본 정리 요청",tag:"조건 없이 맡김",note:"마지막 점검 없이 정리를 맡겼습니다."}],
+    strengths:["자료와 목적을 처음부터 충분히 전달해 첫 답변의 품질을 끌어올렸습니다.","AI가 낸 수치를 그대로 믿지 않고 계산 방식을 확인했습니다."],
+    nextSteps:["수치뿐 아니라 해석 문장의 근거(응답자 수 등)도 확인해 보세요.","제출 전에 요구사항과 최종안을 한 줄씩 대조해 보세요."],
+    metrics:{turns:4,avgLen:58,ctx:83,verify:1,revise:1,reliance:74,timeSec:812,spec:2}};
+})();
+</script>
+</body>
+</html>
